@@ -13,6 +13,7 @@ from pymilvus import (
 )
 from pymilvus.milvus_client.index import IndexParams
 from pymilvus.bulk_writer import RemoteBulkWriter, BulkFileType
+from nv_ingest_client.util.boto3writer import Boto3BulkWriter
 from pymilvus.model.sparse.bm25.tokenizers import build_default_analyzer
 from pymilvus.model.sparse import BM25EmbeddingFunction
 from llama_index.embeddings.nvidia import NVIDIAEmbedding
@@ -571,6 +572,7 @@ def write_records_minio(
     enable_infographics: bool = True,
     enable_audio: bool = True,
     record_func=_record_dict,
+    max_text_length: int = 10000
 ) -> RemoteBulkWriter:
     """
     Writes the supplied records to milvus using the supplied writer.
@@ -619,6 +621,10 @@ def write_records_minio(
                 element, enable_charts, enable_tables, enable_images, enable_infographics
             )
             if text:
+                if len(text) > max_text_length:
+                    logger.warning(f"Truncating text from {len(text)} to {max_text_length} characters")
+                    text = text[:max_text_length]
+
                 if sparse_model is not None:
                     writer.append_row(record_func(text, element, sparse_model.encode_documents([text])))
                 else:
@@ -798,6 +804,7 @@ def write_to_nvingest_collection(
     secret_key: str = "minioadmin",
     bucket_name: str = "a-bucket",
     threshold: int = 10,
+    use_boto3 = False
 ):
     """
     This function takes the input records and creates a corpus,
@@ -861,9 +868,10 @@ def write_to_nvingest_collection(
     elif local_index and sparse:
         bm25_ef = BM25EmbeddingFunction(build_default_analyzer(language="en"))
         bm25_ef.load(bm25_save_path)
+
     client = MilvusClient(milvus_uri)
     schema = Collection(collection_name).schema
-    logger.error(f"{len(records)} records to insert to milvus")
+    logger.info(f"{len(records)} records to insert to milvus")
     if len(records) < threshold:
         stream = True
     if stream:
@@ -877,33 +885,52 @@ def write_to_nvingest_collection(
             enable_tables=enable_tables,
             enable_images=enable_images,
             enable_infographics=enable_infographics,
-        )
+        ) 
+    
     else:
-        # Connections parameters to access the remote bucket
-        conn = RemoteBulkWriter.S3ConnectParam(
-            endpoint=minio_endpoint,  # the default MinIO service started along with Milvus
-            access_key=access_key,
-            secret_key=secret_key,
-            bucket_name=bucket_name,
-            secure=False,
-        )
-        text_writer = RemoteBulkWriter(
-            schema=schema, remote_path="/", connect_param=conn, file_type=BulkFileType.PARQUET
-        )
-        writer = write_records_minio(
-            records,
-            text_writer,
-            bm25_ef,
-            enable_text=enable_text,
-            enable_charts=enable_charts,
-            enable_tables=enable_tables,
-            enable_images=enable_images,
-            enable_infographics=enable_infographics,
-        )
+
+        if use_boto3:
+            ##HARDCODED FOR MULTIPART 
+            use_presigned =True
+            upload_method = "PRESIGNED URL" if use_presigned else "STANDARD BOTO3"
+            print(f"USING BOTO3 FOR BULK INSERT WITH {upload_method} METHOD")
+            if use_presigned:
+
+                print("-=***!Currently hardcoded for multipart only, change here client/src/nv_ingest_client/util/milvus.py line 889 to reverse!***=-" )
+
+            
+            
+            endpoint_url = minio_endpoint
+            if not endpoint_url.startswith(('http://', 'https://')):
+                endpoint_url = f"https://{endpoint_url}"
+
+            conn = Boto3BulkWriter.S3ConnectParam(bucket_name=bucket_name,
+                                                  endpoint_url=endpoint_url,
+                                                  access_key=access_key,
+                                                  secret_key=secret_key,
+                                                  region_name=None,
+                                                  verify=False,
+                                                  use_presigned=use_presigned)
+        
+            text_writer = Boto3BulkWriter(schema=schema, remote_path="", connect_param=conn, file_type=BulkFileType.PARQUET)
+        else:
+
+            conn = RemoteBulkWriter.S3ConnectParam(
+                endpoint=minio_endpoint,  # the default MinIO service started along with Milvus
+                access_key=access_key,
+                secret_key=secret_key,
+                bucket_name=bucket_name,
+                secure=False,
+            )
+            text_writer = RemoteBulkWriter(
+                schema=schema, remote_path="/", connect_param=conn, file_type=BulkFileType.PARQUET
+            )
+        writer = write_records_minio(records,text_writer,bm25_ef,enable_text=enable_text,enable_charts=enable_charts,enable_tables=enable_tables,enable_images=enable_images,enable_infographics=enable_infographics)
         bulk_insert_milvus(collection_name, writer, milvus_uri)
         # this sleep is required, to ensure atleast this amount of time
         # passes before running a search against the collection.\
         time.sleep(20)
+
 
 
 def dense_retrieval(
