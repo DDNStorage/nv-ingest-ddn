@@ -47,8 +47,12 @@ from docx.text.paragraph import Paragraph
 from docx.text.run import Run
 from pandas import DataFrame
 
-from nv_ingest.extraction_workflows.image.image_handlers import extract_page_elements_from_images
-from nv_ingest.extraction_workflows.image.image_handlers import load_and_preprocess_image
+from nv_ingest.extraction_workflows.image.image_handlers import (
+    extract_page_elements_from_images,
+)
+from nv_ingest.extraction_workflows.image.image_handlers import (
+    load_and_preprocess_image,
+)
 from nv_ingest.schemas.image_extractor_schema import ImageConfigSchema
 from nv_ingest.schemas.metadata_schema import ContentTypeEnum
 from nv_ingest.schemas.metadata_schema import ImageTypeEnum
@@ -57,7 +61,10 @@ from nv_ingest.schemas.metadata_schema import TextTypeEnum
 from nv_ingest.schemas.metadata_schema import validate_metadata
 from nv_ingest.util.converters import bytetools
 from nv_ingest.util.detectors.language import detect_language
-from nv_ingest.util.pdf.metadata_aggregators import construct_page_element_metadata, CroppedImageWithContent
+from nv_ingest.util.pdf.metadata_aggregators import (
+    construct_page_element_metadata,
+    CroppedImageWithContent,
+)
 
 PARAGRAPH_FORMATS = ["text", "markdown"]
 TABLE_FORMATS = ["markdown", "markdown_light", "csv", "tag"]
@@ -106,23 +113,40 @@ class DocxProperties:
         core_properties = self.document.core_properties
 
         # Set default title if missing
-        self.title = core_properties.title if core_properties.title is not None else "Untitled Document"
+        self.title = (
+            core_properties.title
+            if core_properties.title is not None
+            else "Untitled Document"
+        )
 
         # Use author if available; otherwise, fall back to last_modified_by or default
         self.author = (
             core_properties.author
-            if core_properties.author is not None and core_properties.author.strip() != ""
+            if core_properties.author is not None
+            and core_properties.author.strip() != ""
             else (
-                core_properties.last_modified_by if core_properties.last_modified_by is not None else "Unknown Author"
+                core_properties.last_modified_by
+                if core_properties.last_modified_by is not None
+                else "Unknown Author"
             )
         )
 
         # Use current datetime as fallback for created/modified
-        self.created = core_properties.created if core_properties.created is not None else datetime.now()
-        self.modified = core_properties.modified if core_properties.modified is not None else datetime.now()
+        self.created = (
+            core_properties.created
+            if core_properties.created is not None
+            else datetime.now()
+        )
+        self.modified = (
+            core_properties.modified
+            if core_properties.modified is not None
+            else datetime.now()
+        )
 
         # Default keywords to an empty list if missing
-        self.keywords = core_properties.keywords if core_properties.keywords is not None else []
+        self.keywords = (
+            core_properties.keywords if core_properties.keywords is not None else []
+        )
 
         self._update_source_meta_data()
 
@@ -197,10 +221,14 @@ class DocxReader:
         extraction_config: Dict = None,
     ):
         if paragraph_format not in PARAGRAPH_FORMATS:
-            raise ValueError(f"Unknown paragraph format {paragraph_format}. Supported formats are: {PARAGRAPH_FORMATS}")
+            raise ValueError(
+                f"Unknown paragraph format {paragraph_format}. Supported formats are: {PARAGRAPH_FORMATS}"
+            )
 
         if table_format not in TABLE_FORMATS:
-            raise ValueError(f"Unknown table format {table_format}. Supported formats are: {TABLE_FORMATS}")
+            raise ValueError(
+                f"Unknown table format {table_format}. Supported formats are: {TABLE_FORMATS}"
+            )
 
         self.paragraph_format = paragraph_format
         self.table_format = table_format
@@ -341,7 +369,9 @@ class DocxReader:
                 else:
                     continue
 
-                style = tuple([s if s is not None else d for s, d in zip(style, default_style)])
+                style = tuple(
+                    [s if s is not None else d for s, d in zip(style, default_style)]
+                )
 
                 # If the style changes for a non empty text, format the previous group and start a new one
                 if (not self.is_text_empty(text)) and (previous_style is not None):
@@ -381,10 +411,14 @@ class DocxReader:
             newline = "<br>"
         else:
             newline = "\n"
-        paragraph_texts, paragraph_images = zip(*[self.format_paragraph(p) for p in cell.paragraphs])
+        paragraph_texts, paragraph_images = zip(
+            *[self.format_paragraph(p) for p in cell.paragraphs]
+        )
         return newline.join(paragraph_texts), paragraph_images
 
-    def format_table(self, table: "Table") -> Tuple[Optional[str], List["Image"], DataFrame]:
+    def format_table(
+        self, table: "Table"
+    ) -> Tuple[Optional[str], List["Image"], DataFrame]:
         """
         Format a table into text, extract images, and represent it as a DataFrame.
 
@@ -554,7 +588,11 @@ class DocxReader:
         ]
 
     def _extract_para_images(
-        self, images: List["Image"], para_idx: int, caption: str, base_unified_metadata: Dict
+        self,
+        images: List["Image"],
+        para_idx: int,
+        caption: str,
+        base_unified_metadata: Dict,
     ) -> None:
         """
         Collect images from a paragraph and store them for metadata construction.
@@ -576,14 +614,22 @@ class DocxReader:
         """
 
         for image in images:
-            logger.debug("image content_type %s para_idx %d", image.content_type, para_idx)
+            logger.debug(
+                "image content_type %s para_idx %d", image.content_type, para_idx
+            )
             logger.debug("image caption %s", caption)
 
             # Simply append a tuple so we can build the final metadata in _finalize_images
-            self._pending_images.append((image, para_idx, caption, base_unified_metadata))
+            self._pending_images.append(
+                (image, para_idx, caption, base_unified_metadata)
+            )
 
     def _construct_text_metadata(
-        self, accumulated_text: List[str], para_idx: int, text_depth: "TextTypeEnum", base_unified_metadata: Dict
+        self,
+        accumulated_text: List[str],
+        para_idx: int,
+        text_depth: "TextTypeEnum",
+        base_unified_metadata: Dict,
     ) -> List[Union[str, dict]]:
         """
         Build metadata for text content in a DOCX file.
@@ -634,7 +680,9 @@ class DocxReader:
             "text_location": (-1, -1, -1, -1),
         }
 
-        ext_unified_metadata = base_unified_metadata.copy() if base_unified_metadata else {}
+        ext_unified_metadata = (
+            base_unified_metadata.copy() if base_unified_metadata else {}
+        )
         ext_unified_metadata.update(
             {
                 "content": extracted_text,
@@ -646,7 +694,11 @@ class DocxReader:
 
         validated_unified_metadata = validate_metadata(ext_unified_metadata)
 
-        return [ContentTypeEnum.TEXT.value, validated_unified_metadata.model_dump(), str(uuid.uuid4())]
+        return [
+            ContentTypeEnum.TEXT.value,
+            validated_unified_metadata.model_dump(),
+            str(uuid.uuid4()),
+        ]
 
     def _extract_para_text(
         self,
@@ -684,7 +736,9 @@ class DocxReader:
                 level = int(numPr.xpath("./w:ilvl/@w:val")[0])
             except Exception:
                 level = -1
-            paragraph_text = self.apply_text_style(paragraph.style.name, paragraph_text, level)
+            paragraph_text = self.apply_text_style(
+                paragraph.style.name, paragraph_text, level
+            )
 
         self._accumulated_text.append(paragraph_text + "\n")
 
@@ -696,7 +750,9 @@ class DocxReader:
             self._extracted_data.append(text_extraction)
             self._accumulated_text = []
 
-    def _finalize_images(self, extract_tables: bool, extract_charts: bool, **kwargs) -> None:
+    def _finalize_images(
+        self, extract_tables: bool, extract_charts: bool, **kwargs
+    ) -> None:
         """
         Build and append final metadata for each pending image in batches.
 
@@ -719,9 +775,16 @@ class DocxReader:
         # 1) Convert all pending images into numpy arrays (and also store base64 + context),
         #    so we can run detection on them in one go.
         all_image_arrays = []
-        image_info = []  # parallel list to hold (para_idx, caption, base_unified_metadata, base64_img)
+        image_info = (
+            []
+        )  # parallel list to hold (para_idx, caption, base_unified_metadata, base64_img)
 
-        for docx_image, para_idx, caption, base_unified_metadata in self._pending_images:
+        for (
+            docx_image,
+            para_idx,
+            caption,
+            base_unified_metadata,
+        ) in self._pending_images:
             # Convert docx image blob to BytesIO, then to numpy array
             image_bytes = docx_image.blob
             image_stream = io.BytesIO(image_bytes)
@@ -734,7 +797,9 @@ class DocxReader:
             image_info.append((para_idx, caption, base_unified_metadata, base64_img))
 
         # 2) If the user wants to detect tables/charts, do it in one pass for all images.
-        detection_map = defaultdict(list)  # maps image_index -> list of CroppedImageWithContent
+        detection_map = defaultdict(
+            list
+        )  # maps image_index -> list of CroppedImageWithContent
 
         if extract_tables or extract_charts:
             try:
@@ -889,10 +954,15 @@ class DocxReader:
                         para_idx,
                     )
 
-                if (extract_charts or extract_images or extract_tables) and paragraph_images:
+                if (
+                    extract_charts or extract_images or extract_tables
+                ) and paragraph_images:
                     self._prev_para_images = paragraph_images
                     self._prev_para_image_idx = para_idx
-                    self._pending_images += [(image, para_idx, "", base_unified_metadata) for image in paragraph_images]
+                    self._pending_images += [
+                        (image, para_idx, "", base_unified_metadata)
+                        for image in paragraph_images
+                    ]
                     self.images += paragraph_images
 
             elif isinstance(child, CT_Tbl):

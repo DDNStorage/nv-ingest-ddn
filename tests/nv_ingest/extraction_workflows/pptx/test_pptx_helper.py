@@ -261,7 +261,9 @@ def test_pptx(pptx_stream_with_text, document_df):
     assert extracted_data[1][1]["content"].rstrip() == expected_1.rstrip()
 
 
-def test_pptx_with_multiple_runs_in_title(pptx_stream_with_multiple_runs_in_title, document_df):
+def test_pptx_with_multiple_runs_in_title(
+    pptx_stream_with_multiple_runs_in_title, document_df
+):
     extracted_data = python_pptx(
         pptx_stream_with_multiple_runs_in_title,
         extract_text=True,
@@ -531,7 +533,10 @@ def test_pptx_table(pptx_stream_with_table, document_df):
     | Baz   | Qux   |
         """
     )
-    assert extracted_data[0][1]["table_metadata"]["table_content"].rstrip() == expected_content.rstrip()
+    assert (
+        extracted_data[0][1]["table_metadata"]["table_content"].rstrip()
+        == expected_content.rstrip()
+    )
 
 
 def test_pptx_image(pptx_stream_with_image, document_df):

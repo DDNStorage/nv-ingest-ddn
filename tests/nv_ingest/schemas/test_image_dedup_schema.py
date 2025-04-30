@@ -19,7 +19,9 @@ def valid_module_config():
 
 def test_task_type_str_bool():
     img_dedup_module_config = valid_module_config()
-    img_dedup_module_config["raise_on_failure"] = bool(img_dedup_module_config["raise_on_failure"])
+    img_dedup_module_config["raise_on_failure"] = bool(
+        img_dedup_module_config["raise_on_failure"]
+    )
     img_dedup_module_config["cpu_only"] = bool(img_dedup_module_config["cpu_only"])
     _ = ImageDedupSchema(**img_dedup_module_config)
 
@@ -27,7 +29,9 @@ def test_task_type_str_bool():
 @pytest.mark.parametrize("dtype", [int, float, str])
 def test_task_type_str_bool_sensitivity(dtype):
     img_dedup_module_config = valid_module_config()
-    img_dedup_module_config["raise_on_failure"] = dtype(img_dedup_module_config["raise_on_failure"])
+    img_dedup_module_config["raise_on_failure"] = dtype(
+        img_dedup_module_config["raise_on_failure"]
+    )
     img_dedup_module_config["cpu_only"] = dtype(img_dedup_module_config["cpu_only"])
 
     with pytest.raises(ValidationError):

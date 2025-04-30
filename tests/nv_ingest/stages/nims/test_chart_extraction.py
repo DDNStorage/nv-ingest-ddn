@@ -94,7 +94,9 @@ def test_update_metadata_single_batch_single_worker(mocker, base64_image):
     called once with the full list of images. The join function is applied per image.
     """
     # Patch base64_to_numpy to simulate a valid image (e.g., 100x100 with 3 channels)
-    mocker.patch(f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.ones((100, 100, 3)))
+    mocker.patch(
+        f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.ones((100, 100, 3))
+    )
 
     # Mock out the clients.
     yolox_mock = MagicMock()
@@ -122,7 +124,9 @@ def test_update_metadata_single_batch_single_worker(mocker, base64_image):
     base64_images = [base64_image, base64_image]
     trace_info = {}
 
-    result = _update_metadata(base64_images, yolox_mock, paddle_mock, trace_info, worker_pool_size=1)
+    result = _update_metadata(
+        base64_images, yolox_mock, paddle_mock, trace_info, worker_pool_size=1
+    )
 
     # Expect the result to combine each original image with its corresponding joined output.
     assert len(result) == 2
@@ -159,7 +163,9 @@ def test_update_metadata_multiple_batches_multi_worker(mocker, base64_image):
     item per image. The join function is still invoked for each image.
     """
     # Patch base64_to_numpy to simulate valid images (e.g., 100x100 with 3 channels)
-    mocker.patch(f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.ones((100, 100, 3)))
+    mocker.patch(
+        f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.ones((100, 100, 3))
+    )
 
     yolox_mock = MagicMock()
     paddle_mock = MagicMock()
@@ -167,7 +173,11 @@ def test_update_metadata_multiple_batches_multi_worker(mocker, base64_image):
     # Patch join_yolox_and_paddle_output so it returns the expected joined dict per image.
     mock_join = mocker.patch(
         f"{MODULE_UNDER_TEST}.join_yolox_graphic_elements_and_paddle_output",
-        side_effect=[{"chart_title": "joined_1"}, {"chart_title": "joined_2"}, {"chart_title": "joined_3"}],
+        side_effect=[
+            {"chart_title": "joined_1"},
+            {"chart_title": "joined_2"},
+            {"chart_title": "joined_3"},
+        ],
     )
     # Patch process_yolox_graphic_elements to extract the chart title.
     mock_process = mocker.patch(
@@ -219,7 +229,9 @@ def test_update_metadata_exception_in_yolox_call(mocker, base64_image, caplog):
     If the yolox call fails, we expect an exception to bubble up and the error to be logged.
     """
     # Ensure the image passes the filtering step by patching base64_to_numpy to return a valid image array.
-    mocker.patch(f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.ones((100, 100, 3)))
+    mocker.patch(
+        f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.ones((100, 100, 3))
+    )
 
     yolox_mock = MagicMock()
     paddle_mock = MagicMock()
@@ -229,7 +241,9 @@ def test_update_metadata_exception_in_yolox_call(mocker, base64_image, caplog):
 
     # Remove the batch_size argument from the call.
     with pytest.raises(Exception, match="Yolox call error"):
-        _update_metadata([base64_image], yolox_mock, paddle_mock, trace_info={}, worker_pool_size=1)
+        _update_metadata(
+            [base64_image], yolox_mock, paddle_mock, trace_info={}, worker_pool_size=1
+        )
 
     # Verify that the error message is logged correctly.
     assert "Error calling yolox_client.infer: Yolox call error" in caplog.text
@@ -240,15 +254,21 @@ def test_update_metadata_exception_in_paddle_call(mocker, base64_image, caplog):
     If the paddle call fails, we expect an exception to bubble up and the error to be logged.
     """
     # Ensure the image passes the filtering by patching base64_to_numpy to return a valid image array.
-    mocker.patch(f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.ones((100, 100, 3)))
+    mocker.patch(
+        f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.ones((100, 100, 3))
+    )
 
     yolox_mock = MagicMock()
-    yolox_mock.infer.return_value = ["yolox_result"]  # Single-element list for one image
+    yolox_mock.infer.return_value = [
+        "yolox_result"
+    ]  # Single-element list for one image
     paddle_mock = MagicMock()
     paddle_mock.infer.side_effect = Exception("Paddle error")
 
     with pytest.raises(Exception, match="Paddle error"):
-        _update_metadata([base64_image], yolox_mock, paddle_mock, trace_info={}, worker_pool_size=2)
+        _update_metadata(
+            [base64_image], yolox_mock, paddle_mock, trace_info={}, worker_pool_size=2
+        )
 
     # Since the production code logs using "yolox_client.infer" in both cases,
     # update the expected log message accordingly.
@@ -260,7 +280,9 @@ def test_create_clients(mocker):
     Verify that _create_clients calls create_inference_client for
     both yolox and paddle endpoints, returning the pair of NimClient mocks.
     """
-    mock_create_inference_client = mocker.patch(f"{MODULE_UNDER_TEST}.create_inference_client")
+    mock_create_inference_client = mocker.patch(
+        f"{MODULE_UNDER_TEST}.create_inference_client"
+    )
 
     # Suppose it returns different mocks each time
     yolox_mock = MagicMock()
@@ -282,10 +304,16 @@ def test_create_clients(mocker):
     assert mock_create_inference_client.call_count == 2
 
     mock_create_inference_client.assert_any_call(
-        endpoints=("yolox_grpc", "yolox_http"), model_interface=mocker.ANY, auth_token="xyz", infer_protocol="grpc"
+        endpoints=("yolox_grpc", "yolox_http"),
+        model_interface=mocker.ANY,
+        auth_token="xyz",
+        infer_protocol="grpc",
     )
     mock_create_inference_client.assert_any_call(
-        endpoints=("paddle_grpc", "paddle_http"), model_interface=mocker.ANY, auth_token="xyz", infer_protocol="http"
+        endpoints=("paddle_grpc", "paddle_http"),
+        model_interface=mocker.ANY,
+        auth_token="xyz",
+        infer_protocol="http",
     )
 
 
@@ -311,7 +339,9 @@ def test_extract_chart_data_no_valid_rows(validated_config, mocker):
     A DataFrame with rows that do not meet the 'structured/chart' criteria
     => skip everything, return df unchanged, no calls to _update_metadata.
     """
-    mock_create = mocker.patch(f"{MODULE_UNDER_TEST}._create_clients", return_value=(MagicMock(), MagicMock()))
+    mock_create = mocker.patch(
+        f"{MODULE_UNDER_TEST}._create_clients", return_value=(MagicMock(), MagicMock())
+    )
     mock_update = mocker.patch(f"{MODULE_UNDER_TEST}._update_metadata")
 
     df_in = pd.DataFrame(
@@ -341,12 +371,17 @@ def test_extract_chart_data_all_valid(validated_config, mocker):
     """
     # Mock out clients
     yolox_mock, paddle_mock = MagicMock(), MagicMock()
-    mock_create_clients = mocker.patch(f"{MODULE_UNDER_TEST}._create_clients", return_value=(yolox_mock, paddle_mock))
+    mock_create_clients = mocker.patch(
+        f"{MODULE_UNDER_TEST}._create_clients", return_value=(yolox_mock, paddle_mock)
+    )
 
     # Suppose _update_metadata returns chart content for each image
     mock_update_metadata = mocker.patch(
         f"{MODULE_UNDER_TEST}._update_metadata",
-        return_value=[("imgA", {"joined": "contentA"}), ("imgB", {"joined": "contentB"})],
+        return_value=[
+            ("imgA", {"joined": "contentA"}),
+            ("imgB", {"joined": "contentB"}),
+        ],
     )
 
     # Build a DataFrame with 2 valid rows
@@ -371,8 +406,12 @@ def test_extract_chart_data_all_valid(validated_config, mocker):
 
     # Extract
     df_out, ti = _extract_chart_data(df_in, {}, validated_config)
-    assert df_out.at[0, "metadata"]["table_metadata"]["table_content"] == {"joined": "contentA"}
-    assert df_out.at[1, "metadata"]["table_metadata"]["table_content"] == {"joined": "contentB"}
+    assert df_out.at[0, "metadata"]["table_metadata"]["table_content"] == {
+        "joined": "contentA"
+    }
+    assert df_out.at[1, "metadata"]["table_metadata"]["table_content"] == {
+        "joined": "contentB"
+    }
 
     mock_create_clients.assert_called_once_with(
         validated_config.stage_config.yolox_endpoints,
@@ -398,7 +437,9 @@ def test_extract_chart_data_mixed_rows(validated_config, mocker):
     and only those rows get updated.
     """
     yolox_mock, paddle_mock = MagicMock(), MagicMock()
-    mocker.patch(f"{MODULE_UNDER_TEST}._create_clients", return_value=(yolox_mock, paddle_mock))
+    mocker.patch(
+        f"{MODULE_UNDER_TEST}._create_clients", return_value=(yolox_mock, paddle_mock)
+    )
 
     mock_update = mocker.patch(
         f"{MODULE_UNDER_TEST}._update_metadata",
@@ -436,10 +477,14 @@ def test_extract_chart_data_mixed_rows(validated_config, mocker):
 
     df_out, trace = _extract_chart_data(df_in, {}, validated_config)
 
-    assert df_out.at[0, "metadata"]["table_metadata"]["table_content"] == {"chart": "stuff1"}
+    assert df_out.at[0, "metadata"]["table_metadata"]["table_content"] == {
+        "chart": "stuff1"
+    }
     # row1 => no update
     assert "table_content" not in df_out.at[1, "metadata"]["table_metadata"]
-    assert df_out.at[2, "metadata"]["table_metadata"]["table_content"] == {"chart": "stuff2"}
+    assert df_out.at[2, "metadata"]["table_metadata"]["table_content"] == {
+        "chart": "stuff2"
+    }
 
     mock_update.assert_called_once_with(
         base64_images=["base64img1", "base64img2"],
@@ -458,7 +503,9 @@ def test_extract_chart_data_exception_raised(validated_config, mocker):
     mocker.patch(f"{MODULE_UNDER_TEST}._create_clients", return_value=(c_mock, d_mock))
 
     # Suppose _update_metadata raises an exception
-    mocker.patch(f"{MODULE_UNDER_TEST}._update_metadata", side_effect=RuntimeError("Test error"))
+    mocker.patch(
+        f"{MODULE_UNDER_TEST}._update_metadata", side_effect=RuntimeError("Test error")
+    )
 
     df_in = pd.DataFrame(
         [

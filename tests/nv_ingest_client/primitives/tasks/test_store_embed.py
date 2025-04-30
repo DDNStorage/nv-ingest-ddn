@@ -55,4 +55,6 @@ def test_store_task_to_dict(
     expected_dict["task_properties"]["params"]["extra_param_1"] = extra_param_1
     expected_dict["task_properties"]["params"]["extra_param_2"] = extra_param_2
 
-    assert task.to_dict() == expected_dict, "The to_dict method did not return the expected dictionary representation"
+    assert (
+        task.to_dict() == expected_dict
+    ), "The to_dict method did not return the expected dictionary representation"

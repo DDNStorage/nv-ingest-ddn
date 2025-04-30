@@ -73,7 +73,9 @@ class ParakeetClient:
             self.auth_metadata.append(("function-id", self.function_id))
 
         # Create authentication and ASR service objects.
-        self._auth = riva.client.Auth(self.ssl_cert, self.use_ssl, self.endpoint, self.auth_metadata)
+        self._auth = riva.client.Auth(
+            self.ssl_cert, self.use_ssl, self.endpoint, self.auth_metadata
+        )
         self._asr_service = riva.client.ASRService(self._auth)
 
     @traceable_func(trace_name="{stage_name}::{model_name}")
@@ -205,7 +207,9 @@ class ParakeetClient:
 
         # Perform offline recognition and print the transcript.
         try:
-            response = self._asr_service.offline_recognize(mono_audio_bytes, recognition_config)
+            response = self._asr_service.offline_recognize(
+                mono_audio_bytes, recognition_config
+            )
             return response
         except grpc.RpcError as e:
             logger.error(f"Error transcribing audio file: {e.details()}")
@@ -305,14 +309,26 @@ def process_transcription_response(response):
 
         # End the segment when a word ends with punctuation.
         if word.word and word.word[-1] in punctuation_marks:
-            segments.append({"start": segment_start, "end": segment_end, "text": " ".join(current_words)})
+            segments.append(
+                {
+                    "start": segment_start,
+                    "end": segment_end,
+                    "text": " ".join(current_words),
+                }
+            )
             current_words = []
             segment_start = None
             segment_end = None
 
     # Add any remaining words as a segment.
     if current_words:
-        segments.append({"start": segment_start, "end": segment_end, "text": " ".join(current_words)})
+        segments.append(
+            {
+                "start": segment_start,
+                "end": segment_end,
+                "text": " ".join(current_words),
+            }
+        )
 
     return segments, final_transcript
 
@@ -364,5 +380,9 @@ def create_audio_inference_client(
         raise ValueError("`http` endpoints are not supported for audio. Use `grpc`.")
 
     return ParakeetClient(
-        grpc_endpoint, auth_token=auth_token, function_id=function_id, use_ssl=use_ssl, ssl_cert=ssl_cert
+        grpc_endpoint,
+        auth_token=auth_token,
+        function_id=function_id,
+        use_ssl=use_ssl,
+        ssl_cert=ssl_cert,
     )

@@ -45,16 +45,22 @@ class ExtendedMockClient(MockClient):
         super().__init__(host, port)
         self.submitted_messages = []
 
-    def submit_message(self, job_queue_id, job_spec_str, trace_id=None, for_nv_ingest=False):
+    def submit_message(
+        self, job_queue_id, job_spec_str, trace_id=None, for_nv_ingest=False
+    ):
         # Simulate message submission by storing it
         random_x_trace_id = "123456789"
         job_id = str(0)
         self.submitted_messages.append((job_queue_id, job_spec_str))
-        return ResponseSchema(trace_id=random_x_trace_id, transaction_id=job_id, response_code=0)
+        return ResponseSchema(
+            trace_id=random_x_trace_id, transaction_id=job_id, response_code=0
+        )
 
 
 class ExtendedMockClientWithFailure(ExtendedMockClient):
-    def submit_message(self, job_queue_id, job_spec_str, trace_id=None, for_nv_ingest=False):
+    def submit_message(
+        self, job_queue_id, job_spec_str, trace_id=None, for_nv_ingest=False
+    ):
         if "fail_queue" in job_queue_id:
             raise Exception("Simulated submission failure")
 
@@ -176,7 +182,9 @@ def test_get_non_existent_job_state(nv_ingest_client_with_jobs):
 
 # Test validating job state against a single required state
 def test_validate_job_state_single(nv_ingest_client_with_jobs):
-    job_state = nv_ingest_client_with_jobs._get_and_check_job_state("job1", required_state=JobStateEnum.PENDING)
+    job_state = nv_ingest_client_with_jobs._get_and_check_job_state(
+        "job1", required_state=JobStateEnum.PENDING
+    )
     assert job_state.state == JobStateEnum.PENDING
 
 
@@ -191,7 +199,9 @@ def test_validate_job_state_multiple(nv_ingest_client_with_jobs):
 # Test handling invalid required states
 def test_invalid_required_state(nv_ingest_client_with_jobs):
     with pytest.raises(ValueError) as exc_info:
-        nv_ingest_client_with_jobs._get_and_check_job_state("job1", required_state=JobStateEnum.SUBMITTED)
+        nv_ingest_client_with_jobs._get_and_check_job_state(
+            "job1", required_state=JobStateEnum.SUBMITTED
+        )
     assert "has invalid state" in str(exc_info.value)
 
 
@@ -199,7 +209,9 @@ def test_invalid_required_state(nv_ingest_client_with_jobs):
 def test_job_count_with_multiple_jobs(nv_ingest_client_with_jobs):
     """Test that job_count accurately reflects the number of jobs."""
     expected_count = 7  # Adjust based on the number of jobs added in the fixture
-    assert nv_ingest_client_with_jobs.job_count() == expected_count, f"Job count should be {expected_count}."
+    assert (
+        nv_ingest_client_with_jobs.job_count() == expected_count
+    ), f"Job count should be {expected_count}."
 
 
 # create_job
@@ -251,7 +263,9 @@ def test_automatic_job_id_generation(nv_ingest_client):
         extended_options=extended_options,
     )
 
-    assert result_id in nv_ingest_client._job_states, "A job ID should be generated and used for tracking."
+    assert (
+        result_id in nv_ingest_client._job_states
+    ), "A job ID should be generated and used for tracking."
 
 
 def test_correct_storage_of_job_details(nv_ingest_client):
@@ -270,7 +284,9 @@ def test_correct_storage_of_job_details(nv_ingest_client):
     )
 
     stored_job = nv_ingest_client._job_states[result_id]
-    assert stored_job.job_spec.payload == payload, "The job's payload should match what was provided."
+    assert (
+        stored_job.job_spec.payload == payload
+    ), "The job's payload should match what was provided."
 
 
 def test_successful_task_creation(nv_ingest_client_with_jobs):
@@ -289,7 +305,9 @@ def test_successful_task_creation(nv_ingest_client_with_jobs):
 def test_non_existent_job(nv_ingest_client):
     with pytest.raises(ValueError):
         nv_ingest_client.create_task(
-            "nonexistent_job_id", TaskType.SPLIT, {"tokenizer": "intfloat/e5-large-unsupervised"}
+            "nonexistent_job_id",
+            TaskType.SPLIT,
+            {"tokenizer": "intfloat/e5-large-unsupervised"},
         )
 
 
@@ -299,7 +317,9 @@ def test_add_task_post_submission(nv_ingest_client_with_jobs):
     nv_ingest_client_with_jobs._job_states[job_id].state = JobStateEnum.PROCESSING
 
     with pytest.raises(ValueError):
-        nv_ingest_client_with_jobs.create_task(job_id, TaskType.SPLIT, {"tokenizer": "intfloat/e5-large-unsupervised"})
+        nv_ingest_client_with_jobs.create_task(
+            job_id, TaskType.SPLIT, {"tokenizer": "intfloat/e5-large-unsupervised"}
+        )
 
 
 def test_parameter_validation(nv_ingest_client_with_jobs):
@@ -327,7 +347,9 @@ def test_successful_job_submission(nv_ingest_client_with_jobs):
     assert len(mock_client.submitted_messages) == 1
     submitted_job_queue_id, _ = mock_client.submitted_messages[0]
     assert submitted_job_queue_id == job_queue_id
-    assert nv_ingest_client_with_jobs._job_states[job_id].state == JobStateEnum.SUBMITTED
+    assert (
+        nv_ingest_client_with_jobs._job_states[job_id].state == JobStateEnum.SUBMITTED
+    )
 
 
 def test_submit_job_nonexistent_id_raises(nv_ingest_client_with_jobs):
@@ -360,7 +382,9 @@ def test_successful_submissions(nv_ingest_client_with_jobs):
 
     responses = nv_ingest_client_with_jobs.submit_job(job_ids, job_queue_id)
 
-    assert len(responses) == len(job_ids), "The number of responses should match the number of submitted jobs"
+    assert len(responses) == len(
+        job_ids
+    ), "The number of responses should match the number of submitted jobs"
 
 
 def test_mixed_submission_outcomes(nv_ingest_client_with_jobs):
@@ -420,7 +444,9 @@ def test_job_future_result_on_success(nv_ingest_client_with_jobs):
     future = nv_ingest_client_with_jobs._job_states[job_id].future
 
     result = future.result(timeout=5)
-    assert result == ["123456789"], "The future's result should reflect the job's success"
+    assert result == [
+        "123456789"
+    ], "The future's result should reflect the job's success"
 
 
 def test_job_future_result_on_failure(nv_ingest_client_with_jobs):
@@ -440,7 +466,9 @@ def test_successful_multiple_job_submissions(nv_ingest_client_with_jobs):
 
     futures = nv_ingest_client_with_jobs.submit_job_async(job_ids, job_queue_id)
 
-    assert len(futures) == len(job_ids), "Should return the same number of futures as job IDs"
+    assert len(futures) == len(
+        job_ids
+    ), "Should return the same number of futures as job IDs"
     assert all(
         isinstance(future, Future) for future in futures
     ), "Each item in the returned list should be a Future object"
@@ -461,7 +489,9 @@ def test_successful_multiple_job_submissions_async(nv_ingest_client_with_jobs):
 
     futures = nv_ingest_client_with_jobs.submit_job_async(job_ids, job_queue_id)
 
-    assert len(futures) == len(job_ids), "Should return the same number of futures as job IDs"
+    assert len(futures) == len(
+        job_ids
+    ), "Should return the same number of futures as job IDs"
     assert all(
         isinstance(future, Future) for future in futures
     ), "Each item in the returned list should be a Future object"
@@ -471,7 +501,9 @@ def test_empty_job_id_list_async(nv_ingest_client_with_jobs):
     job_queue_id = "test_queue"
     futures = nv_ingest_client_with_jobs.submit_job_async([], job_queue_id)
 
-    assert futures == {}, "Submitting an empty job ID list should return an empty list of futures"
+    assert (
+        futures == {}
+    ), "Submitting an empty job ID list should return an empty list of futures"
 
 
 @pytest.mark.parametrize("job_id", ["job1", "job2", "job3"])
@@ -552,7 +584,9 @@ def tasks():
     }
 
 
-def test_create_jobs_for_batch_success(nv_ingest_client, tasks, mock_create_job_specs_for_batch):
+def test_create_jobs_for_batch_success(
+    nv_ingest_client, tasks, mock_create_job_specs_for_batch
+):
     mock_job_spec = Mock(spec=JobSpec)
     mock_create_job_specs_for_batch.return_value = [mock_job_spec, mock_job_spec]
 
@@ -563,7 +597,9 @@ def test_create_jobs_for_batch_success(nv_ingest_client, tasks, mock_create_job_
     assert job_ids == ["0", "1"]
 
 
-def test_create_jobs_for_batch_invalid_task(nv_ingest_client, mock_create_job_specs_for_batch):
+def test_create_jobs_for_batch_invalid_task(
+    nv_ingest_client, mock_create_job_specs_for_batch
+):
     mock_job_spec = Mock(spec=JobSpec)
     mock_create_job_specs_for_batch.return_value = [mock_job_spec]
 
@@ -576,21 +612,27 @@ def test_create_jobs_for_batch_invalid_task(nv_ingest_client, mock_create_job_sp
         nv_ingest_client.create_jobs_for_batch(files, invalid_tasks)
 
 
-def test_create_jobs_for_batch_duplicate_task(nv_ingest_client, mock_create_job_specs_for_batch):
+def test_create_jobs_for_batch_duplicate_task(
+    nv_ingest_client, mock_create_job_specs_for_batch
+):
     mock_job_spec = Mock(spec=JobSpec)
     mock_create_job_specs_for_batch.return_value = [mock_job_spec]
 
     files = ["file1.pdf"]
     duplicate_tasks = {
         "split": SplitTask(tokenizer="intfloat/e5-large-unsupervised"),
-        "store": SplitTask(tokenizer="intfloat/e5-large-unsupervised"),  # Duplicate task
+        "store": SplitTask(
+            tokenizer="intfloat/e5-large-unsupervised"
+        ),  # Duplicate task
     }
 
     with pytest.raises(ValueError, match="Duplicate task detected"):
         nv_ingest_client.create_jobs_for_batch(files, duplicate_tasks)
 
 
-def test_create_jobs_for_batch_extract_mismatch(nv_ingest_client, mock_create_job_specs_for_batch):
+def test_create_jobs_for_batch_extract_mismatch(
+    nv_ingest_client, mock_create_job_specs_for_batch
+):
     mock_job_spec = Mock(spec=JobSpec)
     mock_job_spec.document_type = "pptx"
     mock_create_job_specs_for_batch.return_value = [mock_job_spec]

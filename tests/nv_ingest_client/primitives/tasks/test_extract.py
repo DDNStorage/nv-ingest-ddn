@@ -50,7 +50,9 @@ def test_extract_task_str_representation(
     ]
 
     for part in expected_parts:
-        assert part in task_str, f"Expected part '{part}' not found in task string representation"
+        assert (
+            part in task_str
+        ), f"Expected part '{part}' not found in task string representation"
 
 
 @pytest.mark.parametrize(
@@ -95,7 +97,9 @@ def test_extract_task_str_representation_extract_charts_false(
     ]
 
     for part in expected_parts:
-        assert part in task_str, f"Expected part '{part}' not found in task string representation"
+        assert (
+            part in task_str
+        ), f"Expected part '{part}' not found in task string representation"
 
 
 # Initialization and Property Setting
@@ -109,7 +113,9 @@ def test_extract_task_str_representation_extract_charts_false(
         ("unstructured_local", True, True, True),
     ],
 )
-def test_extract_task_initialization(extract_method, extract_text, extract_images, extract_tables):
+def test_extract_task_initialization(
+    extract_method, extract_text, extract_images, extract_tables
+):
     task = ExtractTask(
         document_type="pdf",
         extract_method=extract_method,
@@ -176,7 +182,9 @@ def test_extract_task_to_dict_basic(
         },
     }
 
-    assert task.to_dict() == expected_dict, "ExtractTask.to_dict() did not return the expected dictionary"
+    assert (
+        task.to_dict() == expected_dict
+    ), "ExtractTask.to_dict() did not return the expected dictionary"
 
 
 @pytest.mark.parametrize(
@@ -185,7 +193,17 @@ def test_extract_task_to_dict_basic(
         "extract_images_method, extract_tables_method, extract_charts, paddle_output_format"
     ),
     [
-        ("pdf", "tika", True, False, False, "merged", "yolox", False, "pseudo_markdown"),
+        (
+            "pdf",
+            "tika",
+            True,
+            False,
+            False,
+            "merged",
+            "yolox",
+            False,
+            "pseudo_markdown",
+        ),
         ("docx", "haystack", False, True, True, "simple", "yolox", False, "simple"),
         ("txt", "llama_parse", True, True, False, "simple", "yolox", False, "simple"),
     ],
@@ -231,7 +249,9 @@ def test_extract_task_to_dict_extract_charts_false(
         },
     }
 
-    assert task.to_dict() == expected_dict, "ExtractTask.to_dict() did not return the expected dictionary"
+    assert (
+        task.to_dict() == expected_dict
+    ), "ExtractTask.to_dict() did not return the expected dictionary"
 
 
 # Method-Specific Properties Test
@@ -246,13 +266,21 @@ def test_extract_task_to_dict_extract_charts_false(
     ],
 )
 def test_extract_task_to_dict_method_specific(extract_method, has_method_specific):
-    task = ExtractTask(extract_method=extract_method, document_type="pdf", extract_text=True)
+    task = ExtractTask(
+        extract_method=extract_method, document_type="pdf", extract_text=True
+    )
     task_desc = task.to_dict()
     params = task_desc["task_properties"]["params"]
 
     if has_method_specific:
         assert "api_key" in params, f"api_key should be in params for {extract_method}"
-        assert "unstructured_url" in params, f"unstructured_url should be in params for {extract_method}"
+        assert (
+            "unstructured_url" in params
+        ), f"unstructured_url should be in params for {extract_method}"
     else:
-        assert "api_key" not in params, f"api_key should not be in params for {extract_method}"
-        assert "unstructured_url" not in params, f"unstructured_url should not be in params for {extract_method}"
+        assert (
+            "api_key" not in params
+        ), f"api_key should not be in params for {extract_method}"
+        assert (
+            "unstructured_url" not in params
+        ), f"unstructured_url should not be in params for {extract_method}"

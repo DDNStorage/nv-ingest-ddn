@@ -27,5 +27,7 @@ def configure_logging(logger, level_name):
         raise ValueError(f"Invalid log level: {level_name}")
 
     logging.StreamHandler(sys.stdout)
-    logging.basicConfig(level=numeric_level, format="%(asctime)s - %(levelname)s - %(message)s")
+    logging.basicConfig(
+        level=numeric_level, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
     logger.setLevel(numeric_level)

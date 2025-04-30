@@ -10,7 +10,9 @@ from nv_ingest.schemas.audio_extractor_schema import AudioExtractorSchema
 from nv_ingest.schemas.chart_extractor_schema import ChartExtractorSchema
 from nv_ingest.schemas.embedding_storage_schema import EmbeddingStorageModuleSchema
 from nv_ingest.schemas.embed_extractions_schema import EmbedExtractionsSchema
-from nv_ingest.schemas.image_caption_extraction_schema import ImageCaptionExtractionSchema
+from nv_ingest.schemas.image_caption_extraction_schema import (
+    ImageCaptionExtractionSchema,
+)
 from nv_ingest.schemas.image_dedup_schema import ImageDedupSchema
 from nv_ingest.schemas.image_filter_schema import ImageFilterSchema
 from nv_ingest.schemas.image_storage_schema import ImageStorageModuleSchema
@@ -34,13 +36,19 @@ class PipelineConfigSchema(BaseModel):
     audio_extractor_schema: AudioExtractorSchema = AudioExtractorSchema()
     chart_extractor_module: ChartExtractorSchema = ChartExtractorSchema()
     text_splitter_module: TextSplitterSchema = TextSplitterSchema()
-    embedding_storage_module: EmbeddingStorageModuleSchema = EmbeddingStorageModuleSchema()
+    embedding_storage_module: EmbeddingStorageModuleSchema = (
+        EmbeddingStorageModuleSchema()
+    )
     embed_extractions_module: EmbedExtractionsSchema = EmbedExtractionsSchema()
-    image_caption_extraction_module: ImageCaptionExtractionSchema = ImageCaptionExtractionSchema()
+    image_caption_extraction_module: ImageCaptionExtractionSchema = (
+        ImageCaptionExtractionSchema()
+    )
     image_dedup_module: ImageDedupSchema = ImageDedupSchema()
     image_filter_module: ImageFilterSchema = ImageFilterSchema()
     image_storage_module: ImageStorageModuleSchema = ImageStorageModuleSchema()
-    infographic_extractor_module: InfographicExtractorSchema = InfographicExtractorSchema()
+    infographic_extractor_module: InfographicExtractorSchema = (
+        InfographicExtractorSchema()
+    )
     job_counter_module: JobCounterSchema = JobCounterSchema()
     metadata_injection_module: MetadataInjectorSchema = MetadataInjectorSchema()
     otel_meter_module: OpenTelemetryMeterSchema = OpenTelemetryMeterSchema()

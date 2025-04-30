@@ -20,7 +20,9 @@ def requires_sdk_client_id_and_secret():
     client_id = os.getenv("ADOBE_CLIENT_ID")
     client_secret = os.getenv("ADOBE_CLIENT_SECRET")
 
-    reqs_ok = (client_id is not None) and (client_secret is not None) and (ADOBE_IMPORT_OK)
+    reqs_ok = (
+        (client_id is not None) and (client_secret is not None) and (ADOBE_IMPORT_OK)
+    )
     print(reqs_ok)
 
     return pytest.mark.skipif(not reqs_ok, reason="requires Adobe client id and secret")
@@ -66,7 +68,9 @@ def client_secret():
     "text_depth",
     ["page", TextTypeEnum.PAGE],
 )
-def test_adobe_text_depth_page(pdf_stream, document_df, text_depth, client_id, client_secret):
+def test_adobe_text_depth_page(
+    pdf_stream, document_df, text_depth, client_id, client_secret
+):
     extracted_data = adobe(
         pdf_stream,
         extract_text=True,
@@ -86,7 +90,8 @@ def test_adobe_text_depth_page(pdf_stream, document_df, text_depth, client_id, c
     assert extracted_data[0][0] == "text"
     assert isinstance(extracted_data[0][2], str)
     assert (
-        extracted_data[0][1]["content"] == "Here is one line of text. Here is another line of text. Here is an image."
+        extracted_data[0][1]["content"]
+        == "Here is one line of text. Here is another line of text. Here is an image."
     )
     assert extracted_data[0][1]["source_metadata"]["source_id"] == "source1"
     assert extracted_data[0][1]["source_metadata"]["source_name"] == "test.pdf"
@@ -98,7 +103,9 @@ def test_adobe_text_depth_page(pdf_stream, document_df, text_depth, client_id, c
     "text_depth",
     ["document", TextTypeEnum.DOCUMENT],
 )
-def test_adobe_text_depth_doc(pdf_stream, document_df, text_depth, client_id, client_secret):
+def test_adobe_text_depth_doc(
+    pdf_stream, document_df, text_depth, client_id, client_secret
+):
     extracted_data = adobe(
         pdf_stream,
         extract_text=True,
@@ -118,7 +125,8 @@ def test_adobe_text_depth_doc(pdf_stream, document_df, text_depth, client_id, cl
     assert extracted_data[0][0] == "text"
     assert isinstance(extracted_data[0][2], str)
     assert (
-        extracted_data[0][1]["content"] == "Here is one line of text. Here is another line of text. Here is an image."
+        extracted_data[0][1]["content"]
+        == "Here is one line of text. Here is another line of text. Here is an image."
     )
     assert extracted_data[0][1]["source_metadata"]["source_id"] == "source1"
     assert extracted_data[0][1]["source_metadata"]["source_name"] == "test.pdf"
@@ -131,7 +139,9 @@ def test_adobe_text_depth_doc(pdf_stream, document_df, text_depth, client_id, cl
     "text_depth",
     ["block", TextTypeEnum.BLOCK],
 )
-def test_adobe_text_depth_block(pdf_stream, document_df, text_depth, client_id, client_secret):
+def test_adobe_text_depth_block(
+    pdf_stream, document_df, text_depth, client_id, client_secret
+):
     extracted_data = adobe(
         pdf_stream,
         extract_text=True,
@@ -178,7 +188,8 @@ def test_adobe_image(pdf_stream, document_df, client_id, client_secret):
 
     assert extracted_data[1][0] == "text"
     assert (
-        extracted_data[1][1]["content"] == "Here is one line of text. Here is another line of text. Here is an image."
+        extracted_data[1][1]["content"]
+        == "Here is one line of text. Here is another line of text. Here is an image."
     )
     assert extracted_data[1][1]["content_metadata"]["page_number"] == 0
 
@@ -209,6 +220,8 @@ def test_adobe_table(table_pdf_stream, document_df, client_id, client_secret):
         and "Ted" in extracted_data[0][1]["content"]
         and "Susan" in extracted_data[0][1]["content"]
         and "N/A" in extracted_data[0][1]["content"]
-        and all([str(year) in extracted_data[0][1]["content"] for year in range(2004, 2024)])
+        and all(
+            [str(year) in extracted_data[0][1]["content"] for year in range(2004, 2024)]
+        )
     )
     assert extracted_data[0][1]["content_metadata"]["page_number"] == 0

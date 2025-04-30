@@ -33,7 +33,9 @@ def mock_redis():
 @pytest.fixture
 def mock_redis_client(mock_redis):
     with patch("redis.Redis", return_value=mock_redis):
-        client = RedisClient(host="localhost", port=6379, redis_allocator=Mock(return_value=mock_redis))
+        client = RedisClient(
+            host="localhost", port=6379, redis_allocator=Mock(return_value=mock_redis)
+        )
         return client
 
 
@@ -68,7 +70,9 @@ def test_fetch_message_successful(mock_redis_client, mock_redis):
     # mock_redis.blpop.assert_called_once_with(["queue"])
 
 
-@patch(f"{MODULE_UNDER_TEST}.time.sleep", return_value=None)  # Mock time.sleep to prevent actual sleeping
+@patch(
+    f"{MODULE_UNDER_TEST}.time.sleep", return_value=None
+)  # Mock time.sleep to prevent actual sleeping
 def test_fetch_message_with_retries(mock_time, mock_redis_client, mock_redis):
     """
     Test fetch_message method retries on RedisError and eventually succeeds.
@@ -100,9 +104,13 @@ def test_fetch_message_with_retries(mock_time, mock_redis_client, mock_redis):
 #     assert mock_redis.blpop.call_count == 2
 
 
-@patch(f"{MODULE_UNDER_TEST}.time.sleep", return_value=None)  # Mock time.sleep to skip actual sleep
+@patch(
+    f"{MODULE_UNDER_TEST}.time.sleep", return_value=None
+)  # Mock time.sleep to skip actual sleep
 @patch(f"{MODULE_UNDER_TEST}.logger")
-def test_submit_message_success(mock_logger, mock_time_sleep, mock_redis_client, mock_redis):
+def test_submit_message_success(
+    mock_logger, mock_time_sleep, mock_redis_client, mock_redis
+):
     """
     Test successful message submission to Redis.
     """
@@ -118,7 +126,9 @@ def test_submit_message_success(mock_logger, mock_time_sleep, mock_redis_client,
 
 @patch(f"{MODULE_UNDER_TEST}.time.sleep", return_value=None)
 @patch(f"{MODULE_UNDER_TEST}.logger")
-def test_submit_message_with_retries(mock_logger, mock_time_sleep, mock_redis_client, mock_redis):
+def test_submit_message_with_retries(
+    mock_logger, mock_time_sleep, mock_redis_client, mock_redis
+):
     """
     Test message submission retries on RedisError and eventually succeeds.
     """
@@ -140,7 +150,9 @@ def test_submit_message_with_retries(mock_logger, mock_time_sleep, mock_redis_cl
 
 @patch(f"{MODULE_UNDER_TEST}.time.sleep", return_value=None)
 @patch(f"{MODULE_UNDER_TEST}.logger.error")
-def test_submit_message_exceeds_max_retries(mock_logger_error, mock_time_sleep, mock_redis_client, mock_redis):
+def test_submit_message_exceeds_max_retries(
+    mock_logger_error, mock_time_sleep, mock_redis_client, mock_redis
+):
     """
     Test failure to submit message after exceeding maximum retries.
     """

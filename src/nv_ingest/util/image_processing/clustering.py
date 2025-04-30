@@ -6,7 +6,9 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
-def boxes_are_close_or_overlap(b1: List[int], b2: List[int], threshold: float = 10.0) -> bool:
+def boxes_are_close_or_overlap(
+    b1: List[int], b2: List[int], threshold: float = 10.0
+) -> bool:
     """
     Determine if two bounding boxes either overlap or are within a certain distance threshold.
 
@@ -37,8 +39,18 @@ def boxes_are_close_or_overlap(b1: List[int], b2: List[int], threshold: float = 
     (xmin2, ymin2, xmax2, ymax2) = b2
 
     # Expand each box by 'threshold' in all directions and see if they overlap
-    expanded_b1 = (xmin1 - threshold, ymin1 - threshold, xmax1 + threshold, ymax1 + threshold)
-    expanded_b2 = (xmin2 - threshold, ymin2 - threshold, xmax2 + threshold, ymax2 + threshold)
+    expanded_b1 = (
+        xmin1 - threshold,
+        ymin1 - threshold,
+        xmax1 + threshold,
+        ymax1 + threshold,
+    )
+    expanded_b2 = (
+        xmin2 - threshold,
+        ymin2 - threshold,
+        xmax2 + threshold,
+        ymax2 + threshold,
+    )
 
     # Check overlap on expanded boxes
     (exmin1, eymin1, exmax1, eymax1) = expanded_b1
@@ -51,7 +63,10 @@ def boxes_are_close_or_overlap(b1: List[int], b2: List[int], threshold: float = 
 
 
 def group_bounding_boxes(
-    boxes: List[List[int]], threshold: float = 10.0, max_num_boxes: int = 1_000, max_depth: Optional[int] = None
+    boxes: List[List[int]],
+    threshold: float = 10.0,
+    max_num_boxes: int = 1_000,
+    max_depth: Optional[int] = None,
 ) -> List[List[int]]:
     """
     Group bounding boxes that either overlap or lie within a given proximity threshold.
@@ -249,7 +264,12 @@ def remove_superset_bboxes(bboxes: List[List[int]]) -> List[List[int]]:
             # Check if box_a strictly encloses box_b:
             # 1) xA_min <= xB_min, yA_min <= yB_min, xA_max >= xB_max, yA_max >= yB_max
             # 2) At least one of those inequalities is strict, meaning they're not equal on all edges
-            if xA_min <= xB_min and yA_min <= yB_min and xA_max >= xB_max and yA_max >= yB_max:
+            if (
+                xA_min <= xB_min
+                and yA_min <= yB_min
+                and xA_max >= xB_max
+                and yA_max >= yB_max
+            ):
                 # box_a is a strict superset => remove it
                 exclude_a = True
                 break

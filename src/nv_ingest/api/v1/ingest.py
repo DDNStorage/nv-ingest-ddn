@@ -31,7 +31,9 @@ from nv_ingest.service.impl.ingest.redis_ingest_service import RedisIngestServic
 from nv_ingest.service.meta.ingest.ingest_service_meta import IngestServiceMeta
 from nv_ingest_client.primitives.tasks.table_extraction import TableExtractionTask
 from nv_ingest_client.primitives.tasks.chart_extraction import ChartExtractionTask
-from nv_ingest_client.primitives.tasks.infographic_extraction import InfographicExtractionTask
+from nv_ingest_client.primitives.tasks.infographic_extraction import (
+    InfographicExtractionTask,
+)
 
 logger = logging.getLogger("uvicorn")
 tracer = trace.get_tracer(__name__)
@@ -61,7 +63,9 @@ INGEST_SERVICE_T = Annotated[IngestServiceMeta, Depends(_get_ingest_service)]
     summary="submit document to the core nv ingestion service for processing",
     operation_id="submit",
 )
-async def submit_job_curl_friendly(ingest_service: INGEST_SERVICE_T, file: UploadFile = File(...)):
+async def submit_job_curl_friendly(
+    ingest_service: INGEST_SERVICE_T, file: UploadFile = File(...)
+):
     """
     A multipart/form-data friendly Job submission endpoint that makes interacting with
     the nv-ingest service through tools like Curl easier.
@@ -82,21 +86,32 @@ async def submit_job_curl_friendly(ingest_service: INGEST_SERVICE_T, file: Uploa
                 "tracing_options": {
                     "trace": True,
                     "ts_send": time.time_ns(),
-                    "trace_id": str(trace.get_current_span().get_span_context().trace_id),
+                    "trace_id": str(
+                        trace.get_current_span().get_span_context().trace_id
+                    ),
                 }
             },
         )
 
         # This is the "easy submission path" just default to extracting everything
-        extract_task = ExtractTask(document_type="pdf", extract_text=True, extract_images=True, extract_tables=True)
+        extract_task = ExtractTask(
+            document_type="pdf",
+            extract_text=True,
+            extract_images=True,
+            extract_tables=True,
+        )
 
         job_spec.add_task(extract_task)
 
-        submitted_job_id = await ingest_service.submit_job(MessageWrapper(payload=json.dumps(job_spec.to_dict())))
+        submitted_job_id = await ingest_service.submit_job(
+            MessageWrapper(payload=json.dumps(job_spec.to_dict()))
+        )
         return submitted_job_id
     except Exception as ex:
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Nv-Ingest Internal Server Error: {str(ex)}")
+        raise HTTPException(
+            status_code=500, detail=f"Nv-Ingest Internal Server Error: {str(ex)}"
+        )
 
 
 def trace_id_to_uuid(trace_id: str) -> str:
@@ -119,7 +134,12 @@ def trace_id_to_uuid(trace_id: str) -> str:
     summary="submit jobs to the core nv ingestion service for processing",
     operation_id="submit_job",
 )
-async def submit_job(request: Request, response: Response, job_spec: MessageWrapper, ingest_service: INGEST_SERVICE_T):
+async def submit_job(
+    request: Request,
+    response: Response,
+    job_spec: MessageWrapper,
+    ingest_service: INGEST_SERVICE_T,
+):
     with tracer.start_as_current_span("http-submit-job") as span:
         try:
             # Add custom attributes to the span
@@ -151,7 +171,9 @@ async def submit_job(request: Request, response: Response, job_spec: MessageWrap
 
         except Exception as ex:
             traceback.print_exc()
-            raise HTTPException(status_code=500, detail=f"Nv-Ingest Internal Server Error: {str(ex)}")
+            raise HTTPException(
+                status_code=500, detail=f"Nv-Ingest Internal Server Error: {str(ex)}"
+            )
 
 
 # GET /fetch_job
@@ -174,17 +196,25 @@ async def fetch_job(job_id: str, ingest_service: INGEST_SERVICE_T):
         return job_response
     except TimeoutError:
         # Return a 202 Accepted if the job is not ready yet
-        raise HTTPException(status_code=202, detail="Job is not ready yet. Retry later.")
+        raise HTTPException(
+            status_code=202, detail="Job is not ready yet. Retry later."
+        )
     except RedisError:
         # Return a 202 Accepted if the job could not be fetched due to Redis error, indicating a retry might succeed
-        raise HTTPException(status_code=202, detail="Job is not ready yet. Retry later.")
+        raise HTTPException(
+            status_code=202, detail="Job is not ready yet. Retry later."
+        )
     except ValueError as ve:
         # Return a 500 Internal Server Error for ValueErrors
-        raise HTTPException(status_code=500, detail=f"Value error encountered: {str(ve)}")
+        raise HTTPException(
+            status_code=500, detail=f"Value error encountered: {str(ve)}"
+        )
     except Exception as ex:
         # Catch-all for other exceptions, returning a 500 Internal Server Error
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Nv-Ingest Internal Server Error: {str(ex)}")
+        raise HTTPException(
+            status_code=500, detail=f"Nv-Ingest Internal Server Error: {str(ex)}"
+        )
 
 
 @router.post("/convert")
@@ -267,7 +297,9 @@ async def convert_pdf(
 
         await ingest_service.set_processing_cache(job_id, submitted_jobs)
 
-        logger.debug(f"Submitted: {len(submitted_jobs)} documents of type: '{content_type}' for processing")
+        logger.debug(
+            f"Submitted: {len(submitted_jobs)} documents of type: '{content_type}' for processing"
+        )
 
         return {
             "task_id": job_id,
@@ -293,12 +325,16 @@ async def get_status(ingest_service: INGEST_SERVICE_T, job_id: str):
     num_ready_docs = 0
 
     for processing_job in processing_jobs:
-        logger.debug(f"submitted_job_id: {processing_job.submitted_job_id} - Status: {processing_job.status}")
+        logger.debug(
+            f"submitted_job_id: {processing_job.submitted_job_id} - Status: {processing_job.status}"
+        )
 
         if processing_job.status == ConversionStatus.IN_PROGRESS:
             # Attempt to fetch the job from the ingest service
             try:
-                job_response = await ingest_service.fetch_job(processing_job.submitted_job_id)
+                job_response = await ingest_service.fetch_job(
+                    processing_job.submitted_job_id
+                )
 
                 job_response = json.dumps(job_response)
 
@@ -312,15 +348,21 @@ async def get_status(ingest_service: INGEST_SERVICE_T, job_id: str):
                 updated_cache.append(processing_job)
 
             except TimeoutError:
-                logger.error(f"TimeoutError getting result for job_id: {processing_job.submitted_job_id}")
+                logger.error(
+                    f"TimeoutError getting result for job_id: {processing_job.submitted_job_id}"
+                )
                 updated_cache.append(processing_job)
                 continue
             except RedisError:
-                logger.error(f"RedisError getting result for job_id: {processing_job.submitted_job_id}")
+                logger.error(
+                    f"RedisError getting result for job_id: {processing_job.submitted_job_id}"
+                )
                 updated_cache.append(processing_job)
                 continue
         else:
-            logger.debug(f"{processing_job.submitted_job_id} has already finished successfully ....")
+            logger.debug(
+                f"{processing_job.submitted_job_id} has already finished successfully ...."
+            )
             num_ready_docs = num_ready_docs + 1
             updated_cache.append(processing_job)
 
@@ -346,5 +388,9 @@ async def get_status(ingest_service: INGEST_SERVICE_T, job_id: str):
         )
     else:
         # Not yet ready ...
-        logger.debug(f"/status/{job_id} endpoint execution time: {time.time() - t_start}")
-        raise HTTPException(status_code=202, detail="Job is not ready yet. Retry later.")
+        logger.debug(
+            f"/status/{job_id} endpoint execution time: {time.time() - t_start}"
+        )
+        raise HTTPException(
+            status_code=202, detail="Job is not ready yet. Retry later."
+        )

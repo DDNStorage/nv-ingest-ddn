@@ -44,7 +44,9 @@ def remove_task_by_type(ctrl_msg, task: str):
             break
 
     if task_obj is None:
-        err_msg = f"process_control_message: Task '{task}' not found in control message."
+        err_msg = (
+            f"process_control_message: Task '{task}' not found in control message."
+        )
         logger.error(err_msg)
         raise ValueError(err_msg)
 
@@ -78,7 +80,9 @@ class IngestControlMessage:
             If a task with the same 'id' already exists.
         """
         if task.id in self._tasks:
-            raise ValueError(f"Task with id '{task.id}' already exists. Tasks must be unique.")
+            raise ValueError(
+                f"Task with id '{task.id}' already exists. Tasks must be unique."
+            )
         self._tasks[task.id] = task
 
     def get_tasks(self) -> Generator[ControlMessageTask, None, None]:
@@ -104,7 +108,9 @@ class IngestControlMessage:
 
             return _task
         else:
-            raise RuntimeError(f"Attempted to remove non-existent task with id: {task_id}")
+            raise RuntimeError(
+                f"Attempted to remove non-existent task with id: {task_id}"
+            )
 
     def config(self, config: Dict[str, Any] = None) -> Dict[str, Any]:
         """
@@ -133,7 +139,9 @@ class IngestControlMessage:
         """
         return copy.deepcopy(self)
 
-    def get_metadata(self, key: Union[str, re.Pattern] = None, default_value: Any = None) -> Any:
+    def get_metadata(
+        self, key: Union[str, re.Pattern] = None, default_value: Any = None
+    ) -> Any:
         """
         Retrieve metadata. If 'key' is None, returns a copy of all metadata.
 
@@ -199,7 +207,9 @@ class IngestControlMessage:
         """
         pattern = re.compile(regex_filter)
         timestamps_snapshot = self._timestamps.copy()
-        return {key: ts for key, ts in timestamps_snapshot.items() if pattern.search(key)}
+        return {
+            key: ts for key, ts in timestamps_snapshot.items() if pattern.search(key)
+        }
 
     def get_timestamp(self, key: str, fail_if_nonexist: bool = False) -> datetime:
         """

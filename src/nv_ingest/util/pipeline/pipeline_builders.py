@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 def setup_ingestion_pipeline(
-    pipe: Pipeline, morpheus_pipeline_config: Config, ingest_config: typing.Dict[str, typing.Any]
+    pipe: Pipeline,
+    morpheus_pipeline_config: Config,
+    ingest_config: typing.Dict[str, typing.Any],
 ):
     default_cpu_count = get_default_cpu_count()
     add_meter_stage = os.environ.get("MESSAGE_CLIENT_TYPE") != "simple"
@@ -22,37 +24,63 @@ def setup_ingestion_pipeline(
     ## Insertion and Pre-processing stages
     ########################################################################################################
     source_stage = add_source_stage(pipe, morpheus_pipeline_config, ingest_config)
-    submitted_job_counter_stage = add_submitted_job_counter_stage(pipe, morpheus_pipeline_config, ingest_config)
-    metadata_injector_stage = add_metadata_injector_stage(pipe, morpheus_pipeline_config)
+    submitted_job_counter_stage = add_submitted_job_counter_stage(
+        pipe, morpheus_pipeline_config, ingest_config
+    )
+    metadata_injector_stage = add_metadata_injector_stage(
+        pipe, morpheus_pipeline_config
+    )
     ########################################################################################################
 
     ########################################################################################################
     ## Primitive extraction
     ########################################################################################################
-    pdf_extractor_stage = add_pdf_extractor_stage(pipe, morpheus_pipeline_config, ingest_config, default_cpu_count)
-    image_extractor_stage = add_image_extractor_stage(pipe, morpheus_pipeline_config, ingest_config, default_cpu_count)
-    docx_extractor_stage = add_docx_extractor_stage(pipe, morpheus_pipeline_config, ingest_config, default_cpu_count)
-    pptx_extractor_stage = add_pptx_extractor_stage(pipe, morpheus_pipeline_config, ingest_config, default_cpu_count)
-    audio_extractor_stage = add_audio_extractor_stage(pipe, morpheus_pipeline_config, ingest_config, default_cpu_count)
+    pdf_extractor_stage = add_pdf_extractor_stage(
+        pipe, morpheus_pipeline_config, ingest_config, default_cpu_count
+    )
+    image_extractor_stage = add_image_extractor_stage(
+        pipe, morpheus_pipeline_config, ingest_config, default_cpu_count
+    )
+    docx_extractor_stage = add_docx_extractor_stage(
+        pipe, morpheus_pipeline_config, ingest_config, default_cpu_count
+    )
+    pptx_extractor_stage = add_pptx_extractor_stage(
+        pipe, morpheus_pipeline_config, ingest_config, default_cpu_count
+    )
+    audio_extractor_stage = add_audio_extractor_stage(
+        pipe, morpheus_pipeline_config, ingest_config, default_cpu_count
+    )
     ########################################################################################################
 
     ########################################################################################################
     ## Post-processing
     ########################################################################################################
-    image_dedup_stage = add_image_dedup_stage(pipe, morpheus_pipeline_config, ingest_config, default_cpu_count)
-    image_filter_stage = add_image_filter_stage(pipe, morpheus_pipeline_config, ingest_config, default_cpu_count)
-    table_extraction_stage = add_table_extractor_stage(pipe, morpheus_pipeline_config, ingest_config, default_cpu_count)
-    chart_extraction_stage = add_chart_extractor_stage(pipe, morpheus_pipeline_config, ingest_config, default_cpu_count)
+    image_dedup_stage = add_image_dedup_stage(
+        pipe, morpheus_pipeline_config, ingest_config, default_cpu_count
+    )
+    image_filter_stage = add_image_filter_stage(
+        pipe, morpheus_pipeline_config, ingest_config, default_cpu_count
+    )
+    table_extraction_stage = add_table_extractor_stage(
+        pipe, morpheus_pipeline_config, ingest_config, default_cpu_count
+    )
+    chart_extraction_stage = add_chart_extractor_stage(
+        pipe, morpheus_pipeline_config, ingest_config, default_cpu_count
+    )
     infographic_extraction_stage = add_infographic_extractor_stage(
         pipe, morpheus_pipeline_config, ingest_config, default_cpu_count
     )
-    image_caption_stage = add_image_caption_stage(pipe, morpheus_pipeline_config, ingest_config, default_cpu_count)
+    image_caption_stage = add_image_caption_stage(
+        pipe, morpheus_pipeline_config, ingest_config, default_cpu_count
+    )
     ########################################################################################################
 
     ########################################################################################################
     ## Transforms and data synthesis
     ########################################################################################################
-    text_splitter_stage = add_text_splitter_stage(pipe, morpheus_pipeline_config, ingest_config, default_cpu_count)
+    text_splitter_stage = add_text_splitter_stage(
+        pipe, morpheus_pipeline_config, ingest_config, default_cpu_count
+    )
     embed_extractions_stage = add_embed_extractions_stage(
         pipe, morpheus_pipeline_config, ingest_config, default_cpu_count
     )
@@ -70,12 +98,18 @@ def setup_ingestion_pipeline(
     #######################################################################################################
     ## Telemetry (Note: everything after the sync stage is out of the hot path, please keep it that way) ##
     #######################################################################################################
-    otel_tracer_stage = add_otel_tracer_stage(pipe, morpheus_pipeline_config, ingest_config)
+    otel_tracer_stage = add_otel_tracer_stage(
+        pipe, morpheus_pipeline_config, ingest_config
+    )
     if add_meter_stage:
-        otel_meter_stage = add_otel_meter_stage(pipe, morpheus_pipeline_config, ingest_config)
+        otel_meter_stage = add_otel_meter_stage(
+            pipe, morpheus_pipeline_config, ingest_config
+        )
     else:
         otel_meter_stage = None
-    completed_job_counter_stage = add_completed_job_counter_stage(pipe, morpheus_pipeline_config, ingest_config)
+    completed_job_counter_stage = add_completed_job_counter_stage(
+        pipe, morpheus_pipeline_config, ingest_config
+    )
     ########################################################################################################
 
     # Add edges

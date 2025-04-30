@@ -83,7 +83,9 @@ def filter_by_task(
                         )
                         for task_props in task_props_list:
                             orig_task_props = task_props
-                            if BaseModel is not None and isinstance(task_props, BaseModel):
+                            if BaseModel is not None and isinstance(
+                                task_props, BaseModel
+                            ):
                                 task_props = task_props.model_dump()
                             # Check if every required property is a subset of the task properties.
                             all_match = True
@@ -112,12 +114,16 @@ def filter_by_task(
                             type(required_task),
                         )
                 # No required task was matched.
-                logger.debug("No required task matched for function '%s'.", func.__name__)
+                logger.debug(
+                    "No required task matched for function '%s'.", func.__name__
+                )
                 if forward_func:
                     logger.debug("Calling forward function for IngestControlMessage.")
                     return forward_func(message)
                 else:
-                    logger.debug("Returning original IngestControlMessage without processing.")
+                    logger.debug(
+                        "Returning original IngestControlMessage without processing."
+                    )
                     return message
             else:
                 raise ValueError(
@@ -153,10 +159,17 @@ def _is_subset(superset: Any, subset: Any) -> bool:
     if isinstance(superset, dict) and isinstance(subset, dict):
         for key, val in subset.items():
             if key not in superset:
-                logger.debug("Key '%s' not found in superset dictionary: %s", key, superset)
+                logger.debug(
+                    "Key '%s' not found in superset dictionary: %s", key, superset
+                )
                 return False
             if not _is_subset(superset[key], val):
-                logger.debug("Value for key '%s' (%s) does not match expected subset (%s).", key, superset[key], val)
+                logger.debug(
+                    "Value for key '%s' (%s) does not match expected subset (%s).",
+                    key,
+                    superset[key],
+                    val,
+                )
                 return False
         return True
     if isinstance(subset, str) and subset.startswith("regex:"):
@@ -165,23 +178,31 @@ def _is_subset(superset: Any, subset: Any) -> bool:
             for sup_item in superset:
                 if re.match(pattern, sup_item):
                     return True
-            logger.debug("No items in list %s match regex pattern '%s'.", superset, pattern)
+            logger.debug(
+                "No items in list %s match regex pattern '%s'.", superset, pattern
+            )
             return False
         else:
             if re.match(pattern, superset) is None:
-                logger.debug("Value '%s' does not match regex pattern '%s'.", superset, pattern)
+                logger.debug(
+                    "Value '%s' does not match regex pattern '%s'.", superset, pattern
+                )
                 return False
             return True
     if isinstance(superset, list) and not isinstance(subset, list):
         for sup_item in superset:
             if _is_subset(sup_item, subset):
                 return True
-        logger.debug("None of the items in list %s match the value '%s'.", superset, subset)
+        logger.debug(
+            "None of the items in list %s match the value '%s'.", superset, subset
+        )
         return False
     if isinstance(superset, (list, set)) and isinstance(subset, list):
         for sub_item in subset:
             if not any(_is_subset(sup_item, sub_item) for sup_item in superset):
-                logger.debug("No element in %s matches subset element '%s'.", superset, sub_item)
+                logger.debug(
+                    "No element in %s matches subset element '%s'.", superset, sub_item
+                )
                 return False
         return True
     if superset != subset:

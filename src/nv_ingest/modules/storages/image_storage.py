@@ -20,11 +20,16 @@ from morpheus.utils.module_utils import register_module
 
 from nv_ingest.schemas.image_storage_schema import ImageStorageModuleSchema
 from nv_ingest.schemas.metadata_schema import ContentTypeEnum
-from nv_ingest.util.exception_handlers.decorators import nv_ingest_node_failure_context_manager
+from nv_ingest.util.exception_handlers.decorators import (
+    nv_ingest_node_failure_context_manager,
+)
 from nv_ingest.util.flow_control import filter_by_task
 from nv_ingest.util.modules.config_validator import fetch_and_validate_module_config
 from nv_ingest.util.tracing import traceable
-from nv_ingest_api.primitives.ingest_control_message import remove_task_by_type, IngestControlMessage
+from nv_ingest_api.primitives.ingest_control_message import (
+    remove_task_by_type,
+    IngestControlMessage,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +42,9 @@ _DEFAULT_ENDPOINT = os.environ.get("MINIO_INTERNAL_ADDRESS", "minio:9000")
 _DEFAULT_READ_ADDRESS = os.environ.get("MINIO_PUBLIC_ADDRESS", "http://minio:9000")
 _DEFAULT_BUCKET_NAME = os.environ.get("MINIO_BUCKET", "nv-ingest")
 
-ImageStorageLoaderFactory = ModuleLoaderFactory(MODULE_NAME, MODULE_NAMESPACE, ImageStorageModuleSchema)
+ImageStorageLoaderFactory = ModuleLoaderFactory(
+    MODULE_NAME, MODULE_NAMESPACE, ImageStorageModuleSchema
+)
 
 
 def upload_images(df: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
@@ -106,7 +113,9 @@ def upload_images(df: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
             length=len(content),
         )
 
-        metadata["source_metadata"]["source_location"] = f"{_DEFAULT_READ_ADDRESS}/{bucket_name}/{destination_file}"
+        metadata["source_metadata"][
+            "source_location"
+        ] = f"{_DEFAULT_READ_ADDRESS}/{bucket_name}/{destination_file}"
         if row["document_type"] == ContentTypeEnum.IMAGE:
             logger.debug("Storing image data to Minio")
             metadata["image_metadata"][
@@ -138,7 +147,9 @@ def _storage_images(builder: mrc.Builder):
     ValueError
         If storing extracted objects fails.
     """
-    validated_config = fetch_and_validate_module_config(builder, ImageStorageModuleSchema)
+    validated_config = fetch_and_validate_module_config(
+        builder, ImageStorageModuleSchema
+    )
 
     @filter_by_task(["store"])
     @traceable(MODULE_NAME)
@@ -169,7 +180,9 @@ def _storage_images(builder: mrc.Builder):
 
             storage_obj_mask = df["document_type"].isin(list(content_types.keys()))
             if (~storage_obj_mask).all():
-                logger.debug(f"No storage objects for '{content_types}' found in the dataframe.")
+                logger.debug(
+                    f"No storage objects for '{content_types}' found in the dataframe."
+                )
                 return ctrl_msg
 
             df = upload_images(df, params)

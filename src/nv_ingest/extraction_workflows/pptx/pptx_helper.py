@@ -123,14 +123,22 @@ def _finalize_images(
             for img_idx, cropped_obj in detection_results:
                 detection_map[img_idx].append(cropped_obj)
         except Exception as e:
-            logger.error(f"Error while running table/chart detection on PPTX images: {e}")
+            logger.error(
+                f"Error while running table/chart detection on PPTX images: {e}"
+            )
             detection_map = {}
 
     # Now build the final metadata objects
     for i, context in enumerate(image_contexts):
-        (shape_idx, slide_idx, slide_count, page_nearby_blocks, source_metadata, base_unified_metadata, base64_img) = (
-            context
-        )
+        (
+            shape_idx,
+            slide_idx,
+            slide_count,
+            page_nearby_blocks,
+            source_metadata,
+            base_unified_metadata,
+            base64_img,
+        ) = context
 
         # If there's a detection result for this image, handle it
         if i in detection_map and detection_map[i]:
@@ -159,7 +167,12 @@ def _finalize_images(
 
 
 def python_pptx(
-    pptx_stream, extract_text: bool, extract_images: bool, extract_tables: bool, extract_charts: bool, **kwargs
+    pptx_stream,
+    extract_text: bool,
+    extract_images: bool,
+    extract_tables: bool,
+    extract_charts: bool,
+    **kwargs,
 ):
     """
     Helper function to use python-pptx to extract text from a bytestream PPTX,
@@ -181,7 +194,9 @@ def python_pptx(
     pptx_extractor_config = kwargs.get("pptx_extraction_config", {})
     trace_info = kwargs.get("trace_info", {})
 
-    base_unified_metadata = row_data[metadata_col] if metadata_col in row_data.index else {}
+    base_unified_metadata = (
+        row_data[metadata_col] if metadata_col in row_data.index else {}
+    )
     base_source_metadata = base_unified_metadata.get("source_metadata", {})
     source_location = base_source_metadata.get("source_location", "")
     collection_id = base_source_metadata.get("collection_id", "")
@@ -226,7 +241,9 @@ def python_pptx(
     pending_images = []
 
     for slide_idx, slide in enumerate(presentation.slides):
-        shapes = sorted(ungroup_shapes(slide.shapes), key=operator.attrgetter("top", "left"))
+        shapes = sorted(
+            ungroup_shapes(slide.shapes), key=operator.attrgetter("top", "left")
+        )
 
         page_nearby_blocks = {
             "text": {"content": [], "bbox": []},
@@ -256,7 +273,9 @@ def python_pptx(
                         if paragraph_format == "markdown":
                             if is_title(shape):
                                 if not added_title:
-                                    text = process_title(shape)  # format a heading or something
+                                    text = process_title(
+                                        shape
+                                    )  # format a heading or something
                                     added_title = True
                                 else:
                                     continue
@@ -274,7 +293,9 @@ def python_pptx(
                                     text = format_text(text, italic=True)
                                 elif is_strong(paragraph.font) or is_strong(run.font):
                                     text = format_text(text, bold=True)
-                                elif is_underlined(paragraph.font) or is_underlined(run.font):
+                                elif is_underlined(paragraph.font) or is_underlined(
+                                    run.font
+                                ):
                                     text = format_text(text, underline=True)
 
                                 if is_list_block(shape):
@@ -382,21 +403,33 @@ def python_pptx(
                         )
                     )
                 except ValueError as e:
-                    logger.warning(f"No embedded image found for shape {shape_idx} on slide {slide_idx}: {e}")
+                    logger.warning(
+                        f"No embedded image found for shape {shape_idx} on slide {slide_idx}: {e}"
+                    )
                 except Exception as e:
-                    logger.warning(f"Error processing shape {shape_idx} on slide {slide_idx}: {e}")
+                    logger.warning(
+                        f"Error processing shape {shape_idx} on slide {slide_idx}: {e}"
+                    )
 
             # ---------------------------------------------
             # 3) Table Handling
             # ---------------------------------------------
             if extract_tables and shape.has_table:
                 table_extraction = _construct_table_metadata(
-                    shape, slide_idx, slide_count, source_metadata, base_unified_metadata
+                    shape,
+                    slide_idx,
+                    slide_count,
+                    source_metadata,
+                    base_unified_metadata,
                 )
                 extracted_data.append(table_extraction)
 
         # If text_depth is PAGE, flush once per slide
-        if (extract_text) and (text_depth == TextTypeEnum.PAGE) and (len(accumulated_text) > 0):
+        if (
+            (extract_text)
+            and (text_depth == TextTypeEnum.PAGE)
+            and (len(accumulated_text) > 0)
+        ):
             text_extraction = _construct_text_metadata(
                 presentation,
                 shape,  # might pass None if you prefer
@@ -416,7 +449,11 @@ def python_pptx(
             accumulated_text = []
 
     # If text_depth is DOCUMENT, flush once at the end
-    if (extract_text) and (text_depth == TextTypeEnum.DOCUMENT) and (len(accumulated_text) > 0):
+    if (
+        (extract_text)
+        and (text_depth == TextTypeEnum.DOCUMENT)
+        and (len(accumulated_text) > 0)
+    ):
         text_extraction = _construct_text_metadata(
             presentation,
             shape,  # might pass None
@@ -508,7 +545,11 @@ def _construct_text_metadata(
 
     validated_unified_metadata = validate_metadata(ext_unified_metadata)
 
-    return [ContentTypeEnum.TEXT, validated_unified_metadata.model_dump(), str(uuid.uuid4())]
+    return [
+        ContentTypeEnum.TEXT,
+        validated_unified_metadata.model_dump(),
+        str(uuid.uuid4()),
+    ]
 
 
 # need to add block text to hierarchy/nearby_objects, including bbox
@@ -525,7 +566,12 @@ def _construct_image_metadata(
     Build standard PPTX image metadata.
     """
     # Example bounding box
-    bbox = (0, 0, 0, 0)  # or extract from shape.left, shape.top, shape.width, shape.height if desired
+    bbox = (
+        0,
+        0,
+        0,
+        0,
+    )  # or extract from shape.left, shape.top, shape.width, shape.height if desired
 
     content_metadata = {
         "type": ContentTypeEnum.IMAGE,
@@ -613,7 +659,11 @@ def _construct_table_metadata(
 
     validated_unified_metadata = validate_metadata(ext_unified_metadata)
 
-    return [ContentTypeEnum.STRUCTURED, validated_unified_metadata.model_dump(), str(uuid.uuid4())]
+    return [
+        ContentTypeEnum.STRUCTURED,
+        validated_unified_metadata.model_dump(),
+        str(uuid.uuid4()),
+    ]
 
 
 def get_bbox(
@@ -666,7 +716,9 @@ def process_title(shape):
 
 
 def is_subtitle(shape):
-    if shape.is_placeholder and (shape.placeholder_format.type == PP_PLACEHOLDER.SUBTITLE):
+    if shape.is_placeholder and (
+        shape.placeholder_format.type == PP_PLACEHOLDER.SUBTITLE
+    ):
         return True
     else:
         return False
@@ -729,7 +781,9 @@ def is_underlined(font):
         return False
 
 
-def format_text(text: str, bold: bool = False, italic: bool = False, underline: bool = False) -> str:
+def format_text(
+    text: str, bold: bool = False, italic: bool = False, underline: bool = False
+) -> str:
     if not text.strip():
         return text
 
@@ -757,7 +811,10 @@ def format_text(text: str, bold: bool = False, italic: bool = False, underline: 
 def is_strong(font):
     if font.bold or (
         font.color.type == MSO_COLOR_TYPE.SCHEME
-        and (font.color.theme_color == MSO_THEME_COLOR.DARK_1 or font.color.theme_color == MSO_THEME_COLOR.DARK_2)
+        and (
+            font.color.theme_color == MSO_THEME_COLOR.DARK_1
+            or font.color.theme_color == MSO_THEME_COLOR.DARK_2
+        )
     ):
         return True
     else:

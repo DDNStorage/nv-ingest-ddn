@@ -158,8 +158,12 @@ def extract_page_element_images(
             *bbox, _ = bboxes
             h1, w1, h2, w2 = bbox
 
-            cropped_img = crop_image(original_image, (int(h1), int(w1), int(h2), int(w2)))
-            base64_img = numpy_to_base64(cropped_img) if cropped_img is not None else None
+            cropped_img = crop_image(
+                original_image, (int(h1), int(w1), int(h2), int(w2))
+            )
+            base64_img = (
+                numpy_to_base64(cropped_img) if cropped_img is not None else None
+            )
 
             table_data = CroppedImageWithContent(
                 content="",
@@ -204,7 +208,9 @@ def extract_page_elements_from_images(
     yolox_model_name = get_yolox_model_name(yolox_http_endpoint)
 
     try:
-        model_interface = yolox_utils.YoloxPageElementsModelInterface(yolox_model_name=yolox_model_name)
+        model_interface = yolox_utils.YoloxPageElementsModelInterface(
+            yolox_model_name=yolox_model_name
+        )
         yolox_client = create_inference_client(
             config.yolox_endpoints,
             model_interface,
@@ -225,7 +231,9 @@ def extract_page_elements_from_images(
         )
 
         # Process each result along with its corresponding image.
-        for i, (annotation_dict, original_image) in enumerate(zip(inference_results, images)):
+        for i, (annotation_dict, original_image) in enumerate(
+            zip(inference_results, images)
+        ):
             extract_page_element_images(
                 annotation_dict,
                 original_image,
@@ -299,7 +307,11 @@ def image_data_extractor(
     base_unified_metadata = row_data.get(kwargs.get("metadata_column", "metadata"), {})
     current_iso_datetime = datetime.now().isoformat()
     source_metadata = {
-        "source_name": source_id if os.path.splitext(source_id)[1] else f"{source_id}.{document_type}",
+        "source_name": (
+            source_id
+            if os.path.splitext(source_id)[1]
+            else f"{source_id}.{document_type}"
+        ),
         "source_id": source_id,
         "source_location": row_data.get("source_location", ""),
         "source_type": document_type,
@@ -360,7 +372,9 @@ def image_data_extractor(
             raise
 
         # Image extraction stub
-    if extract_images and not extracted_data:  # It's not an unstructured image if we extracted a sturctured image
+    if (
+        extract_images and not extracted_data
+    ):  # It's not an unstructured image if we extracted a sturctured image
         # Placeholder for image-specific extraction process
         extracted_data.append(
             construct_image_metadata_from_base64(

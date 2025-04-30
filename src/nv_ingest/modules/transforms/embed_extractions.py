@@ -17,20 +17,32 @@ from openai import OpenAI
 import cudf
 
 from nv_ingest.schemas.embed_extractions_schema import EmbedExtractionsSchema
-from nv_ingest.schemas.metadata_schema import ContentTypeEnum, InfoMessageMetadataSchema, StatusEnum, TaskTypeEnum
-from nv_ingest.util.exception_handlers.decorators import nv_ingest_node_failure_context_manager
+from nv_ingest.schemas.metadata_schema import (
+    ContentTypeEnum,
+    InfoMessageMetadataSchema,
+    StatusEnum,
+    TaskTypeEnum,
+)
+from nv_ingest.util.exception_handlers.decorators import (
+    nv_ingest_node_failure_context_manager,
+)
 from nv_ingest.util.flow_control import filter_by_task
 from nv_ingest.util.modules.config_validator import fetch_and_validate_module_config
 from nv_ingest.util.schema.schema_validator import validate_schema
 from nv_ingest.util.tracing import traceable
-from nv_ingest_api.primitives.ingest_control_message import IngestControlMessage, remove_task_by_type
+from nv_ingest_api.primitives.ingest_control_message import (
+    IngestControlMessage,
+    remove_task_by_type,
+)
 
 logger = logging.getLogger(__name__)
 
 MODULE_NAME = "embed_extractions"
 MODULE_NAMESPACE = "nv_ingest"
 
-EmbedExtractionsLoaderFactory = ModuleLoaderFactory(MODULE_NAME, MODULE_NAMESPACE, EmbedExtractionsSchema)
+EmbedExtractionsLoaderFactory = ModuleLoaderFactory(
+    MODULE_NAME, MODULE_NAMESPACE, EmbedExtractionsSchema
+)
 
 
 def _make_async_request(
@@ -72,12 +84,16 @@ def _make_async_request(
             "filter": filter_errors,
         }
 
-        validated_info_msg = validate_schema(info_msg, InfoMessageMetadataSchema).model_dump()
+        validated_info_msg = validate_schema(
+            info_msg, InfoMessageMetadataSchema
+        ).model_dump()
 
         response["embedding"] = [None] * len(prompts)
         response["info_msg"] = validated_info_msg
 
-        raise RuntimeError(f"Embedding error occurred. Info message: {validated_info_msg}") from err
+        raise RuntimeError(
+            f"Embedding error occurred. Info message: {validated_info_msg}"
+        ) from err
 
     return response
 
@@ -261,7 +277,9 @@ def _generate_embeddings(
         ContentTypeEnum.VIDEO: lambda _: None,  # Not supported yet.
     }
 
-    logger.debug("Generating text embeddings for supported content types: TEXT, STRUCTURED, IMAGE.")
+    logger.debug(
+        "Generating text embeddings for supported content types: TEXT, STRUCTURED, IMAGE."
+    )
 
     embedding_dataframes = []
     content_masks = []
@@ -288,7 +306,9 @@ def _generate_embeddings(
             df_content = mdf.loc[content_mask].to_pandas().reset_index(drop=True)
             filtered_content = df_content["metadata"].apply(content_getter)
             # Force using a fixed batch size of 8192, ignoring the provided batch_size parameter.
-            filtered_content_batches = _generate_batches(filtered_content.tolist(), batch_size=batch_size)
+            filtered_content_batches = _generate_batches(
+                filtered_content.tolist(), batch_size=batch_size
+            )
             content_embeddings = _async_runner(
                 filtered_content_batches,
                 api_key,
@@ -299,9 +319,11 @@ def _generate_embeddings(
                 truncate,
                 filter_errors,
             )
-            df_content[["metadata", "document_type", "_contains_embeddings"]] = df_content.apply(
-                _add_embeddings, **content_embeddings, axis=1
-            )[["metadata", "document_type", "_contains_embeddings"]]
+            df_content[["metadata", "document_type", "_contains_embeddings"]] = (
+                df_content.apply(_add_embeddings, **content_embeddings, axis=1)[
+                    ["metadata", "document_type", "_contains_embeddings"]
+                ]
+            )
             df_content["_content"] = filtered_content
 
             embedding_dataframes.append(df_content)
@@ -312,7 +334,11 @@ def _generate_embeddings(
     return message
 
 
-def _concatenate_extractions(ctrl_msg: IngestControlMessage, dataframes: List[pd.DataFrame], masks: List[cudf.Series]):
+def _concatenate_extractions(
+    ctrl_msg: IngestControlMessage,
+    dataframes: List[pd.DataFrame],
+    masks: List[cudf.Series],
+):
     """
     A function to concatenate extractions enriched with embeddings and remaining extractions into
     `IngestControlMessage`.
@@ -354,8 +380,13 @@ def _embed_extractions(builder: mrc.Builder):
             task_props = remove_task_by_type(message, "embed")
             model_dump = task_props.model_dump()
 
-            endpoint_url = task_props.get("endpoint_url") or validated_config.embedding_nim_endpoint
-            model_name = task_props.get("model_name") or validated_config.embedding_model
+            endpoint_url = (
+                task_props.get("endpoint_url")
+                or validated_config.embedding_nim_endpoint
+            )
+            model_name = (
+                task_props.get("model_name") or validated_config.embedding_model
+            )
             api_key = task_props.get("api_key") or validated_config.api_key
             filter_errors = model_dump.get("filter_errors", False)
 
@@ -375,7 +406,9 @@ def _embed_extractions(builder: mrc.Builder):
             traceback.print_exc()
             raise ValueError(f"Failed to generate embeddings: {e}")
 
-    embedding_node = builder.make_node("embed_extractions", ops.map(embed_extractions_fn))
+    embedding_node = builder.make_node(
+        "embed_extractions", ops.map(embed_extractions_fn)
+    )
 
     builder.register_module_input("input", embedding_node)
     builder.register_module_output("output", embedding_node)

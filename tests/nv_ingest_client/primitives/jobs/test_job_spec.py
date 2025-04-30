@@ -136,8 +136,13 @@ def test_init_with_job_specs(job_spec_fixture):
 
 
 def test_init_with_files(mocker, job_spec_fixture):
-    mocker.patch("nv_ingest_client.util.util.generate_matching_files", return_value=["file1.pdf"])
-    mocker.patch("nv_ingest_client.util.util.create_job_specs_for_batch", return_value=[job_spec_fixture])
+    mocker.patch(
+        "nv_ingest_client.util.util.generate_matching_files", return_value=["file1.pdf"]
+    )
+    mocker.patch(
+        "nv_ingest_client.util.util.create_job_specs_for_batch",
+        return_value=[job_spec_fixture],
+    )
 
     batch_job_spec = BatchJobSpec(["file1.pdf"])
 
@@ -187,7 +192,9 @@ def test_add_task_raises_value_error_for_invalid_task(batch_job_spec_fixture):
     invalid_task = object()
 
     # Expect a ValueError when adding an invalid task
-    with pytest.raises(ValueError, match="Task must derive from nv_ingest_client.primitives.Task class"):
+    with pytest.raises(
+        ValueError, match="Task must derive from nv_ingest_client.primitives.Task class"
+    ):
         batch_job_spec_fixture.add_task(invalid_task)
 
 
@@ -209,7 +216,9 @@ def test_batch_job_spec_str_method(batch_job_spec_fixture):
 @patch(f"{MODULE_UNDER_TEST}.get_dataset_files")
 @patch(f"{MODULE_UNDER_TEST}.get_dataset_statistics")
 @patch(f"{MODULE_UNDER_TEST}.logger")
-def test__from_dataset(mock_logger, mock_get_dataset_statistics, mock_get_dataset_files, dataset):
+def test__from_dataset(
+    mock_logger, mock_get_dataset_statistics, mock_get_dataset_files, dataset
+):
     mock_get_dataset_files.return_value = ["file1.txt", "file2.txt", "file3.txt"]
     mock_get_dataset_statistics.return_value = "Statistics info"
 
@@ -223,7 +232,9 @@ def test__from_dataset(mock_logger, mock_get_dataset_statistics, mock_get_datase
 
     mock_get_dataset_statistics.assert_called_once()
 
-    batch_job_spec.from_files.assert_called_once_with(["file1.txt", "file2.txt", "file3.txt"])
+    batch_job_spec.from_files.assert_called_once_with(
+        ["file1.txt", "file2.txt", "file3.txt"]
+    )
 
     if mock_logger.isEnabledFor(logging.DEBUG):
         mock_logger.debug.assert_called_once_with("Statistics info")
@@ -239,7 +250,9 @@ def test_from_dataset(mock__from_dataset, dataset):
 
 
 def test_add_task_to_all_documents():
-    batch_job_spec = BatchJobSpec([JobSpec(document_type="pdf"), JobSpec(document_type="txt")])
+    batch_job_spec = BatchJobSpec(
+        [JobSpec(document_type="pdf"), JobSpec(document_type="txt")]
+    )
 
     dedup_task = DedupTask()
     batch_job_spec.add_task(dedup_task)
@@ -249,7 +262,9 @@ def test_add_task_to_all_documents():
 
 
 def test_add_task_to_specific_document_type_job_spec():
-    batch_job_spec = BatchJobSpec([JobSpec(document_type="pdf"), JobSpec(document_type="txt")])
+    batch_job_spec = BatchJobSpec(
+        [JobSpec(document_type="pdf"), JobSpec(document_type="txt")]
+    )
 
     embed_task = EmbedTask()
     batch_job_spec.add_task(embed_task, document_type="pdf")
@@ -261,5 +276,7 @@ def test_add_task_to_specific_document_type_job_spec():
 def test_invalid_task_addition():
     batch_job_spec = BatchJobSpec([JobSpec(document_type="pdf")])
 
-    with pytest.raises(ValueError, match="Task must derive from nv_ingest_client.primitives.Task class"):
+    with pytest.raises(
+        ValueError, match="Task must derive from nv_ingest_client.primitives.Task class"
+    ):
         batch_job_spec.add_task("invalid_task")

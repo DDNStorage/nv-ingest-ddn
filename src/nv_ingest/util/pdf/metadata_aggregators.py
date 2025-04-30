@@ -194,7 +194,11 @@ def construct_text_metadata(
 
     validated_unified_metadata = validate_metadata(ext_unified_metadata)
 
-    return [ContentTypeEnum.TEXT, validated_unified_metadata.model_dump(), str(uuid.uuid4())]
+    return [
+        ContentTypeEnum.TEXT,
+        validated_unified_metadata.model_dump(),
+        str(uuid.uuid4()),
+    ]
 
 
 def construct_image_metadata_from_base64(
@@ -280,7 +284,11 @@ def construct_image_metadata_from_base64(
 
     # Validate and return the unified metadata
     validated_unified_metadata = validate_metadata(unified_metadata)
-    return [ContentTypeEnum.IMAGE, validated_unified_metadata.model_dump(), str(uuid.uuid4())]
+    return [
+        ContentTypeEnum.IMAGE,
+        validated_unified_metadata.model_dump(),
+        str(uuid.uuid4()),
+    ]
 
 
 def construct_image_metadata_from_pdf_image(
@@ -342,7 +350,10 @@ def construct_image_metadata_from_pdf_image(
         "caption": "",
         "text": "",
         "image_location": pdf_image.bbox,
-        "image_location_max_dimensions": (max(pdf_image.max_width, 0), max(pdf_image.max_height, 0)),
+        "image_location_max_dimensions": (
+            max(pdf_image.max_width, 0),
+            max(pdf_image.max_height, 0),
+        ),
         "height": pdf_image.height,
         "width": pdf_image.width,
     }
@@ -360,7 +371,11 @@ def construct_image_metadata_from_pdf_image(
 
     # Validate and return the unified metadata
     validated_unified_metadata = validate_metadata(unified_metadata)
-    return [ContentTypeEnum.IMAGE, validated_unified_metadata.model_dump(), str(uuid.uuid4())]
+    return [
+        ContentTypeEnum.IMAGE,
+        validated_unified_metadata.model_dump(),
+        str(uuid.uuid4()),
+    ]
 
 
 # TODO(Devin): Disambiguate tables and charts, create two distinct processing methods
@@ -429,7 +444,9 @@ def construct_page_element_metadata(
         meta_name = "table_metadata"
 
     else:
-        raise ValueError(f"Unknown table/chart/infographic type: {structured_image.type_string}")
+        raise ValueError(
+            f"Unknown table/chart/infographic type: {structured_image.type_string}"
+        )
 
     content_metadata = {
         "type": ContentTypeEnum.STRUCTURED,
@@ -450,7 +467,10 @@ def construct_page_element_metadata(
         "table_content": structured_content_text,
         "table_content_format": structured_content_format,
         "table_location": structured_image.bbox,
-        "table_location_max_dimensions": (structured_image.max_width, structured_image.max_height),
+        "table_location_max_dimensions": (
+            structured_image.max_width,
+            structured_image.max_height,
+        ),
     }
 
     ext_unified_metadata = base_unified_metadata.copy()
@@ -466,7 +486,11 @@ def construct_page_element_metadata(
 
     validated_unified_metadata = validate_metadata(ext_unified_metadata)
 
-    return [ContentTypeEnum.STRUCTURED, validated_unified_metadata.model_dump(), str(uuid.uuid4())]
+    return [
+        ContentTypeEnum.STRUCTURED,
+        validated_unified_metadata.model_dump(),
+        str(uuid.uuid4()),
+    ]
 
 
 # TODO: remove this alias

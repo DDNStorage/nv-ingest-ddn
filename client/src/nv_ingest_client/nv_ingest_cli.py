@@ -11,7 +11,10 @@ from typing import List
 
 import click
 import pkg_resources
-from nv_ingest_client.util.zipkin import collect_traces_from_zipkin, write_results_to_output_directory
+from nv_ingest_client.util.zipkin import (
+    collect_traces_from_zipkin,
+    write_results_to_output_directory,
+)
 from nv_ingest_client.cli.util.click import LogLevel
 from nv_ingest_client.cli.util.click import click_match_and_validate_files
 from nv_ingest_client.cli.util.click import click_validate_batch_size
@@ -35,7 +38,9 @@ except (DistributionNotFound, VersionConflict):
     NV_INGEST_VERSION = "Unknown -- No Distribution found or Version conflict."
 
 try:
-    NV_INGEST_CLIENT_VERSION = pkg_resources.get_distribution("nv_ingest_client").version
+    NV_INGEST_CLIENT_VERSION = pkg_resources.get_distribution(
+        "nv_ingest_client"
+    ).version
 except (DistributionNotFound, VersionConflict):
     NV_INGEST_CLIENT_VERSION = "Unknown -- No Distribution found or Version conflict."
 
@@ -66,9 +71,15 @@ logger = logging.getLogger(__name__)
     help="Path to a dataset definition file.",
     callback=click_validate_file_exists,
 )
-@click.option("--client_host", default="localhost", help="DNS name or URL for the endpoint.")
-@click.option("--client_port", default=6397, type=int, help="Port for the client endpoint.")
-@click.option("--client_kwargs", help="Additional arguments to pass to the client.", default="{}")
+@click.option(
+    "--client_host", default="localhost", help="DNS name or URL for the endpoint."
+)
+@click.option(
+    "--client_port", default=6397, type=int, help="Port for the client endpoint."
+)
+@click.option(
+    "--client_kwargs", help="Additional arguments to pass to the client.", default="{}"
+)
 @click.option(
     "--client_type",
     default="rest",
@@ -76,7 +87,11 @@ logger = logging.getLogger(__name__)
     help="Client type used to connect to the ingest service.",
 )
 @click.option(
-    "--concurrency_n", default=10, show_default=True, type=int, help="Number of inflight jobs to maintain at one time."
+    "--concurrency_n",
+    default=10,
+    show_default=True,
+    type=int,
+    help="Number of inflight jobs to maintain at one time.",
 )
 @click.option(
     "--document_processing_timeout",
@@ -85,9 +100,16 @@ logger = logging.getLogger(__name__)
     type=int,
     help="Timeout when waiting for a document to be processed.",
 )
-@click.option("--dry_run", is_flag=True, help="Perform a dry run without executing actions.")
+@click.option(
+    "--dry_run", is_flag=True, help="Perform a dry run without executing actions."
+)
 @click.option("--fail_on_error", is_flag=True, help="Fail on error.")
-@click.option("--output_directory", type=click.Path(), default=None, help="Output directory for results.")
+@click.option(
+    "--output_directory",
+    type=click.Path(),
+    default=None,
+    help="Output directory for results.",
+)
 @click.option(
     "--log_level",
     type=click.Choice([level.value for level in LogLevel], case_sensitive=False),
@@ -101,7 +123,11 @@ logger = logging.getLogger(__name__)
     help="Save images separately from returned metadata. This can make metadata files more human readable",
 )
 @click.option(
-    "--shuffle_dataset", is_flag=True, default=True, show_default=True, help="Shuffle the dataset before processing."
+    "--shuffle_dataset",
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="Shuffle the dataset before processing.",
 )
 @click.option(
     "--task",
@@ -192,7 +218,9 @@ for locating portions of the system that might be bottlenecks for the overall ru
 """,
 )
 @click.option("--zipkin_host", default="localhost", help="DNS name or Zipkin API.")
-@click.option("--zipkin_port", default=9411, type=int, help="Port for the Zipkin trace API")
+@click.option(
+    "--zipkin_port", default=9411, type=int, help="Port for the Zipkin trace API"
+)
 @click.option("--version", is_flag=True, help="Show version.")
 @click.pass_context
 def main(
@@ -225,7 +253,9 @@ def main(
 
     try:
         configure_logging(logger, log_level)
-        logging.debug(f"nv-ingest-cli:params:\n{json.dumps(ctx.params, indent=2, default=repr)}")
+        logging.debug(
+            f"nv-ingest-cli:params:\n{json.dumps(ctx.params, indent=2, default=repr)}"
+        )
 
         docs = list(doc)
         if dataset:
@@ -248,7 +278,9 @@ def main(
             logger.info(_msg)
 
         if not dry_run:
-            logging.debug(f"Creating message client: {client_host} and port: {client_port} -> {client_kwargs}")
+            logging.debug(
+                f"Creating message client: {client_host} and port: {client_port} -> {client_kwargs}"
+            )
 
             if client_type == "rest":
                 client_allocator = RestClient
@@ -266,15 +298,17 @@ def main(
             )
 
             start_time_ns = time.time_ns()
-            (total_files, trace_times, pages_processed, trace_ids) = create_and_process_jobs(
-                files=docs,
-                client=ingest_client,
-                tasks=task,
-                output_directory=output_directory,
-                batch_size=batch_size,
-                timeout=document_processing_timeout,
-                fail_on_error=fail_on_error,
-                save_images_separately=save_images_separately,
+            (total_files, trace_times, pages_processed, trace_ids) = (
+                create_and_process_jobs(
+                    files=docs,
+                    client=ingest_client,
+                    tasks=task,
+                    output_directory=output_directory,
+                    batch_size=batch_size,
+                    timeout=document_processing_timeout,
+                    fail_on_error=fail_on_error,
+                    save_images_separately=save_images_separately,
+                )
             )
 
             report_statistics(start_time_ns, trace_times, pages_processed, total_files)
@@ -282,7 +316,9 @@ def main(
             # Gather profiling data after processing has completed.
             if collect_profiling_traces:
                 logger.info("Collecting profiling traces ....")
-                trace_responses = collect_traces_from_zipkin(zipkin_host, zipkin_port, trace_ids, 1)
+                trace_responses = collect_traces_from_zipkin(
+                    zipkin_host, zipkin_port, trace_ids, 1
+                )
 
                 # Log the responses to a file in the configured results --output_directory
                 write_results_to_output_directory(output_directory, trace_responses)

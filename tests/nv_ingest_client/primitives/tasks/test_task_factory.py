@@ -29,7 +29,10 @@ def test_task_factory_with_invalid_type():
     invalid_task_type = 123  # Not a string or TaskType
     with pytest.raises(ValueError) as exc_info:
         task_factory(invalid_task_type)
-    assert "task_type must be a TaskType enum member or a valid task type string" in str(exc_info.value)
+    assert (
+        "task_type must be a TaskType enum member or a valid task type string"
+        in str(exc_info.value)
+    )
 
 
 # Test successful task creation for implemented tasks

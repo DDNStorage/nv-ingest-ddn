@@ -50,7 +50,12 @@ def test_missing_required_field_id():
 
 
 def test_extra_fields_forbidden():
-    data = {"type": "Task With Extras", "id": "task-extra", "properties": {}, "unexpected_field": "foo"}
+    data = {
+        "type": "Task With Extras",
+        "id": "task-extra",
+        "properties": {},
+        "unexpected_field": "foo",
+    }
     with pytest.raises(ValidationError) as exc_info:
         ControlMessageTask(**data)
     errors = exc_info.value.errors()
@@ -78,7 +83,11 @@ def test_properties_accepts_various_types():
 
 
 def test_properties_with_invalid_type():
-    data = {"type": "Invalid Properties Task", "id": "task-invalid-props", "properties": ["this", "should", "fail"]}
+    data = {
+        "type": "Invalid Properties Task",
+        "id": "task-invalid-props",
+        "properties": ["this", "should", "fail"],
+    }
     with pytest.raises(ValidationError) as exc_info:
         ControlMessageTask(**data)
     errors = exc_info.value.errors()
@@ -228,7 +237,9 @@ def test_filter_timestamp():
 
 def test_remove_existing_task():
     cm = IngestControlMessage()
-    task = ControlMessageTask(type="Test Task", id="task1", properties={"param": "value"})
+    task = ControlMessageTask(
+        type="Test Task", id="task1", properties={"param": "value"}
+    )
     cm.add_task(task)
     assert cm.has_task("task1")
     cm.remove_task("task1")
@@ -240,7 +251,9 @@ def test_remove_existing_task():
 @pytest.mark.xfail
 def test_remove_nonexistent_task():
     cm = IngestControlMessage()
-    task = ControlMessageTask(type="Test Task", id="task1", properties={"param": "value"})
+    task = ControlMessageTask(
+        type="Test Task", id="task1", properties={"param": "value"}
+    )
     cm.add_task(task)
     cm.remove_task("nonexistent")
     assert cm.has_task("task1")
@@ -283,7 +296,11 @@ def test_config_update_valid():
     assert updated_config == new_config
     additional_config = {"another_setting": "value"}
     updated_config = cm.config(additional_config)
-    assert updated_config == {"setting": True, "threshold": 10, "another_setting": "value"}
+    assert updated_config == {
+        "setting": True,
+        "threshold": 10,
+        "another_setting": "value",
+    }
 
 
 def test_config_update_invalid():
@@ -294,7 +311,9 @@ def test_config_update_invalid():
 
 def test_copy_creates_deep_copy():
     cm = IngestControlMessage()
-    task = ControlMessageTask(type="Test Task", id="task1", properties={"param": "value"})
+    task = ControlMessageTask(
+        type="Test Task", id="task1", properties={"param": "value"}
+    )
     cm.add_task(task)
     cm.set_metadata("meta", "data")
     dt = datetime(2025, 1, 1, 12, 0, 0)

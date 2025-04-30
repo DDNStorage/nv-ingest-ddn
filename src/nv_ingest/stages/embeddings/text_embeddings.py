@@ -7,7 +7,12 @@ import pandas as pd
 from openai import OpenAI
 
 from nv_ingest.schemas.embed_extractions_schema import EmbedExtractionsSchema
-from nv_ingest.schemas.metadata_schema import ContentTypeEnum, TaskTypeEnum, StatusEnum, InfoMessageMetadataSchema
+from nv_ingest.schemas.metadata_schema import (
+    ContentTypeEnum,
+    TaskTypeEnum,
+    StatusEnum,
+    InfoMessageMetadataSchema,
+)
 from nv_ingest.stages.multiprocessing_stage import MultiProcessingBaseStage
 from nv_ingest.util.schema.schema_validator import validate_schema
 
@@ -53,12 +58,16 @@ def _make_async_request(
             "filter": filter_errors,
         }
 
-        validated_info_msg = validate_schema(info_msg, InfoMessageMetadataSchema).model_dump()
+        validated_info_msg = validate_schema(
+            info_msg, InfoMessageMetadataSchema
+        ).model_dump()
 
         response["embedding"] = [None] * len(prompts)
         response["info_msg"] = validated_info_msg
 
-        raise RuntimeError(f"Embedding error occurred. Info message: {validated_info_msg}") from err
+        raise RuntimeError(
+            f"Embedding error occurred. Info message: {validated_info_msg}"
+        ) from err
 
     return response
 
@@ -249,12 +258,17 @@ def _concatenate_extractions_pandas(
     df_no_text["_contains_embeddings"] = False
 
     dataframes.append(df_no_text)
-    combined_df = pd.concat(dataframes, axis=0, ignore_index=True).reset_index(drop=True)
+    combined_df = pd.concat(dataframes, axis=0, ignore_index=True).reset_index(
+        drop=True
+    )
     return combined_df
 
 
 def _generate_text_embeddings_df(
-    df: pd.DataFrame, task_props: Dict[str, Any], validated_config: Any, trace_info: Optional[Dict] = None
+    df: pd.DataFrame,
+    task_props: Dict[str, Any],
+    validated_config: Any,
+    trace_info: Optional[Dict] = None,
 ) -> Tuple[pd.DataFrame, Dict]:
     """
     Generate text embeddings for supported content types (TEXT, STRUCTURED, IMAGE)
@@ -295,12 +309,16 @@ def _generate_text_embeddings_df(
         ContentTypeEnum.VIDEO: lambda x: None,  # Not supported yet.
     }
 
-    endpoint_url = task_props.get("endpoint_url") or validated_config.embedding_nim_endpoint
+    endpoint_url = (
+        task_props.get("endpoint_url") or validated_config.embedding_nim_endpoint
+    )
     model_name = task_props.get("model_name") or validated_config.embedding_model
     api_key = task_props.get("api_key") or validated_config.api_key
     filter_errors = task_props.get("filter_errors", False)
 
-    logger.debug("Generating text embeddings for supported content types: TEXT, STRUCTURED, IMAGE, AUDIO.")
+    logger.debug(
+        "Generating text embeddings for supported content types: TEXT, STRUCTURED, IMAGE, AUDIO."
+    )
 
     # Process each supported content type.
     for content_type, content_getter in pandas_content_extractor.items():
@@ -315,7 +333,9 @@ def _generate_text_embeddings_df(
 
         # Extract content from metadata and filter out rows with empty content.
         extracted_content = df.loc[content_mask, "metadata"].apply(content_getter)
-        non_empty_mask = extracted_content.notna() & (extracted_content.str.strip() != "")
+        non_empty_mask = extracted_content.notna() & (
+            extracted_content.str.strip() != ""
+        )
         final_mask = content_mask & non_empty_mask
         if not final_mask.any():
             continue
@@ -324,7 +344,9 @@ def _generate_text_embeddings_df(
         df_content = df.loc[final_mask].copy().reset_index(drop=True)
         filtered_content = df_content["metadata"].apply(content_getter)
         # Create batches of content.
-        filtered_content_batches = _generate_batches(filtered_content.tolist(), batch_size=validated_config.batch_size)
+        filtered_content_batches = _generate_batches(
+            filtered_content.tolist(), batch_size=validated_config.batch_size
+        )
         # Run asynchronous embedding requests.
         content_embeddings = _async_runner(
             filtered_content_batches,
@@ -337,16 +359,20 @@ def _generate_text_embeddings_df(
             filter_errors,
         )
         # Apply the embeddings (and any error info) to each row.
-        df_content[["metadata", "document_type", "_contains_embeddings"]] = df_content.apply(
-            _add_embeddings, **content_embeddings, axis=1
-        )[["metadata", "document_type", "_contains_embeddings"]]
+        df_content[["metadata", "document_type", "_contains_embeddings"]] = (
+            df_content.apply(_add_embeddings, **content_embeddings, axis=1)[
+                ["metadata", "document_type", "_contains_embeddings"]
+            ]
+        )
         df_content["_content"] = filtered_content
 
         embedding_dataframes.append(df_content)
         content_masks.append(final_mask)
 
     # Concatenate the processed rows with the remaining rows.
-    combined_df = _concatenate_extractions_pandas(df, embedding_dataframes, content_masks)
+    combined_df = _concatenate_extractions_pandas(
+        df, embedding_dataframes, content_masks
+    )
     return combined_df, {"trace_info": trace_info}
 
 
@@ -382,8 +408,14 @@ def generate_text_embed_extractor_stage(
     # Validate the stage configuration.
     validated_config = EmbedExtractionsSchema(**stage_config)
     # Wrap the new embedding function with the validated configuration.
-    _wrapped_process_fn = functools.partial(_generate_text_embeddings_df, validated_config=validated_config)
+    _wrapped_process_fn = functools.partial(
+        _generate_text_embeddings_df, validated_config=validated_config
+    )
     # Return the configured stage.
     return MultiProcessingBaseStage(
-        c=c, pe_count=pe_count, task=task, task_desc=task_desc, process_fn=_wrapped_process_fn
+        c=c,
+        pe_count=pe_count,
+        task=task,
+        task_desc=task_desc,
+        process_fn=_wrapped_process_fn,
     )

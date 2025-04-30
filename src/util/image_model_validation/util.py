@@ -24,7 +24,11 @@ def resize_image(image, target_img_size):
         ).astype(np.uint8)
         image = np.pad(
             image,
-            ((0, target_img_size[0] - image.shape[0]), (0, target_img_size[1] - image.shape[1]), (0, 0)),
+            (
+                (0, target_img_size[0] - image.shape[0]),
+                (0, target_img_size[1] - image.shape[1]),
+                (0, 0),
+            ),
             mode="constant",
             constant_values=114,
         )
@@ -55,7 +59,9 @@ def validate_output(output_data, expected_batch_size):
     Validate the size of the output data.
     """
     if len(output_data) != expected_batch_size:
-        raise ValueError(f"Output size {len(output_data)} does not match expected batch size {expected_batch_size}.")
+        raise ValueError(
+            f"Output size {len(output_data)} does not match expected batch size {expected_batch_size}."
+        )
     print(f"Output size is valid: {len(output_data)}")
 
 
@@ -94,7 +100,9 @@ def prepare_output_tensor():
 
 def perform_inference(triton_client, model_name, inputs, outputs):
     try:
-        return triton_client.infer(model_name=model_name, inputs=inputs, outputs=outputs)
+        return triton_client.infer(
+            model_name=model_name, inputs=inputs, outputs=outputs
+        )
     except Exception as e:
         print(f"Inference failed: {str(e)}")
         sys.exit(1)

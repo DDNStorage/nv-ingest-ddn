@@ -23,7 +23,9 @@ from opentelemetry.trace import StatusCode
 from opentelemetry.trace import TraceFlags
 
 from nv_ingest.schemas.otel_tracer_schema import OpenTelemetryTracerSchema
-from nv_ingest.util.exception_handlers.decorators import nv_ingest_node_failure_context_manager
+from nv_ingest.util.exception_handlers.decorators import (
+    nv_ingest_node_failure_context_manager,
+)
 from nv_ingest.util.modules.config_validator import fetch_and_validate_module_config
 from nv_ingest.util.tracing.logging import TaskResultStatus
 from nv_ingest_api.primitives.ingest_control_message import IngestControlMessage
@@ -50,13 +52,17 @@ def _trace(builder: mrc.Builder) -> None:
     -------
     None
     """
-    validated_config = fetch_and_validate_module_config(builder, OpenTelemetryTracerSchema)
+    validated_config = fetch_and_validate_module_config(
+        builder, OpenTelemetryTracerSchema
+    )
 
     resource = Resource(attributes={"service.name": "nv-ingest"})
 
     trace.set_tracer_provider(TracerProvider(resource=resource))
 
-    otlp_exporter = OTLPSpanExporter(endpoint=validated_config.otel_endpoint, insecure=True)
+    otlp_exporter = OTLPSpanExporter(
+        endpoint=validated_config.otel_endpoint, insecure=True
+    )
     span_processor = BatchSpanProcessor(otlp_exporter)
     trace.get_tracer_provider().add_span_processor(span_processor)
 
@@ -85,7 +91,9 @@ def _trace(builder: mrc.Builder) -> None:
             trace_flags=TraceFlags(0x01),
         )
         parent_ctx = trace.set_span_in_context(NonRecordingSpan(span_context))
-        parent_span = tracer.start_span(job_id, context=parent_ctx, start_time=start_time)
+        parent_span = tracer.start_span(
+            job_id, context=parent_ctx, start_time=start_time
+        )
 
         create_span_with_timestamps(tracer, parent_span, message)
 
@@ -177,7 +185,9 @@ def create_span_with_timestamps(tracer, parent_span, message):
 
     ctx_store = {}
     child_ctx = trace.set_span_in_context(parent_span)
-    for task_name, (ts_entry, ts_exit) in sorted(timestamps.items(), key=lambda x: x[1]):
+    for task_name, (ts_entry, ts_exit) in sorted(
+        timestamps.items(), key=lambda x: x[1]
+    ):
         main_task, *subtask = task_name.split("::", 1)
         subtask = "::".join(subtask)
 

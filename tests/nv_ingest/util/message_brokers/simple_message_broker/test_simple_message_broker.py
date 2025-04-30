@@ -69,13 +69,20 @@ def recv_exact(sock, num_bytes):
 
 def send_ack(sock, transaction_id, ack=True):
     """Helper method to send an ACK to the server."""
-    ack_data = json.dumps({"transaction_id": transaction_id, "ack": ack}).encode("utf-8")
+    ack_data = json.dumps({"transaction_id": transaction_id, "ack": ack}).encode(
+        "utf-8"
+    )
     sock.sendall(len(ack_data).to_bytes(8, "big") + ack_data)
 
 
 def _push_message(queue_name, message):
     """Helper method to push a message into the queue without testing ACK behavior."""
-    request_data = {"command": "PUSH", "queue_name": queue_name, "message": message, "timeout": 5}
+    request_data = {
+        "command": "PUSH",
+        "queue_name": queue_name,
+        "message": message,
+        "timeout": 5,
+    }
     sock, response = send_request(request_data)
     transaction_id = response["transaction_id"]
     send_ack(sock, transaction_id)
@@ -93,7 +100,12 @@ def test_push_with_ack():
     message = "Test Message"
 
     # Send PUSH request
-    request_data = {"command": "PUSH", "queue_name": queue_name, "message": message, "timeout": 5}
+    request_data = {
+        "command": "PUSH",
+        "queue_name": queue_name,
+        "message": message,
+        "timeout": 5,
+    }
     sock, response = send_request(request_data)
 
     # Ensure initial response contains transaction ID
@@ -208,7 +220,11 @@ def test_pop_without_ack():
     _push_message(queue_name, message)
 
     # Send POP request
-    request_data = {"command": "POP", "queue_name": queue_name, "timeout": 1}  # Short timeout for the test
+    request_data = {
+        "command": "POP",
+        "queue_name": queue_name,
+        "timeout": 1,
+    }  # Short timeout for the test
     sock, response = send_request(request_data)
 
     # Do not send ACK, wait for timeout
@@ -284,7 +300,12 @@ def test_queue_full():
 
     # Fill the queue to its maximum size
     for _ in range(MAX_QUEUE_SIZE):
-        request_data = {"command": "PUSH", "queue_name": queue_name, "message": message, "timeout": 5}
+        request_data = {
+            "command": "PUSH",
+            "queue_name": queue_name,
+            "message": message,
+            "timeout": 5,
+        }
         sock, response = send_request(request_data)
 
         # Receive initial response with transaction ID
@@ -305,7 +326,12 @@ def test_queue_full():
         sock.close()
 
     # Attempt to push another message beyond capacity
-    request_data = {"command": "PUSH", "queue_name": queue_name, "message": message, "timeout": 5}
+    request_data = {
+        "command": "PUSH",
+        "queue_name": queue_name,
+        "message": message,
+        "timeout": 5,
+    }
     sock, response = send_request(request_data)
 
     # Receive immediate failure response (no transaction ID)
@@ -323,7 +349,12 @@ def test_ack_with_wrong_transaction_id():
     message = "Test Message"
 
     # Send PUSH request
-    request_data = {"command": "PUSH", "queue_name": queue_name, "message": message, "timeout": 5}
+    request_data = {
+        "command": "PUSH",
+        "queue_name": queue_name,
+        "message": message,
+        "timeout": 5,
+    }
     sock, response = send_request(request_data)
 
     # Send ACK with wrong transaction ID
@@ -355,7 +386,12 @@ def test_push_with_large_message():
     message = "A" * (1024 * 1024 * 5)  # 5MB message
 
     # Send PUSH request
-    request_data = {"command": "PUSH", "queue_name": queue_name, "message": message, "timeout": 5}
+    request_data = {
+        "command": "PUSH",
+        "queue_name": queue_name,
+        "message": message,
+        "timeout": 5,
+    }
     sock, response = send_request(request_data)
     transaction_id = response["transaction_id"]
 
@@ -401,7 +437,12 @@ def test_ack_timeout():
     message = "Test Message"
 
     # Send PUSH request with a short timeout
-    request_data = {"command": "PUSH", "queue_name": queue_name, "message": message, "timeout": 1}  # 1-second timeout
+    request_data = {
+        "command": "PUSH",
+        "queue_name": queue_name,
+        "message": message,
+        "timeout": 1,
+    }  # 1-second timeout
     sock, response = send_request(request_data)
     transaction_id = response["transaction_id"]
 
@@ -491,7 +532,11 @@ def test_concurrent_push_pop():
     pushed = [res for res in results if res.startswith("Pushed")]
     popped = [res for res in results if res.startswith("Popped")]
     push_errors = [res for res in results if res.startswith("Push error")]
-    pop_errors = [res for res in results if res.startswith("Pop error") or res.startswith("Pop exception")]
+    pop_errors = [
+        res
+        for res in results
+        if res.startswith("Pop error") or res.startswith("Pop exception")
+    ]
 
     # Log any errors
     if push_errors or pop_errors:

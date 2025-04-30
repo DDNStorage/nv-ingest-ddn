@@ -74,7 +74,9 @@ def test_extract_table_data_no_valid_rows(mocker, validated_config):
     and return the DataFrame unmodified with a trace_info.
     """
     mock_clients = (MagicMock(), MagicMock())
-    mock_create_clients = mocker.patch(f"{MODULE_UNDER_TEST}._create_clients", return_value=mock_clients)
+    mock_create_clients = mocker.patch(
+        f"{MODULE_UNDER_TEST}._create_clients", return_value=mock_clients
+    )
     mock_update_metadata = mocker.patch(f"{MODULE_UNDER_TEST}._update_metadata")
 
     df_in = pd.DataFrame(
@@ -105,7 +107,9 @@ def test_extract_table_data_all_valid(mocker, validated_config):
     then write the returned content/format back into each row.
     """
     mock_clients = (MagicMock(), MagicMock())
-    mock_create_clients = mocker.patch(f"{MODULE_UNDER_TEST}._create_clients", return_value=mock_clients)
+    mock_create_clients = mocker.patch(
+        f"{MODULE_UNDER_TEST}._create_clients", return_value=mock_clients
+    )
     mock_update_metadata = mocker.patch(
         f"{MODULE_UNDER_TEST}._update_metadata",
         return_value=[
@@ -137,9 +141,13 @@ def test_extract_table_data_all_valid(mocker, validated_config):
 
     # Each valid row updated
     assert df_out.at[0, "metadata"]["table_metadata"]["table_content"] == "tableA"
-    assert df_out.at[0, "metadata"]["table_metadata"]["table_content_format"] == "simple"
+    assert (
+        df_out.at[0, "metadata"]["table_metadata"]["table_content_format"] == "simple"
+    )
     assert df_out.at[1, "metadata"]["table_metadata"]["table_content"] == "tableB"
-    assert df_out.at[1, "metadata"]["table_metadata"]["table_content_format"] == "simple"
+    assert (
+        df_out.at[1, "metadata"]["table_metadata"]["table_content_format"] == "simple"
+    )
 
     # Check calls
     mock_create_clients.assert_called_once()
@@ -160,7 +168,9 @@ def test_extract_table_data_mixed_rows(mocker, validated_config):
     Some rows valid, some invalid => only valid rows get updated.
     """
     mock_clients = (MagicMock(), MagicMock())
-    mock_create_clients = mocker.patch(f"{MODULE_UNDER_TEST}._create_clients", return_value=mock_clients)
+    mock_create_clients = mocker.patch(
+        f"{MODULE_UNDER_TEST}._create_clients", return_value=mock_clients
+    )
     mock_update_metadata = mocker.patch(
         f"{MODULE_UNDER_TEST}._update_metadata",
         return_value=[("good1", [], [], ["table1"]), ("good2", [], [], ["table2"])],
@@ -197,12 +207,16 @@ def test_extract_table_data_mixed_rows(mocker, validated_config):
 
     # row0 => updated with table1/txt1
     assert df_out.at[0, "metadata"]["table_metadata"]["table_content"] == "table1"
-    assert df_out.at[0, "metadata"]["table_metadata"]["table_content_format"] == "simple"
+    assert (
+        df_out.at[0, "metadata"]["table_metadata"]["table_content_format"] == "simple"
+    )
     # row1 => invalid => no table_content
     assert "table_content" not in df_out.at[1, "metadata"]["table_metadata"]
     # row2 => updated => table2/txt2
     assert df_out.at[2, "metadata"]["table_metadata"]["table_content"] == "table2"
-    assert df_out.at[2, "metadata"]["table_metadata"]["table_content_format"] == "simple"
+    assert (
+        df_out.at[2, "metadata"]["table_metadata"]["table_content_format"] == "simple"
+    )
 
     mock_update_metadata.assert_called_once_with(
         base64_images=["good1", "good2"],
@@ -223,10 +237,14 @@ def test_extract_table_data_update_error(mocker, validated_config):
     """
     # Mock the yolox and paddle clients so we don't make real calls or wait.
     mock_clients = (MagicMock(), MagicMock())
-    mock_create_clients = mocker.patch(f"{MODULE_UNDER_TEST}._create_clients", return_value=mock_clients)
+    mock_create_clients = mocker.patch(
+        f"{MODULE_UNDER_TEST}._create_clients", return_value=mock_clients
+    )
 
     # Mock _update_metadata to raise an error
-    mock_update_metadata = mocker.patch(f"{MODULE_UNDER_TEST}._update_metadata", side_effect=RuntimeError("paddle_err"))
+    mock_update_metadata = mocker.patch(
+        f"{MODULE_UNDER_TEST}._update_metadata", side_effect=RuntimeError("paddle_err")
+    )
 
     df_in = pd.DataFrame(
         [
@@ -374,7 +392,10 @@ def test_update_metadata_inference_error(mocker, yolox_mock, paddle_mock):
     then we re-raise the exception.
     """
     imgs = ["imgA", "imgB"]
-    mock_dim = mocker.patch(f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.zeros((60, 60, 3), dtype=np.uint8))
+    mock_dim = mocker.patch(
+        f"{MODULE_UNDER_TEST}.base64_to_numpy",
+        return_value=np.zeros((60, 60, 3), dtype=np.uint8),
+    )
     mocker.patch(f"{MODULE_UNDER_TEST}.PADDLE_MIN_WIDTH", 20)
     mocker.patch(f"{MODULE_UNDER_TEST}.PADDLE_MIN_HEIGHT", 20)
 
@@ -393,7 +414,10 @@ def test_update_metadata_mismatch_length(mocker, yolox_mock, paddle_mock):
     If paddle.infer returns fewer or more results than the valid_images => ValueError
     """
     imgs = ["img1", "img2"]
-    mock_dim = mocker.patch(f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.zeros((80, 80, 3), dtype=np.uint8))
+    mock_dim = mocker.patch(
+        f"{MODULE_UNDER_TEST}.base64_to_numpy",
+        return_value=np.zeros((80, 80, 3), dtype=np.uint8),
+    )
     mocker.patch(f"{MODULE_UNDER_TEST}.PADDLE_MIN_WIDTH", 20)
     mocker.patch(f"{MODULE_UNDER_TEST}.PADDLE_MIN_HEIGHT", 20)
 
@@ -409,7 +433,10 @@ def test_update_metadata_non_list_return(mocker, yolox_mock, paddle_mock):
     If inference returns something that's not a list, each gets ("", None, ...).
     """
     imgs = ["imgX"]
-    mock_dim = mocker.patch(f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.zeros((70, 70, 3), dtype=np.uint8))
+    mock_dim = mocker.patch(
+        f"{MODULE_UNDER_TEST}.base64_to_numpy",
+        return_value=np.zeros((70, 70, 3), dtype=np.uint8),
+    )
     mocker.patch(f"{MODULE_UNDER_TEST}.PADDLE_MIN_WIDTH", 50)
     mocker.patch(f"{MODULE_UNDER_TEST}.PADDLE_MIN_HEIGHT", 50)
 
@@ -426,7 +453,10 @@ def test_update_metadata_all_small(mocker, yolox_mock, paddle_mock):
     """
     imgs = ["imgA", "imgB"]
     mock_dim = mocker.patch(f"{MODULE_UNDER_TEST}.base64_to_numpy")
-    mock_dim.side_effect = [np.zeros((10, 10, 3), dtype=np.uint8), np.zeros((5, 20, 3), dtype=np.uint8)]
+    mock_dim.side_effect = [
+        np.zeros((10, 10, 3), dtype=np.uint8),
+        np.zeros((5, 20, 3), dtype=np.uint8),
+    ]
     mocker.patch(f"{MODULE_UNDER_TEST}.PADDLE_MIN_WIDTH", 30)
     mocker.patch(f"{MODULE_UNDER_TEST}.PADDLE_MIN_HEIGHT", 30)
 

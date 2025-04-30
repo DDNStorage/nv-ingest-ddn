@@ -40,19 +40,25 @@ def get_dataset_statistics(dataset_bytes: BytesIO) -> str:
     file_type_counts = Counter(file_types)
     unique_files = set(sampled_files)
     unique_file_types = {
-        file_type: len(set(f for f in sampled_files if f.endswith("." + file_type))) for file_type in file_type_counts
+        file_type: len(set(f for f in sampled_files if f.endswith("." + file_type)))
+        for file_type in file_type_counts
     }
 
     total_size_bytes = sum(os.path.getsize(f) for f in sampled_files)
     total_size_gb = total_size_bytes / (1024**3)
 
     file_type_sizes = {
-        ftype: sum(os.path.getsize(f) for f in sampled_files if f.endswith("." + ftype)) for ftype in file_type_counts
+        ftype: sum(os.path.getsize(f) for f in sampled_files if f.endswith("." + ftype))
+        for ftype in file_type_counts
     }
-    file_type_sizes_gb = {ftype: size / (1024**3) for ftype, size in file_type_sizes.items()}
+    file_type_sizes_gb = {
+        ftype: size / (1024**3) for ftype, size in file_type_sizes.items()
+    }
 
     estimated_sizes_gb = {
-        ftype: metadata["file_type_proportions"][ftype]["target_proportion"] / 100 * total_size_gb
+        ftype: metadata["file_type_proportions"][ftype]["target_proportion"]
+        / 100
+        * total_size_gb
         for ftype in metadata["file_type_proportions"]
     }
 

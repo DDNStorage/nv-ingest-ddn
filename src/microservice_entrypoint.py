@@ -13,7 +13,9 @@ from pydantic import ValidationError
 from nv_ingest.schemas.ingest_pipeline_config_schema import PipelineConfigSchema
 from nv_ingest.util.converters.containers import merge_dict
 from nv_ingest.util.logging.configuration import LogLevel
-from nv_ingest.util.logging.configuration import configure_logging as configure_local_logging
+from nv_ingest.util.logging.configuration import (
+    configure_logging as configure_local_logging,
+)
 from nv_ingest.util.pipeline.pipeline_runners import run_pipeline
 from nv_ingest.util.schema.schema_validator import validate_schema
 from nv_ingest.util.pipeline.stage_builders import *
@@ -34,9 +36,21 @@ configure_local_logging(logger, local_log_level)
     help="Path to the JSON configuration file.",
     hidden=True,
 )
-@click.option("--edge_buffer_size", default=32, type=int, help="Size of the edge buffer between stages.")
-@click.option("--num_threads", default=get_default_cpu_count(), type=int, help="Number of threads.")
-@click.option("--model_max_batch_size", default=256, type=int, help="Model max batch size.")
+@click.option(
+    "--edge_buffer_size",
+    default=32,
+    type=int,
+    help="Size of the edge buffer between stages.",
+)
+@click.option(
+    "--num_threads",
+    default=get_default_cpu_count(),
+    type=int,
+    help="Number of threads.",
+)
+@click.option(
+    "--model_max_batch_size", default=256, type=int, help="Model max batch size."
+)
 @click.option(
     "--mode",
     type=click.Choice([mode.value for mode in PipelineModes], case_sensitive=False),
@@ -79,7 +93,9 @@ def cli(
             log_level = "INFO"
 
     log_level = log_level_mapping.get(log_level.upper(), logging.INFO)
-    logging.basicConfig(level=log_level, format="%(asctime)s - %(levelname)s - %(message)s")
+    logging.basicConfig(
+        level=log_level, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
     configure_logging(log_level=log_level)
 
     CppConfig.set_should_use_cpp(False)
@@ -93,7 +109,9 @@ def cli(
     morpheus_pipeline_config.model_max_batch_size = model_max_batch_size
     morpheus_pipeline_config.mode = PipelineModes[mode.upper()]
 
-    cli_ingest_config = {}  # TODO: Create a config for CLI overrides -- not necessary yet.
+    cli_ingest_config = (
+        {}
+    )  # TODO: Create a config for CLI overrides -- not necessary yet.
 
     if ingest_config_path:
         ingest_config = validate_schema(ingest_config_path, PipelineConfigSchema)

@@ -68,7 +68,9 @@ class MessageBrokerClientBase(ABC):
         """
 
     @abstractmethod
-    def submit_message(self, channel_name: str, message: str, for_nv_ingest: bool = False) -> Any:
+    def submit_message(
+        self, channel_name: str, message: str, for_nv_ingest: bool = False
+    ) -> Any:
         """
         Submits a message to a specified queue with retries on failure.
 

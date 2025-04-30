@@ -50,7 +50,12 @@ def test_embed_task_str_representation():
     "endpoint_url, model_name, api_key, filter_errors",
     [
         ("https://integrate.api.nvidia.com/v1", "nvidia/embedding-model", "", True),
-        ("http://embedding-ms:8000/v1", "nvidia/llama-3.2-nv-embedqa-1b-v2", "test-key", False),
+        (
+            "http://embedding-ms:8000/v1",
+            "nvidia/llama-3.2-nv-embedqa-1b-v2",
+            "test-key",
+            False,
+        ),
         ("", "nvidia/nv-embedqa-e5-v5", "42", True),
         (None, None, None, False),
     ],
@@ -62,9 +67,17 @@ def test_embed_task_to_dict(
     filter_errors,
 ):
 
-    task = EmbedTask(endpoint_url=endpoint_url, model_name=model_name, api_key=api_key, filter_errors=filter_errors)
+    task = EmbedTask(
+        endpoint_url=endpoint_url,
+        model_name=model_name,
+        api_key=api_key,
+        filter_errors=filter_errors,
+    )
 
-    expected_dict = {"type": "embed", "task_properties": {"filter_errors": filter_errors}}
+    expected_dict = {
+        "type": "embed",
+        "task_properties": {"filter_errors": filter_errors},
+    }
 
     # Only add properties to expected_dict if they are not None
     if endpoint_url:
@@ -77,7 +90,9 @@ def test_embed_task_to_dict(
     print(expected_dict)
     print(task.to_dict())
 
-    assert task.to_dict() == expected_dict, "The to_dict method did not return the expected dictionary representation"
+    assert (
+        task.to_dict() == expected_dict
+    ), "The to_dict method did not return the expected dictionary representation"
 
 
 # Default Parameter Handling

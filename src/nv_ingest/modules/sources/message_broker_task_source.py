@@ -22,10 +22,14 @@ from nv_ingest.util.tracing.logging import annotate_cm
 
 # Import the clients
 from nv_ingest.util.message_brokers.redis.redis_client import RedisClient
-from nv_ingest.util.message_brokers.simple_message_broker.simple_client import SimpleClient
+from nv_ingest.util.message_brokers.simple_message_broker.simple_client import (
+    SimpleClient,
+)
 
 # Import the SimpleMessageBroker server
-from nv_ingest.util.message_brokers.simple_message_broker.broker import SimpleMessageBroker
+from nv_ingest.util.message_brokers.simple_message_broker.broker import (
+    SimpleMessageBroker,
+)
 from nv_ingest_api.primitives.control_message_task import ControlMessageTask
 from nv_ingest_api.primitives.ingest_control_message import IngestControlMessage
 
@@ -33,7 +37,9 @@ logger = logging.getLogger(__name__)
 
 MODULE_NAME = "message_broker_task_source"
 MODULE_NAMESPACE = "nv_ingest"
-MessageBrokerTaskSourceLoaderFactory = ModuleLoaderFactory(MODULE_NAME, MODULE_NAMESPACE)
+MessageBrokerTaskSourceLoaderFactory = ModuleLoaderFactory(
+    MODULE_NAME, MODULE_NAMESPACE
+)
 
 
 def fetch_and_process_messages(client, validated_config: MessageBrokerTaskSourceSchema):
@@ -93,7 +99,9 @@ def process_message(job: Dict, ts_fetched: datetime) -> IngestControlMessage:
         if logger.isEnabledFor(logging.DEBUG):
             no_payload = copy.deepcopy(job)
             if "content" in no_payload.get("job_payload", {}):
-                no_payload["job_payload"]["content"] = ["[...]"]  # Redact the payload for logging
+                no_payload["job_payload"]["content"] = [
+                    "[...]"
+                ]  # Redact the payload for logging
             logger.debug("Job: %s", json.dumps(no_payload, indent=2))
 
         validate_ingest_job(job)
@@ -145,8 +153,12 @@ def process_message(job: Dict, ts_fetched: datetime) -> IngestControlMessage:
             control_message.set_timestamp(f"trace::exit::{MODULE_NAME}", ts_exit)
 
             if ts_send is not None:
-                control_message.set_timestamp("trace::entry::broker_source_network_in", ts_send)
-                control_message.set_timestamp("trace::exit::broker_source_network_in", ts_fetched)
+                control_message.set_timestamp(
+                    "trace::entry::broker_source_network_in", ts_send
+                )
+                control_message.set_timestamp(
+                    "trace::exit::broker_source_network_in", ts_fetched
+                )
 
             if trace_id is not None:
                 # Convert integer trace_id if necessary.
@@ -163,7 +175,11 @@ def process_message(job: Dict, ts_fetched: datetime) -> IngestControlMessage:
             control_message.set_metadata("job_id", job_id)
             control_message.set_metadata("response_channel", response_channel)
             control_message.set_metadata("cm_failed", True)
-            annotate_cm(control_message, message="Failed to process job submission", error=str(e))
+            annotate_cm(
+                control_message,
+                message="Failed to process job submission",
+                error=str(e),
+            )
         else:
             raise
 
@@ -187,7 +203,9 @@ def _message_broker_task_source(builder: mrc.Builder):
         If an unsupported client type is provided in the configuration.
     """
 
-    validated_config = fetch_and_validate_module_config(builder, MessageBrokerTaskSourceSchema)
+    validated_config = fetch_and_validate_module_config(
+        builder, MessageBrokerTaskSourceSchema
+    )
 
     # Determine the client type and create the appropriate client
     client_type = validated_config.broker_client.client_type.lower()
@@ -219,12 +237,20 @@ def _message_broker_task_source(builder: mrc.Builder):
         # Start the server if not already running
         if not hasattr(server, "server_thread") or not server.server_thread.is_alive():
             server_thread = threading.Thread(target=server.serve_forever)
-            server_thread.daemon = True  # Allows program to exit even if thread is running
-            server.server_thread = server_thread  # Attach the thread to the server instance
+            server_thread.daemon = (
+                True  # Allows program to exit even if thread is running
+            )
+            server.server_thread = (
+                server_thread  # Attach the thread to the server instance
+            )
             server_thread.start()
-            logger.info(f"Started SimpleMessageBroker server on {server_host}:{server_port}")
+            logger.info(
+                f"Started SimpleMessageBroker server on {server_host}:{server_port}"
+            )
         else:
-            logger.info(f"SimpleMessageBroker server already running on {server_host}:{server_port}")
+            logger.info(
+                f"SimpleMessageBroker server already running on {server_host}:{server_port}"
+            )
 
         # Create the SimpleClient
         client = SimpleClient(
@@ -244,7 +270,9 @@ def _message_broker_task_source(builder: mrc.Builder):
         validated_config=validated_config,
     )
 
-    node = builder.make_source("message_broker_task_source", _fetch_and_process_messages)
+    node = builder.make_source(
+        "message_broker_task_source", _fetch_and_process_messages
+    )
     node.launch_options.engines_per_pe = validated_config.progress_engines
 
     builder.register_module_output("output", node)

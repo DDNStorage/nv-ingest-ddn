@@ -19,7 +19,11 @@ def test_construct_text_metadata_basic():
     span_idx = -1
     page_count = 10
     text_depth = "document"
-    source_metadata = {"source_name": "test_source", "source_id": "test_source_id", "source_type": "PDF"}
+    source_metadata = {
+        "source_name": "test_source",
+        "source_id": "test_source_id",
+        "source_type": "PDF",
+    }
     base_unified_metadata = {}
 
     result = construct_text_metadata(
@@ -73,7 +77,11 @@ def test_construct_text_metadata_empty_text():
     span_idx = -1
     page_count = 10
     text_depth = "page"
-    source_metadata = {"source_name": "test_source", "source_id": "test_source_id", "source_type": "PDF"}
+    source_metadata = {
+        "source_name": "test_source",
+        "source_id": "test_source_id",
+        "source_type": "PDF",
+    }
     base_unified_metadata = {}
 
     result = construct_text_metadata(

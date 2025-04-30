@@ -89,7 +89,9 @@ def test_base64_to_numpy_non_image(non_image_base64):
 
 def test_base64_to_numpy_import_error(monkeypatch, valid_base64_image):
     # Simulate ImportError for PIL by patching import_module
-    with mock.patch("PIL.Image.open", side_effect=ImportError("PIL library not available")):
+    with mock.patch(
+        "PIL.Image.open", side_effect=ImportError("PIL library not available")
+    ):
         with pytest.raises(ImportError):
             base64_to_numpy(valid_base64_image)
 
@@ -112,7 +114,10 @@ def test_check_numpy_image_size_too_small_width():
 
 def test_check_numpy_image_size_invalid_dimensions():
     img = np.zeros((100,), dtype=np.uint8)  # 1D array
-    with pytest.raises(ValueError, match="The input array does not have sufficient dimensions for an image."):
+    with pytest.raises(
+        ValueError,
+        match="The input array does not have sufficient dimensions for an image.",
+    ):
         check_numpy_image_size(img, 50, 50)
 
 
@@ -124,7 +129,9 @@ def generate_base64_image(size: Tuple[int, int]) -> str:
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 
-def generate_base64_image_with_format(format: str = "PNG", size: Tuple[int, int] = (100, 100)) -> str:
+def generate_base64_image_with_format(
+    format: str = "PNG", size: Tuple[int, int] = (100, 100)
+) -> str:
     """Helper function to generate a base64-encoded image of a specified format and size."""
     img = Image.new("RGB", size, color="blue")  # Simple blue image
     buffered = io.BytesIO()
@@ -174,7 +181,9 @@ def test_resize_image_edge_case_minimal_reduction():
     max_base64_size = len(base64_image) - 50  # Just a slight reduction needed
 
     result, _ = scale_image_to_encoding_size(base64_image, max_base64_size)
-    assert len(result) <= max_base64_size  # Should achieve minimal reduction within limit
+    assert (
+        len(result) <= max_base64_size
+    )  # Should achieve minimal reduction within limit
 
 
 def test_resize_image_with_invalid_input():

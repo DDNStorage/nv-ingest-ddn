@@ -28,7 +28,9 @@ logger = logging.getLogger(__name__)
 
 MODULE_NAME = "dedup_images"
 MODULE_NAMESPACE = "nv-ingest"
-ImageDedupLoaderFactory = ModuleLoaderFactory(MODULE_NAME, MODULE_NAMESPACE, ImageDedupSchema)
+ImageDedupLoaderFactory = ModuleLoaderFactory(
+    MODULE_NAME, MODULE_NAMESPACE, ImageDedupSchema
+)
 
 
 def hash_content(x: Any, algorithm: str = "md5") -> bytes:
@@ -116,7 +118,9 @@ def _cpu_only_apply_dedup_filter(df: pd.DataFrame, filter_flag: bool) -> pd.Data
     try:
         for col in ["document_type", "metadata"]:
             if col not in df.columns:
-                raise ValueError(f"_cpu_only_apply_dedup_filter: Missing required column '{col}'.")
+                raise ValueError(
+                    f"_cpu_only_apply_dedup_filter: Missing required column '{col}'."
+                )
         image_mask = df["document_type"] == ContentTypeEnum.IMAGE
         if not image_mask.any():
             return df[~image_mask]
@@ -130,7 +134,9 @@ def _cpu_only_apply_dedup_filter(df: pd.DataFrame, filter_flag: bool) -> pd.Data
         if filter_flag:
             df_result = pd.concat(
                 [
-                    df_images.loc[deduped_indices][df.columns.difference(["_image_content_hash"])],
+                    df_images.loc[deduped_indices][
+                        df.columns.difference(["_image_content_hash"])
+                    ],
                     df.loc[~image_mask],
                 ],
                 axis=0,
@@ -143,9 +149,15 @@ def _cpu_only_apply_dedup_filter(df: pd.DataFrame, filter_flag: bool) -> pd.Data
             "message": "Filtered duplicate image.",
             "filter": True,
         }
-        validated_info_msg = validate_schema(info_msg, InfoMessageMetadataSchema).model_dump()
-        duplicate_images_df["info_message_metadata"] = [validated_info_msg] * duplicate_images_df.shape[0]
-        df.loc[duplicate_images_df["document_type"].index, "document_type"] = ContentTypeEnum.INFO_MSG
+        validated_info_msg = validate_schema(
+            info_msg, InfoMessageMetadataSchema
+        ).model_dump()
+        duplicate_images_df["info_message_metadata"] = [
+            validated_info_msg
+        ] * duplicate_images_df.shape[0]
+        df.loc[duplicate_images_df["document_type"].index, "document_type"] = (
+            ContentTypeEnum.INFO_MSG
+        )
         df.drop(labels=df.columns.difference(base_cols), inplace=True, axis=1)
         return df
     except Exception as e:
@@ -207,11 +219,15 @@ def _apply_dedup_filter(ctrl_msg: IngestControlMessage, filter_flag: bool) -> No
         gdf_images.loc[content_hash_sr.index, "_image_content_hash"] = content_hash_sr
         gdf_images_deduped = gdf_images.drop_duplicates(subset="_image_content_hash")
         deduped_indices = gdf_images_deduped.index
-        duplicate_indices = gdf_images.loc[~gdf_images.index.isin(deduped_indices)].index
+        duplicate_indices = gdf_images.loc[
+            ~gdf_images.index.isin(deduped_indices)
+        ].index
         if filter_flag:
             gdf_result = cudf.concat(
                 [
-                    gdf_images.loc[deduped_indices][gdf.columns.difference(["_image_content_hash"])],
+                    gdf_images.loc[deduped_indices][
+                        gdf.columns.difference(["_image_content_hash"])
+                    ],
                     gdf.loc[~image_mask],
                 ],
                 axis=0,
@@ -228,12 +244,20 @@ def _apply_dedup_filter(ctrl_msg: IngestControlMessage, filter_flag: bool) -> No
             "message": "Filtered duplicate image.",
             "filter": True,
         }
-        validated_info_msg = validate_schema(info_msg, InfoMessageMetadataSchema).model_dump()
-        duplicate_images_gdf["info_message_metadata"] = [validated_info_msg] * duplicate_images_gdf.shape[0]
+        validated_info_msg = validate_schema(
+            info_msg, InfoMessageMetadataSchema
+        ).model_dump()
+        duplicate_images_gdf["info_message_metadata"] = [
+            validated_info_msg
+        ] * duplicate_images_gdf.shape[0]
         gdf.drop(labels=["info_message_metadata", "metadata"], inplace=True, axis=1)
         gdf["info_message_metadata"] = duplicate_images_gdf["info_message_metadata"]
-        gdf.loc[duplicate_images_gdf["document_type"].index, "document_type"] = ContentTypeEnum.INFO_MSG.value
-        gdf["metadata"] = gdf[exploded_metadata_cols + ["info_message_metadata"]].to_struct()
+        gdf.loc[duplicate_images_gdf["document_type"].index, "document_type"] = (
+            ContentTypeEnum.INFO_MSG.value
+        )
+        gdf["metadata"] = gdf[
+            exploded_metadata_cols + ["info_message_metadata"]
+        ].to_struct()
         gdf.drop(labels=gdf.columns.difference(base_cols), inplace=True, axis=1)
         ctrl_msg.payload(gdf.to_pandas())
 
@@ -246,7 +270,9 @@ def _apply_dedup_filter(ctrl_msg: IngestControlMessage, filter_flag: bool) -> No
         raise type(e)(err_msg) from e
 
 
-def dedup_image_stage(df: pd.DataFrame, task_props: Dict[str, Any], validated_config: Any) -> pd.DataFrame:
+def dedup_image_stage(
+    df: pd.DataFrame, task_props: Dict[str, Any], validated_config: Any
+) -> pd.DataFrame:
     """
     Deduplicates images in the provided DataFrame based on the task properties.
 
@@ -299,7 +325,9 @@ def dedup_image_stage(df: pd.DataFrame, task_props: Dict[str, Any], validated_co
         task_params = task_props.get("params", {})
         filter_flag = task_params.get("filter", True)
 
-        logger.debug(f"dedup_image_stage: De-duplicating images with filter_flag={filter_flag}")
+        logger.debug(
+            f"dedup_image_stage: De-duplicating images with filter_flag={filter_flag}"
+        )
 
         df_result = _cpu_only_apply_dedup_filter(df, filter_flag)
 
@@ -363,8 +391,12 @@ def generate_dedup_stage(
     """
     try:
         validated_config = ImageDedupSchema(**dedup_config)
-        _wrapped_dedup_image_stage = functools.partial(dedup_image_stage, validated_config=validated_config)
-        logger.debug(f"generate_dedup_stage: Generating deduplication stage with config: {validated_config}")
+        _wrapped_dedup_image_stage = functools.partial(
+            dedup_image_stage, validated_config=validated_config
+        )
+        logger.debug(
+            f"generate_dedup_stage: Generating deduplication stage with config: {validated_config}"
+        )
         return MultiProcessingBaseStage(
             c=c,
             pe_count=pe_count,

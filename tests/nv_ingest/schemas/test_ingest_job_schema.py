@@ -34,7 +34,12 @@ def valid_task_properties(task_type):
     elif task_type == TaskTypeEnum.extract:
         return {"document_type": "pdf", "method": "OCR", "params": {"language": "en"}}
     elif task_type == TaskTypeEnum.store:
-        return {"images": True, "structured": True, "method": "minio", "params": {"endpoint": "minio:9000"}}
+        return {
+            "images": True,
+            "structured": True,
+            "method": "minio",
+            "params": {"endpoint": "minio:9000"},
+        }
     elif task_type == TaskTypeEnum.embed:
         return {}
     elif task_type == TaskTypeEnum.filter:

@@ -225,3 +225,6 @@ conda/output_conda_channel
 
 # Ignore generate docs site
 docs/site
+
+evaluation/data/*
+evaluation/data_10/*

@@ -57,11 +57,14 @@ def latency_logger(name=None):
                     logger.debug(f"{func_name} since ts_send: {latency_ms} msec.")
 
                 message.set_timestamp("latency::ts_send", datetime.now())
-                message.set_timestamp(f"latency::{func_name}::elapsed_time", elapsed_time)
+                message.set_timestamp(
+                    f"latency::{func_name}::elapsed_time", elapsed_time
+                )
                 return result
             else:
                 raise ValueError(
-                    "The first argument must be a IngestControlMessage object with metadata " "capabilities."
+                    "The first argument must be a IngestControlMessage object with metadata "
+                    "capabilities."
                 )
 
         return wrapper

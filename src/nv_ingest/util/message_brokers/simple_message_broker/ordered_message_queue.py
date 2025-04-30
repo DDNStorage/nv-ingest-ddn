@@ -20,7 +20,10 @@ class OrderedMessageQueue:
     def can_push(self):
         """Check if the queue can accept more messages."""
         with self.lock:
-            return self.maxsize == 0 or (len(self.queue) + len(self.in_flight)) < self.maxsize
+            return (
+                self.maxsize == 0
+                or (len(self.queue) + len(self.in_flight)) < self.maxsize
+            )
 
     def push(self, message):
         """Add a message to the queue after it has been acknowledged."""
@@ -68,4 +71,7 @@ class OrderedMessageQueue:
     def full(self):
         """Check if the queue is full."""
         with self.lock:
-            return self.maxsize > 0 and (len(self.queue) + len(self.in_flight)) >= self.maxsize
+            return (
+                self.maxsize > 0
+                and (len(self.queue) + len(self.in_flight)) >= self.maxsize
+            )

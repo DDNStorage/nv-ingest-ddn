@@ -4,8 +4,13 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from nv_ingest.schemas.infographic_extractor_schema import InfographicExtractorConfigSchema
-from nv_ingest.stages.nim.infographic_extraction import _update_metadata, _create_clients
+from nv_ingest.schemas.infographic_extractor_schema import (
+    InfographicExtractorConfigSchema,
+)
+from nv_ingest.stages.nim.infographic_extraction import (
+    _update_metadata,
+    _create_clients,
+)
 from nv_ingest.stages.nim.infographic_extraction import _extract_infographic_data
 
 MODULE_UNDER_TEST = "nv_ingest.stages.nim.infographic_extraction"
@@ -82,7 +87,9 @@ def test_update_metadata_single_batch_single_worker(mocker, base64_image):
     with the full list of images.
     """
     # Patch base64_to_numpy to simulate a valid image (e.g., 100x100 with 3 channels)
-    mocker.patch(f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.ones((100, 100, 3)))
+    mocker.patch(
+        f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.ones((100, 100, 3))
+    )
 
     # Mock out the clients.
     paddle_mock = MagicMock()
@@ -90,12 +97,17 @@ def test_update_metadata_single_batch_single_worker(mocker, base64_image):
     paddle_mock.protocol = "http"
 
     # Simulate paddle returning bounding boxes and text predictions for two images.
-    paddle_mock.infer.return_value = [([(0, 1, 2, 3)], ["paddle_res1"]), ([(4, 5, 6, 7)], ["paddle_res2"])]
+    paddle_mock.infer.return_value = [
+        ([(0, 1, 2, 3)], ["paddle_res1"]),
+        ([(4, 5, 6, 7)], ["paddle_res2"]),
+    ]
 
     base64_images = [base64_image, base64_image]
     trace_info = {}
 
-    result = _update_metadata(base64_images, paddle_mock, worker_pool_size=1, trace_info=trace_info)
+    result = _update_metadata(
+        base64_images, paddle_mock, worker_pool_size=1, trace_info=trace_info
+    )
 
     # Expect the result to combine each original image with its corresponding output.
     assert len(result) == 2
@@ -119,14 +131,19 @@ def test_update_metadata_multiple_batches_multi_worker(mocker, base64_image):
     item per image.
     """
     # Patch base64_to_numpy to simulate valid images (e.g., 100x100 with 3 channels)
-    mocker.patch(f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.ones((100, 100, 3)))
+    mocker.patch(
+        f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.ones((100, 100, 3))
+    )
 
     paddle_mock = MagicMock()
 
     # Define a similar side effect for paddle.infer.
     def paddle_side_effect(**kwargs):
         base64_images_list = kwargs["data"]["base64_images"]
-        return [([(i, i + 1, i + 2, i + 3)], [f"paddle_result_{i+1}"]) for i in range(len(base64_images_list))]
+        return [
+            ([(i, i + 1, i + 2, i + 3)], [f"paddle_result_{i+1}"])
+            for i in range(len(base64_images_list))
+        ]
 
     paddle_mock.infer.side_effect = paddle_side_effect
 
@@ -156,7 +173,9 @@ def test_update_metadata_exception_in_paddle_call(mocker, base64_image, caplog):
     If the paddle call fails, we expect an exception to bubble up and the error to be logged.
     """
     # Ensure the image passes the filtering by patching base64_to_numpy to return a valid image array.
-    mocker.patch(f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.ones((100, 100, 3)))
+    mocker.patch(
+        f"{MODULE_UNDER_TEST}.base64_to_numpy", return_value=np.ones((100, 100, 3))
+    )
 
     paddle_mock = MagicMock()
     paddle_mock.infer.side_effect = Exception("Paddle error")
@@ -172,7 +191,9 @@ def test_create_clients(mocker):
     Verify that _create_clients calls create_inference_client for the paddle endpoint,
     returning the NimClient mock.
     """
-    mock_create_inference_client = mocker.patch(f"{MODULE_UNDER_TEST}.create_inference_client")
+    mock_create_inference_client = mocker.patch(
+        f"{MODULE_UNDER_TEST}.create_inference_client"
+    )
 
     # Suppose it returns different mocks each time
     paddle_mock = MagicMock()
@@ -190,7 +211,10 @@ def test_create_clients(mocker):
     assert mock_create_inference_client.call_count == 1
 
     mock_create_inference_client.assert_any_call(
-        endpoints=("paddle_grpc", "paddle_http"), model_interface=mocker.ANY, auth_token="xyz", infer_protocol="http"
+        endpoints=("paddle_grpc", "paddle_http"),
+        model_interface=mocker.ANY,
+        auth_token="xyz",
+        infer_protocol="http",
     )
 
 
@@ -216,7 +240,9 @@ def test_extract_infographic_data_no_valid_rows(validated_config, mocker):
     A DataFrame with rows that do not meet the 'structured/infographic' criteria
     => skip everything, return df unchanged, no calls to _update_metadata.
     """
-    mock_create = mocker.patch(f"{MODULE_UNDER_TEST}._create_clients", return_value=MagicMock())
+    mock_create = mocker.patch(
+        f"{MODULE_UNDER_TEST}._create_clients", return_value=MagicMock()
+    )
     mock_update = mocker.patch(f"{MODULE_UNDER_TEST}._update_metadata")
 
     df_in = pd.DataFrame(
@@ -247,7 +273,9 @@ def test_extract_infographic_data_all_valid(validated_config, mocker):
     # Mock out clients
     paddle_mock = MagicMock()
 
-    mock_create_clients = mocker.patch(f"{MODULE_UNDER_TEST}._create_clients", return_value=paddle_mock)
+    mock_create_clients = mocker.patch(
+        f"{MODULE_UNDER_TEST}._create_clients", return_value=paddle_mock
+    )
 
     # Suppose _update_metadata returns infographic content for each image
     mock_update_metadata = mocker.patch(
@@ -260,14 +288,20 @@ def test_extract_infographic_data_all_valid(validated_config, mocker):
         [
             {
                 "metadata": {
-                    "content_metadata": {"type": "structured", "subtype": "infographic"},
+                    "content_metadata": {
+                        "type": "structured",
+                        "subtype": "infographic",
+                    },
                     "table_metadata": {},
                     "content": "imgA",
                 }
             },
             {
                 "metadata": {
-                    "content_metadata": {"type": "structured", "subtype": "infographic"},
+                    "content_metadata": {
+                        "type": "structured",
+                        "subtype": "infographic",
+                    },
                     "table_metadata": {},
                     "content": "imgB",
                 }
@@ -316,7 +350,10 @@ def test_extract_infographic_data_mixed_rows(validated_config, mocker):
         [
             {  # valid row
                 "metadata": {
-                    "content_metadata": {"type": "structured", "subtype": "infographic"},
+                    "content_metadata": {
+                        "type": "structured",
+                        "subtype": "infographic",
+                    },
                     "table_metadata": {},
                     "content": "base64img1",
                 }
@@ -330,7 +367,10 @@ def test_extract_infographic_data_mixed_rows(validated_config, mocker):
             },
             {  # valid row
                 "metadata": {
-                    "content_metadata": {"type": "structured", "subtype": "infographic"},
+                    "content_metadata": {
+                        "type": "structured",
+                        "subtype": "infographic",
+                    },
                     "table_metadata": {},
                     "content": "base64img2",
                 }
@@ -361,13 +401,18 @@ def test_extract_infographic_data_exception_raised(validated_config, mocker):
     mocker.patch(f"{MODULE_UNDER_TEST}._create_clients", return_value=c_mock)
 
     # Suppose _update_metadata raises an exception
-    mocker.patch(f"{MODULE_UNDER_TEST}._update_metadata", side_effect=RuntimeError("Test error"))
+    mocker.patch(
+        f"{MODULE_UNDER_TEST}._update_metadata", side_effect=RuntimeError("Test error")
+    )
 
     df_in = pd.DataFrame(
         [
             {
                 "metadata": {
-                    "content_metadata": {"type": "structured", "subtype": "infographic"},
+                    "content_metadata": {
+                        "type": "structured",
+                        "subtype": "infographic",
+                    },
                     "table_metadata": {},
                     "content": "imgZ",
                 }

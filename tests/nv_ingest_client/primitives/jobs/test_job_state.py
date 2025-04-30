@@ -80,7 +80,9 @@ def test_invalid_state_transitions(initial_state, invalid_next_state):
         ("response", {"result": "error"}),
     ],
 )
-@pytest.mark.parametrize("state", [JobStateEnum.COMPLETED, JobStateEnum.FAILED, JobStateEnum.CANCELLED])
+@pytest.mark.parametrize(
+    "state", [JobStateEnum.COMPLETED, JobStateEnum.FAILED, JobStateEnum.CANCELLED]
+)
 def test_setting_future_and_response_in_terminal_states(attribute, value, state):
     job_state = create_job_state(state=state)
     setattr(job_state, attribute, value)

@@ -100,7 +100,9 @@ def _cpu_only_apply_filter(df: pd.DataFrame, task_params: dict) -> pd.DataFrame:
         min_aspect_ratio_mask = aspect_ratio > min_aspect_ratio
         max_aspect_ratio_mask = aspect_ratio < max_aspect_ratio
 
-        image_filter_mask = ~(avg_size_mask & min_aspect_ratio_mask & max_aspect_ratio_mask)
+        image_filter_mask = ~(
+            avg_size_mask & min_aspect_ratio_mask & max_aspect_ratio_mask
+        )
         filter_bool = image_filter_mask.any()
 
         if filter_bool:
@@ -118,10 +120,16 @@ def _cpu_only_apply_filter(df: pd.DataFrame, task_params: dict) -> pd.DataFrame:
                 "filter": True,
             }
 
-            validated_info_msg = validate_schema(info_msg, InfoMessageMetadataSchema).model_dump()
+            validated_info_msg = validate_schema(
+                info_msg, InfoMessageMetadataSchema
+            ).model_dump()
 
-            filtered_df["info_message_metadata"] = [validated_info_msg] * filtered_df.shape[0]
-            filtered_df["metadata"] = filtered_df["metadata"].apply(add_info_message, args=(info_msg,))
+            filtered_df["info_message_metadata"] = [
+                validated_info_msg
+            ] * filtered_df.shape[0]
+            filtered_df["metadata"] = filtered_df["metadata"].apply(
+                add_info_message, args=(info_msg,)
+            )
 
             df.loc[filtered_df.index, "metadata"] = filtered_df["metadata"]
             df.loc[filtered_df.index, "document_type"] = ContentTypeEnum.INFO_MSG
@@ -192,7 +200,9 @@ def generate_image_filter_stage(
     """
     try:
         validated_config = ImageFilterSchema(**caption_config)
-        _wrapped_caption_extract = partial(image_filter_stage, validated_config=validated_config)
+        _wrapped_caption_extract = partial(
+            image_filter_stage, validated_config=validated_config
+        )
 
         logger.debug(
             f"Generating image filtering stage with {pe_count} processing elements. task: {task}, document_type: *"

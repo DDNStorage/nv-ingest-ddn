@@ -41,7 +41,9 @@ from nv_ingest.util.pdf.metadata_aggregators import extract_pdf_metadata
 
 ADOBE_INSTALLED = True
 try:
-    from adobe.pdfservices.operation.auth.service_principal_credentials import ServicePrincipalCredentials
+    from adobe.pdfservices.operation.auth.service_principal_credentials import (
+        ServicePrincipalCredentials,
+    )
     from adobe.pdfservices.operation.exception.exceptions import SdkException
     from adobe.pdfservices.operation.exception.exceptions import ServiceApiException
     from adobe.pdfservices.operation.exception.exceptions import ServiceUsageException
@@ -50,11 +52,21 @@ try:
     from adobe.pdfservices.operation.pdf_services import PDFServices
     from adobe.pdfservices.operation.pdf_services_media_type import PDFServicesMediaType
     from adobe.pdfservices.operation.pdfjobs.jobs.extract_pdf_job import ExtractPDFJob
-    from adobe.pdfservices.operation.pdfjobs.params.extract_pdf import extract_renditions_element_type
-    from adobe.pdfservices.operation.pdfjobs.params.extract_pdf.extract_element_type import ExtractElementType
-    from adobe.pdfservices.operation.pdfjobs.params.extract_pdf.extract_pdf_params import ExtractPDFParams
-    from adobe.pdfservices.operation.pdfjobs.params.extract_pdf.table_structure_type import TableStructureType
-    from adobe.pdfservices.operation.pdfjobs.result.extract_pdf_result import ExtractPDFResult
+    from adobe.pdfservices.operation.pdfjobs.params.extract_pdf import (
+        extract_renditions_element_type,
+    )
+    from adobe.pdfservices.operation.pdfjobs.params.extract_pdf.extract_element_type import (
+        ExtractElementType,
+    )
+    from adobe.pdfservices.operation.pdfjobs.params.extract_pdf.extract_pdf_params import (
+        ExtractPDFParams,
+    )
+    from adobe.pdfservices.operation.pdfjobs.params.extract_pdf.table_structure_type import (
+        TableStructureType,
+    )
+    from adobe.pdfservices.operation.pdfjobs.result.extract_pdf_result import (
+        ExtractPDFResult,
+    )
 
     ExtractRenditionsElementType = (
         extract_renditions_element_type.ExtractRenditionsElementType
@@ -129,7 +141,9 @@ def adobe(
 
     # get base metadata
     metadata_col = kwargs.get("metadata_column", "metadata")
-    base_unified_metadata = row_data[metadata_col] if metadata_col in row_data.index else {}
+    base_unified_metadata = (
+        row_data[metadata_col] if metadata_col in row_data.index else {}
+    )
 
     # get base source_metadata
     base_source_metadata = base_unified_metadata.get("source_metadata", {})
@@ -177,7 +191,9 @@ def adobe(
             pdf_services = PDFServices(credentials=credentials)
 
             # Creates an asset(s) from source file(s) and upload
-            input_asset = pdf_services.upload(input_stream=pdf_stream, mime_type=PDFServicesMediaType.PDF)
+            input_asset = pdf_services.upload(
+                input_stream=pdf_stream, mime_type=PDFServicesMediaType.PDF
+            )
 
             # Create parameters for the job
             elements_to_extract = []
@@ -189,15 +205,21 @@ def adobe(
             extract_pdf_params = ExtractPDFParams(
                 table_structure_type=TableStructureType.CSV,
                 elements_to_extract=elements_to_extract,
-                elements_to_extract_renditions=[ExtractRenditionsElementType.FIGURES] if extract_images else [],
+                elements_to_extract_renditions=(
+                    [ExtractRenditionsElementType.FIGURES] if extract_images else []
+                ),
             )
 
             # Creates a new job instance
-            extract_pdf_job = ExtractPDFJob(input_asset=input_asset, extract_pdf_params=extract_pdf_params)
+            extract_pdf_job = ExtractPDFJob(
+                input_asset=input_asset, extract_pdf_params=extract_pdf_params
+            )
 
             # Submit the job and gets the job result
             location = pdf_services.submit(extract_pdf_job)
-            pdf_services_response = pdf_services.get_job_result(location, ExtractPDFResult)
+            pdf_services_response = pdf_services.get_job_result(
+                location, ExtractPDFResult
+            )
 
             # Get content from the resulting asset(s)
             result_asset: CloudAsset = pdf_services_response.get_result().get_resource()
@@ -216,9 +238,13 @@ def adobe(
                 time.sleep(retry_delay)
                 retry_delay *= 1.1
                 retry_delay += random.uniform(0, 1)
-                logging.error(f"Exception encountered while executing operation: {e}, retrying in {int(retry_delay)}s.")
+                logging.error(
+                    f"Exception encountered while executing operation: {e}, retrying in {int(retry_delay)}s."
+                )
             else:
-                logging.exception(f"Exception encountered while executing operation: {e}")
+                logging.exception(
+                    f"Exception encountered while executing operation: {e}"
+                )
                 return []
 
     extracted_data = []
@@ -233,7 +259,12 @@ def adobe(
 
     for block_idx, item in enumerate(data["elements"]):
         # Extract text
-        if extract_text and "Text" in item and "Table" not in item["Path"] and "Figure" not in item["Path"]:
+        if (
+            extract_text
+            and "Text" in item
+            and "Table" not in item["Path"]
+            and "Figure" not in item["Path"]
+        ):
             if item["Page"] != page_idx:
                 if text_depth == TextTypeEnum.PAGE:
                     text_extraction = construct_text_metadata(
@@ -244,7 +275,12 @@ def adobe(
                         text_depth,
                         source_metadata,
                         base_unified_metadata,
-                        bbox=(0, 0, data["pages"][page_idx]["width"], data["pages"][page_idx]["height"]),
+                        bbox=(
+                            0,
+                            0,
+                            data["pages"][page_idx]["width"],
+                            data["pages"][page_idx]["height"],
+                        ),
                     )
 
                     if len(text_extraction) > 0:
@@ -282,8 +318,12 @@ def adobe(
 
             if (extract_images and identify_nearby_objects) and (len(item["Text"]) > 0):
                 bounds = item["Bounds"]
-                page_nearby_blocks["text"]["content"].append(" ".join(item["Text"].strip()))
-                page_nearby_blocks["text"]["bbox"].append((bounds[0], bounds[1], bounds[2], bounds[3]))
+                page_nearby_blocks["text"]["content"].append(
+                    " ".join(item["Text"].strip())
+                )
+                page_nearby_blocks["text"]["bbox"].append(
+                    (bounds[0], bounds[1], bounds[2], bounds[3])
+                )
 
         # Extract images
         if extract_images and item["Path"].endswith("/Figure"):
@@ -410,7 +450,11 @@ def _construct_image_metadata(
 
     validated_unified_metadata = validate_metadata(unified_metadata)
 
-    return [ContentTypeEnum.IMAGE.value, validated_unified_metadata.model_dump(), str(uuid.uuid4())]
+    return [
+        ContentTypeEnum.IMAGE.value,
+        validated_unified_metadata.model_dump(),
+        str(uuid.uuid4()),
+    ]
 
 
 def _construct_table_metadata(
@@ -454,4 +498,8 @@ def _construct_table_metadata(
 
     validated_unified_metadata = validate_metadata(unified_metadata)
 
-    return [ContentTypeEnum.STRUCTURED.value, validated_unified_metadata.model_dump(), str(uuid.uuid4())]
+    return [
+        ContentTypeEnum.STRUCTURED.value,
+        validated_unified_metadata.model_dump(),
+        str(uuid.uuid4()),
+    ]

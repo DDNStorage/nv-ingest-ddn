@@ -81,7 +81,11 @@ class SimpleClient(MessageBrokerClientBase):
         return self
 
     def submit_message(
-        self, queue_name: str, message: str, timeout: Optional[float] = None, for_nv_ingest: bool = False
+        self,
+        queue_name: str,
+        message: str,
+        timeout: Optional[float] = None,
+        for_nv_ingest: bool = False,
     ) -> ResponseSchema:
         """
         Submit a message to the specified queue.
@@ -105,7 +109,9 @@ class SimpleClient(MessageBrokerClientBase):
 
         return self._handle_push(queue_name, message, timeout, for_nv_ingest)
 
-    def fetch_message(self, queue_name: str, timeout: Optional[float] = None) -> ResponseSchema:
+    def fetch_message(
+        self, queue_name: str, timeout: Optional[float] = None
+    ) -> ResponseSchema:
         """
         Fetch a message from the specified queue.
 
@@ -157,7 +163,11 @@ class SimpleClient(MessageBrokerClientBase):
         return self._execute_simple_command(command)
 
     def _handle_push(
-        self, queue_name: str, message: str, timeout: Optional[float], for_nv_ingest: bool
+        self,
+        queue_name: str,
+        message: str,
+        timeout: Optional[float],
+        for_nv_ingest: bool,
     ) -> ResponseSchema:
         """
         Push a message to the queue, respecting the specified timeout.
@@ -180,12 +190,18 @@ class SimpleClient(MessageBrokerClientBase):
         """
 
         if not queue_name or not isinstance(queue_name, str):
-            return ResponseSchema(response_code=1, response_reason="Invalid queue name.")
+            return ResponseSchema(
+                response_code=1, response_reason="Invalid queue name."
+            )
         if not message or not isinstance(message, str):
             return ResponseSchema(response_code=1, response_reason="Invalid message.")
 
         if for_nv_ingest:
-            command = {"command": "PUSH_FOR_NV_INGEST", "queue_name": queue_name, "message": message}
+            command = {
+                "command": "PUSH_FOR_NV_INGEST",
+                "queue_name": queue_name,
+                "message": message,
+            }
         else:
             command = {"command": "PUSH", "queue_name": queue_name, "message": message}
 
@@ -197,10 +213,14 @@ class SimpleClient(MessageBrokerClientBase):
             elapsed = time.time() - start_time
             remaining_timeout = (timeout - elapsed) if (timeout is not None) else None
             if (remaining_timeout is not None) and (remaining_timeout <= 0):
-                return ResponseSchema(response_code=1, response_reason="PUSH operation timed out.")
+                return ResponseSchema(
+                    response_code=1, response_reason="PUSH operation timed out."
+                )
 
             try:
-                with socket.create_connection((self._host, self._port), timeout=self._connection_timeout) as sock:
+                with socket.create_connection(
+                    (self._host, self._port), timeout=self._connection_timeout
+                ) as sock:
                     self._send(sock, json.dumps(command).encode("utf-8"))
                     # Receive initial response with transaction ID
                     response_data = self._recv(sock)
@@ -209,7 +229,8 @@ class SimpleClient(MessageBrokerClientBase):
                     if response.get("response_code") != 0:
                         if (
                             response.get("response_reason") == "Queue is full"
-                            or response.get("response_reason") == "Queue is not available"
+                            or response.get("response_reason")
+                            == "Queue is not available"
                         ):
                             time.sleep(0.5)
                             continue
@@ -220,12 +241,16 @@ class SimpleClient(MessageBrokerClientBase):
                         error_msg = "No transaction_id in response."
                         logger.error(error_msg)
 
-                        return ResponseSchema(response_code=1, response_reason=error_msg)
+                        return ResponseSchema(
+                            response_code=1, response_reason=error_msg
+                        )
 
                     transaction_id = response["transaction_id"]
 
                     # Send ACK
-                    ack_data = json.dumps({"transaction_id": transaction_id, "ack": True}).encode("utf-8")
+                    ack_data = json.dumps(
+                        {"transaction_id": transaction_id, "ack": True}
+                    ).encode("utf-8")
                     self._send(sock, ack_data)
 
                     # Receive final response
@@ -237,7 +262,10 @@ class SimpleClient(MessageBrokerClientBase):
             except (ConnectionError, socket.error, BrokenPipeError):
                 pass
             except json.JSONDecodeError:
-                return ResponseSchema(response_code=1, response_reason="Invalid JSON response from server.")
+                return ResponseSchema(
+                    response_code=1,
+                    response_reason="Invalid JSON response from server.",
+                )
             except Exception as e:
                 return ResponseSchema(response_code=1, response_reason=str(e))
 
@@ -261,7 +289,9 @@ class SimpleClient(MessageBrokerClientBase):
         """
 
         if not queue_name or not isinstance(queue_name, str):
-            return ResponseSchema(response_code=1, response_reason="Invalid queue name.")
+            return ResponseSchema(
+                response_code=1, response_reason="Invalid queue name."
+            )
 
         command = {"command": "POP", "queue_name": queue_name}
         if timeout is not None:
@@ -272,10 +302,14 @@ class SimpleClient(MessageBrokerClientBase):
             elapsed = time.time() - start_time
             remaining_timeout = timeout - elapsed if timeout else None
             if remaining_timeout is not None and remaining_timeout <= 0:
-                return ResponseSchema(response_code=1, response_reason="POP operation timed out.")
+                return ResponseSchema(
+                    response_code=1, response_reason="POP operation timed out."
+                )
 
             try:
-                with socket.create_connection((self._host, self._port), timeout=self._connection_timeout) as sock:
+                with socket.create_connection(
+                    (self._host, self._port), timeout=self._connection_timeout
+                ) as sock:
                     self._send(sock, json.dumps(command).encode("utf-8"))
                     # Receive initial response with transaction ID and message
                     response_data = self._recv(sock)
@@ -291,13 +325,17 @@ class SimpleClient(MessageBrokerClientBase):
                     if "transaction_id" not in response:
                         error_msg = "No transaction_id in response."
 
-                        return ResponseSchema(response_code=1, response_reason=error_msg)
+                        return ResponseSchema(
+                            response_code=1, response_reason=error_msg
+                        )
 
                     transaction_id = response["transaction_id"]
                     message = response.get("response")
 
                     # Send ACK
-                    ack_data = json.dumps({"transaction_id": transaction_id, "ack": True}).encode("utf-8")
+                    ack_data = json.dumps(
+                        {"transaction_id": transaction_id, "ack": True}
+                    ).encode("utf-8")
                     self._send(sock, ack_data)
 
                     # Receive final response
@@ -305,14 +343,21 @@ class SimpleClient(MessageBrokerClientBase):
                     final_response = json.loads(final_response_data)
 
                     if final_response.get("response_code") == 0:
-                        return ResponseSchema(response_code=0, response=message, transaction_id=transaction_id)
+                        return ResponseSchema(
+                            response_code=0,
+                            response=message,
+                            transaction_id=transaction_id,
+                        )
                     else:
                         return ResponseSchema(**final_response)
 
             except (ConnectionError, socket.error, BrokenPipeError):
                 pass
             except json.JSONDecodeError:
-                return ResponseSchema(response_code=1, response_reason="Invalid JSON response from server.")
+                return ResponseSchema(
+                    response_code=1,
+                    response_reason="Invalid JSON response from server.",
+                )
             except Exception as e:
                 return ResponseSchema(response_code=1, response_reason=str(e))
 
@@ -339,15 +384,21 @@ class SimpleClient(MessageBrokerClientBase):
             data = command.encode("utf-8")
 
         try:
-            with socket.create_connection((self._host, self._port), timeout=self._connection_timeout) as sock:
+            with socket.create_connection(
+                (self._host, self._port), timeout=self._connection_timeout
+            ) as sock:
                 self._send(sock, data)
                 response_data = self._recv(sock)
                 response = json.loads(response_data)
                 return ResponseSchema(**response)
         except (ConnectionError, socket.error, BrokenPipeError) as e:
-            return ResponseSchema(response_code=1, response_reason=f"Connection error: {e}")
+            return ResponseSchema(
+                response_code=1, response_reason=f"Connection error: {e}"
+            )
         except json.JSONDecodeError:
-            return ResponseSchema(response_code=1, response_reason="Invalid JSON response from server.")
+            return ResponseSchema(
+                response_code=1, response_reason="Invalid JSON response from server."
+            )
         except Exception as e:
             return ResponseSchema(response_code=1, response_reason=str(e))
 

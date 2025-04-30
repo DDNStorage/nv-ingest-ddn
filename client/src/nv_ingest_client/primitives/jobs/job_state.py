@@ -85,7 +85,9 @@ class JobState:
     def job_spec(self, value: JobSpec) -> None:
         """Sets the job specification associated with the state."""
         if self._state not in _PREFLIGHT_STATES:
-            err_msg = f"Attempt to change job_spec after job submission: {self._state.name}"
+            err_msg = (
+                f"Attempt to change job_spec after job submission: {self._state.name}"
+            )
             logger.error(err_msg)
 
             raise ValueError(err_msg)
@@ -111,11 +113,19 @@ class JobState:
     def state(self, value: JobStateEnum) -> None:
         """Sets the current state of the job with transition constraints."""
         if self._state in _TERMINAL_STATES:
-            logger.error(f"Attempt to change state from {self._state.name} to {value.name} denied.")
-            raise ValueError(f"Cannot change state from {self._state.name} to {value.name}.")
+            logger.error(
+                f"Attempt to change state from {self._state.name} to {value.name} denied."
+            )
+            raise ValueError(
+                f"Cannot change state from {self._state.name} to {value.name}."
+            )
         if value.value < self._state.value:
-            logger.error(f"Invalid state transition attempt from {self._state.name} to {value.name}.")
-            raise ValueError(f"State can only transition forward, from {self._state.name} to {value.name} not allowed.")
+            logger.error(
+                f"Invalid state transition attempt from {self._state.name} to {value.name}."
+            )
+            raise ValueError(
+                f"State can only transition forward, from {self._state.name} to {value.name} not allowed."
+            )
         self._state = value
 
     @property

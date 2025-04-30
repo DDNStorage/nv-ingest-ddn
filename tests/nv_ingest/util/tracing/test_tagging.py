@@ -51,8 +51,12 @@ def test_traceable_with_trace_tagging_enabled_custom_name(mock_control_message):
 
     assert mock_control_message.filter_timestamp("trace::entry::CustomTrace")
     assert mock_control_message.filter_timestamp("trace::exit::CustomTrace")
-    assert isinstance(mock_control_message.timestamp["trace::entry::CustomTrace"], datetime)
-    assert isinstance(mock_control_message.timestamp["trace::exit::CustomTrace"], datetime)
+    assert isinstance(
+        mock_control_message.timestamp["trace::entry::CustomTrace"], datetime
+    )
+    assert isinstance(
+        mock_control_message.timestamp["trace::exit::CustomTrace"], datetime
+    )
 
 
 # Test with trace tagging enabled and no custom trace name
@@ -67,8 +71,12 @@ def test_traceable_with_trace_tagging_enabled_no_custom_name(mock_control_messag
 
     assert mock_control_message.filter_timestamp("trace::entry::another_function")
     assert mock_control_message.filter_timestamp("trace::exit::another_function")
-    assert isinstance(mock_control_message.timestamp["trace::entry::another_function"], datetime)
-    assert isinstance(mock_control_message.timestamp["trace::exit::another_function"], datetime)
+    assert isinstance(
+        mock_control_message.timestamp["trace::entry::another_function"], datetime
+    )
+    assert isinstance(
+        mock_control_message.timestamp["trace::exit::another_function"], datetime
+    )
 
 
 # Test with trace tagging disabled
@@ -114,8 +122,12 @@ def test_traceable_func_with_trace_name_formatting():
     assert result == "Processed formatted_value"
     assert "trace::entry::simple_func::formatted_value_0" in trace_info
     assert "trace::exit::simple_func::formatted_value_0" in trace_info
-    assert isinstance(trace_info["trace::entry::simple_func::formatted_value_0"], datetime)
-    assert isinstance(trace_info["trace::exit::simple_func::formatted_value_0"], datetime)
+    assert isinstance(
+        trace_info["trace::entry::simple_func::formatted_value_0"], datetime
+    )
+    assert isinstance(
+        trace_info["trace::exit::simple_func::formatted_value_0"], datetime
+    )
 
 
 def test_traceable_func_dedupe():

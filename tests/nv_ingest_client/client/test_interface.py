@@ -92,8 +92,12 @@ def test_extract_task_no_args(ingestor):
     assert task._extract_charts is True
     assert task._extract_infographics is False
 
-    assert isinstance(ingestor._job_specs.job_specs["pdf"][0]._tasks[1], TableExtractionTask)
-    assert isinstance(ingestor._job_specs.job_specs["pdf"][0]._tasks[2], ChartExtractionTask)
+    assert isinstance(
+        ingestor._job_specs.job_specs["pdf"][0]._tasks[1], TableExtractionTask
+    )
+    assert isinstance(
+        ingestor._job_specs.job_specs["pdf"][0]._tasks[2], ChartExtractionTask
+    )
 
 
 def test_extract_task_args_tables_false(ingestor):
@@ -113,7 +117,9 @@ def test_extract_task_args_charts_false(ingestor):
     assert task._extract_tables is True
     assert task._extract_charts is False
 
-    assert isinstance(ingestor._job_specs.job_specs["pdf"][0]._tasks[1], TableExtractionTask)
+    assert isinstance(
+        ingestor._job_specs.job_specs["pdf"][0]._tasks[1], TableExtractionTask
+    )
 
 
 def test_extract_task_args_tables_and_charts_false(ingestor):
@@ -126,7 +132,12 @@ def test_extract_task_args_tables_and_charts_false(ingestor):
 
 
 def test_extract_task_some_args(ingestor):
-    ingestor.extract(extract_tables=True, extract_charts=True, extract_images=True, extract_infographics=True)
+    ingestor.extract(
+        extract_tables=True,
+        extract_charts=True,
+        extract_images=True,
+        extract_infographics=True,
+    )
 
     task = ingestor._job_specs.job_specs["pdf"][0]._tasks[0]
     assert isinstance(task, ExtractTask)
@@ -225,8 +236,12 @@ def test_chain(ingestor):
     assert isinstance(ingestor._job_specs.job_specs["pdf"][0]._tasks[0], DedupTask)
     assert isinstance(ingestor._job_specs.job_specs["pdf"][0]._tasks[1], EmbedTask)
     assert isinstance(ingestor._job_specs.job_specs["pdf"][0]._tasks[2], ExtractTask)
-    assert isinstance(ingestor._job_specs.job_specs["pdf"][0]._tasks[3], TableExtractionTask)
-    assert isinstance(ingestor._job_specs.job_specs["pdf"][0]._tasks[4], ChartExtractionTask)
+    assert isinstance(
+        ingestor._job_specs.job_specs["pdf"][0]._tasks[3], TableExtractionTask
+    )
+    assert isinstance(
+        ingestor._job_specs.job_specs["pdf"][0]._tasks[4], ChartExtractionTask
+    )
     assert isinstance(ingestor._job_specs.job_specs["pdf"][0]._tasks[5], FilterTask)
     assert isinstance(ingestor._job_specs.job_specs["pdf"][0]._tasks[6], SplitTask)
     assert isinstance(ingestor._job_specs.job_specs["pdf"][0]._tasks[7], StoreTask)
@@ -242,23 +257,33 @@ def test_ingest(ingestor, mock_client):
     result = ingestor.ingest(timeout=30)
 
     mock_client.add_job.assert_called_once_with(ingestor._job_specs)
-    mock_client.submit_job.assert_called_once_with(mock_client.add_job.return_value, ingestor._job_queue_id)
+    mock_client.submit_job.assert_called_once_with(
+        mock_client.add_job.return_value, ingestor._job_queue_id
+    )
 
-    mock_client.fetch_job_result.assert_called_once_with(mock_client.add_job.return_value, return_failures=False)
+    mock_client.fetch_job_result.assert_called_once_with(
+        mock_client.add_job.return_value, return_failures=False
+    )
     assert result == [{"result": "success"}]
 
 
 def test_ingest_return_failures(ingestor, mock_client):
     mock_client.add_job.return_value = ["job_id_1", "job_id_2"]
     mock_client.submit_job.return_value = ["job_state_1", "job_state_2"]
-    mock_client.fetch_job_result.return_value = [{"result": "success"}], [(0, {"status": "FAILED"})]
+    mock_client.fetch_job_result.return_value = [{"result": "success"}], [
+        (0, {"status": "FAILED"})
+    ]
 
     results, failures = ingestor.ingest(timeout=30, return_failures=True)
 
     mock_client.add_job.assert_called_once_with(ingestor._job_specs)
-    mock_client.submit_job.assert_called_once_with(mock_client.add_job.return_value, ingestor._job_queue_id)
+    mock_client.submit_job.assert_called_once_with(
+        mock_client.add_job.return_value, ingestor._job_queue_id
+    )
 
-    mock_client.fetch_job_result.assert_called_once_with(mock_client.add_job.return_value, return_failures=True)
+    mock_client.fetch_job_result.assert_called_once_with(
+        mock_client.add_job.return_value, return_failures=True
+    )
     assert results == [{"result": "success"}]
     assert failures == [(0, {"status": "FAILED"})]
 
@@ -270,7 +295,10 @@ def test_ingest_async(ingestor, mock_client):
     future2 = Future()
     future1.set_result("result_1")
     future2.set_result("result_2")
-    mock_client.submit_job_async.return_value = {future1: "job_id_1", future2: "job_id_2"}
+    mock_client.submit_job_async.return_value = {
+        future1: "job_id_1",
+        future2: "job_id_2",
+    }
 
     ingestor._job_states = {}
     ingestor._job_states["job_id_1"] = MagicMock(state=JobStateEnum.COMPLETED)
@@ -342,12 +370,17 @@ def test_check_files_local_some_missing(mock_exists, mock_glob, ingestor_without
 
 def test_files_with_remote_files(ingestor_without_doc):
     with tempfile.TemporaryDirectory() as temp_dir:
-        ingestor_without_doc.files(["s3://bucket/path/to/doc1.pdf", "s3://bucket/path/to/doc2.pdf"])
+        ingestor_without_doc.files(
+            ["s3://bucket/path/to/doc1.pdf", "s3://bucket/path/to/doc2.pdf"]
+        )
 
         assert ingestor_without_doc._all_local is False
         assert ingestor_without_doc._job_specs is None
 
-        ingestor_without_doc._documents = [f"{temp_dir}/doc1.pdf", f"{temp_dir}/doc2.pdf"]
+        ingestor_without_doc._documents = [
+            f"{temp_dir}/doc1.pdf",
+            f"{temp_dir}/doc2.pdf",
+        ]
         ingestor_without_doc._all_local = True
         ingestor_without_doc._job_specs = BatchJobSpec(ingestor_without_doc._documents)
 
@@ -360,9 +393,18 @@ def test_files_with_remote_files(ingestor_without_doc):
 def test_all_tasks_adds_default_tasks(ingestor):
     ingestor.all_tasks()
 
-    task_classes = {ExtractTask, DedupTask, FilterTask, SplitTask, EmbedTask, StoreEmbedTask}
+    task_classes = {
+        ExtractTask,
+        DedupTask,
+        FilterTask,
+        SplitTask,
+        EmbedTask,
+        StoreEmbedTask,
+    }
     added_tasks = {
-        type(task) for job_specs in ingestor._job_specs._file_type_to_job_spec.values() for task in job_specs[0]._tasks
+        type(task)
+        for job_specs in ingestor._job_specs._file_type_to_job_spec.values()
+        for task in job_specs[0]._tasks
     }
 
     assert task_classes.issubset(added_tasks), "Not all default tasks were added"

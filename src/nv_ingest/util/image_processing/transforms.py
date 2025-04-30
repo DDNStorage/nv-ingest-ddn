@@ -81,7 +81,9 @@ def scale_image_to_encoding_size(
 
             # Safety check
             if new_size[0] < 1 or new_size[1] < 1:
-                raise Exception("Image cannot be resized further without becoming too small.")
+                raise Exception(
+                    "Image cannot be resized further without becoming too small."
+                )
 
         return base64_image, new_size
 
@@ -177,8 +179,12 @@ def pad_image(
     final_width = max(width, target_width)
 
     # Create the canvas and place the original image on it
-    canvas = background_color * np.ones((final_height, final_width, array.shape[2]), dtype=dtype)
-    canvas[pad_height : pad_height + height, pad_width : pad_width + width] = array  # noqa: E203
+    canvas = background_color * np.ones(
+        (final_height, final_width, array.shape[2]), dtype=dtype
+    )
+    canvas[pad_height : pad_height + height, pad_width : pad_width + width] = (
+        array  # noqa: E203
+    )
 
     return canvas, (pad_width, pad_height)
 
@@ -197,14 +203,19 @@ def check_numpy_image_size(image: np.ndarray, min_height: int, min_width: int) -
     """
     # Check if the image has at least 2 dimensions
     if image.ndim < 2:
-        raise ValueError("The input array does not have sufficient dimensions for an image.")
+        raise ValueError(
+            "The input array does not have sufficient dimensions for an image."
+        )
 
     height, width = image.shape[:2]
     return height >= min_height and width >= min_width
 
 
 def crop_image(
-    array: np.array, bbox: Tuple[int, int, int, int], min_width: int = 1, min_height: int = 1
+    array: np.array,
+    bbox: Tuple[int, int, int, int],
+    min_width: int = 1,
+    min_height: int = 1,
 ) -> Optional[np.ndarray]:
     """
     Crops a NumPy array representing an image according to the specified bounding box.

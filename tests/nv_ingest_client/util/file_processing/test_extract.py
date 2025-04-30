@@ -8,7 +8,9 @@ from unittest.mock import patch
 
 import pytest
 from nv_ingest_client.util.file_processing.extract import DocumentTypeEnum
-from nv_ingest_client.util.file_processing.extract import detect_encoding_and_read_text_file
+from nv_ingest_client.util.file_processing.extract import (
+    detect_encoding_and_read_text_file,
+)
 from nv_ingest_client.util.file_processing.extract import extract_file_content
 from nv_ingest_client.util.file_processing.extract import get_or_infer_file_type
 from nv_ingest_client.util.file_processing.extract import serialize_to_base64
@@ -45,8 +47,12 @@ def test_extract_file_content_pdf(mock_file):
 
 
 # Test extract_file_content with an unsupported file type
-@pytest.mark.skip("Disabled while we figure out why libmagic is missing on the CI system")
-@patch(f"{_MODULE_UNDER_TEST}.magic.from_file", return_value="unknown")  # Mock magic.from_file to return 'text/plain'
+@pytest.mark.skip(
+    "Disabled while we figure out why libmagic is missing on the CI system"
+)
+@patch(
+    f"{_MODULE_UNDER_TEST}.magic.from_file", return_value="unknown"
+)  # Mock magic.from_file to return 'text/plain'
 def test_extract_file_content_unsupported(mock_magic):
     with pytest.raises(ValueError):
         extract_file_content("unsupported_file.xyz")
@@ -62,10 +68,14 @@ def test_extract_file_content_text(mock_open, mock_detect):
     assert content == "Simple text"
 
 
-@pytest.mark.skip("Disabled while we figure out why libmagic is missing on the CI system")
+@pytest.mark.skip(
+    "Disabled while we figure out why libmagic is missing on the CI system"
+)
 @patch(f"{_MODULE_UNDER_TEST}.charset_normalizer.detect")
 @patch("builtins.open", new_callable=mock_open, read_data=b"Simple text")
-@patch(f"{_MODULE_UNDER_TEST}.magic.from_file", return_value="unknown")  # Mock magic.from_file to return 'text/plain'
+@patch(
+    f"{_MODULE_UNDER_TEST}.magic.from_file", return_value="unknown"
+)  # Mock magic.from_file to return 'text/plain'
 def test_extract_file_content_text_bad(mock_magic, mock_open, mock_detect):
     mock_detect.return_value = {"encoding": "utf-8"}
 
@@ -73,7 +83,9 @@ def test_extract_file_content_text_bad(mock_magic, mock_open, mock_detect):
         _, _ = extract_file_content("dummy_path.not_a_file_type")
 
 
-@pytest.mark.skip("Disabled while we figure out why libmagic is missing on the CI system")
+@pytest.mark.skip(
+    "Disabled while we figure out why libmagic is missing on the CI system"
+)
 @pytest.mark.parametrize(
     "file_path,expected_type",
     [
@@ -97,7 +109,9 @@ def test_get_or_infer_file_type_known_extension(mock_magic, file_path, expected_
     assert get_or_infer_file_type(file_path) == expected_type
 
 
-@pytest.mark.skip("Disabled while we figure out why libmagic is missing on the CI system")
+@pytest.mark.skip(
+    "Disabled while we figure out why libmagic is missing on the CI system"
+)
 @patch(f"{_MODULE_UNDER_TEST}.magic.from_file")
 def test_get_or_infer_file_type_fallback_mime(mock_magic):
     """
@@ -109,7 +123,9 @@ def test_get_or_infer_file_type_fallback_mime(mock_magic):
     get_or_infer_file_type(file_path)
 
 
-@pytest.mark.skip("Disabled while we figure out why libmagic is missing on the CI system")
+@pytest.mark.skip(
+    "Disabled while we figure out why libmagic is missing on the CI system"
+)
 @patch(f"{_MODULE_UNDER_TEST}.magic.from_file")
 def test_get_or_infer_file_type_unrecognized_extension_and_mime(mock_magic):
     """

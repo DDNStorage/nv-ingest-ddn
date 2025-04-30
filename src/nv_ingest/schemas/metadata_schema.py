@@ -253,7 +253,9 @@ class TextMetadataSchema(BaseModelNoExt):
     text_type: TextTypeEnum
     summary: str = ""
     keywords: Union[str, List[str], Dict] = ""
-    language: LanguageEnum = "en"  # default to Unknown? Maybe do some kind of heuristic check
+    language: LanguageEnum = (
+        "en"  # default to Unknown? Maybe do some kind of heuristic check
+    )
     text_location: tuple = (0, 0, 0, 0)
     text_location_max_dimensions: tuple = (0, 0, 0, 0)
 
@@ -278,7 +280,9 @@ class ImageMetadataSchema(BaseModelNoExt):
     @field_validator("width", "height")
     def clamp_non_negative(cls, v, field):
         if v < 0:
-            logger.warning(f"{field.field_name} is negative; clamping to 0. Original value: {v}")
+            logger.warning(
+                f"{field.field_name} is negative; clamping to 0. Original value: {v}"
+            )
             return 0
         return v
 

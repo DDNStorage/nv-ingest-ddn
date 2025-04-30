@@ -45,7 +45,9 @@ class ModelInterface:
 
         raise NotImplementedError("Subclasses should implement this method")
 
-    def parse_output(self, response, protocol: str, data: Optional[dict] = None, **kwargs):
+    def parse_output(
+        self, response, protocol: str, data: Optional[dict] = None, **kwargs
+    ):
         """
         Parse the output data from the model's inference response.
 
@@ -153,7 +155,10 @@ class NimClient:
                 raise ValueError("HTTP endpoint must be provided for HTTP protocol")
             logger.debug(f"Creating HTTP client with {self._http_endpoint}")
             self.endpoint_url = generate_url(self._http_endpoint)
-            self.headers = {"accept": "application/json", "content-type": "application/json"}
+            self.headers = {
+                "accept": "application/json",
+                "content-type": "application/json",
+            }
             if self.auth_token:
                 self.headers["Authorization"] = f"Bearer {self.auth_token}"
         else:
@@ -174,13 +179,23 @@ class NimClient:
                 return 1
 
             try:
-                client = self.client if self.client else grpcclient.InferenceServerClient(url=self._grpc_endpoint)
-                model_config = client.get_model_config(model_name=model_name, model_version=model_version)
+                client = (
+                    self.client
+                    if self.client
+                    else grpcclient.InferenceServerClient(url=self._grpc_endpoint)
+                )
+                model_config = client.get_model_config(
+                    model_name=model_name, model_version=model_version
+                )
                 self._max_batch_sizes[model_name] = model_config.config.max_batch_size
-                logger.debug(f"Max batch size for model '{model_name}': {self._max_batch_sizes[model_name]}")
+                logger.debug(
+                    f"Max batch size for model '{model_name}': {self._max_batch_sizes[model_name]}"
+                )
             except Exception as e:
                 self._max_batch_sizes[model_name] = 1
-                logger.warning(f"Failed to retrieve max batch size: {e}, defaulting to 1")
+                logger.warning(
+                    f"Failed to retrieve max batch size: {e}, defaulting to 1"
+                )
 
             return self._max_batch_sizes[model_name]
 
@@ -215,7 +230,9 @@ class NimClient:
         else:
             raise ValueError("Invalid protocol specified. Must be 'grpc' or 'http'.")
 
-        parsed_output = self.model_interface.parse_output(response, protocol=self.protocol, data=batch_data, **kwargs)
+        parsed_output = self.model_interface.parse_output(
+            response, protocol=self.protocol, data=batch_data, **kwargs
+        )
         return parsed_output, batch_data
 
     def try_set_max_batch_size(self, model_name, model_version: str = ""):
@@ -257,7 +274,10 @@ class NimClient:
 
             # 3. Format the input based on protocol.
             formatted_batches, formatted_batch_data = self.model_interface.format_input(
-                data, protocol=self.protocol, max_batch_size=max_batch_size, model_name=model_name
+                data,
+                protocol=self.protocol,
+                max_batch_size=max_batch_size,
+                model_name=model_name,
             )
 
             # Check for a custom maximum pool worker count, and remove it from kwargs.
@@ -268,9 +288,15 @@ class NimClient:
             results = [None] * len(formatted_batches)
             with ThreadPoolExecutor(max_workers=max_pool_workers) as executor:
                 futures = []
-                for idx, (batch, batch_data) in enumerate(zip(formatted_batches, formatted_batch_data)):
+                for idx, (batch, batch_data) in enumerate(
+                    zip(formatted_batches, formatted_batch_data)
+                ):
                     future = executor.submit(
-                        self._process_batch, batch, batch_data=batch_data, model_name=model_name, **kwargs
+                        self._process_batch,
+                        batch,
+                        batch_data=batch_data,
+                        model_name=model_name,
+                        **kwargs,
                     )
                     futures.append((idx, future))
                 for idx, future in futures:
@@ -315,11 +341,15 @@ class NimClient:
             The output of the model as a numpy array.
         """
 
-        input_tensors = [grpcclient.InferInput("input", formatted_input.shape, datatype="FP32")]
+        input_tensors = [
+            grpcclient.InferInput("input", formatted_input.shape, datatype="FP32")
+        ]
         input_tensors[0].set_data_from_numpy(formatted_input)
 
         outputs = [grpcclient.InferRequestedOutput("output")]
-        response = self.client.infer(model_name=model_name, inputs=input_tensors, outputs=outputs)
+        response = self.client.infer(
+            model_name=model_name, inputs=input_tensors, outputs=outputs
+        )
         logger.debug(f"gRPC inference response: {response}")
 
         return response.as_numpy("output")
@@ -352,20 +382,29 @@ class NimClient:
         while attempt < self.max_retries:
             try:
                 response = requests.post(
-                    self.endpoint_url, json=formatted_input, headers=self.headers, timeout=self.timeout
+                    self.endpoint_url,
+                    json=formatted_input,
+                    headers=self.headers,
+                    timeout=self.timeout,
                 )
                 status_code = response.status_code
 
                 # Check for server-side or rate-limit type errors
                 # e.g. 5xx => server error, 429 => too many requests
-                if status_code == 429 or status_code == 503 or (500 <= status_code < 600):
+                if (
+                    status_code == 429
+                    or status_code == 503
+                    or (500 <= status_code < 600)
+                ):
                     logger.warning(
                         f"Received HTTP {status_code} ({response.reason}) from "
                         f"{self.model_interface.name()}. Attempt {attempt + 1} of {self.max_retries}."
                     )
                     if attempt == self.max_retries - 1:
                         # No more retries left
-                        logger.error(f"Max retries exceeded after receiving HTTP {status_code}.")
+                        logger.error(
+                            f"Max retries exceeded after receiving HTTP {status_code}."
+                        )
                         response.raise_for_status()  # raise the appropriate HTTPError
                     else:
                         # Exponential backoff
@@ -397,7 +436,9 @@ class NimClient:
 
             except requests.HTTPError as http_err:
                 # If we ended up here, it's a non-retryable 4xx or final 5xx after final attempt
-                logger.error(f"HTTP request failed with status code {response.status_code}: {http_err}")
+                logger.error(
+                    f"HTTP request failed with status code {response.status_code}: {http_err}"
+                )
                 raise
 
             except requests.RequestException as e:
@@ -411,8 +452,12 @@ class NimClient:
                 attempt += 1
 
         # If we exit the loop without returning, we've exhausted all attempts
-        logger.error(f"Failed to get a successful response after {self.max_retries} retries.")
-        raise Exception(f"Failed to get a successful response after {self.max_retries} retries.")
+        logger.error(
+            f"Failed to get a successful response after {self.max_retries} retries."
+        )
+        raise Exception(
+            f"Failed to get a successful response after {self.max_retries} retries."
+        )
 
     def close(self):
         if self.protocol == "grpc" and hasattr(self.client, "close"):
@@ -462,10 +507,14 @@ def create_inference_client(
     if infer_protocol not in ["grpc", "http"]:
         raise ValueError("Invalid infer_protocol specified. Must be 'grpc' or 'http'.")
 
-    return NimClient(model_interface, infer_protocol, endpoints, auth_token, timeout, max_retries)
+    return NimClient(
+        model_interface, infer_protocol, endpoints, auth_token, timeout, max_retries
+    )
 
 
-def preprocess_image_for_paddle(array: np.ndarray, image_max_dimension: int = 960) -> np.ndarray:
+def preprocess_image_for_paddle(
+    array: np.ndarray, image_max_dimension: int = 960
+) -> np.ndarray:
     """
     Preprocesses an input image to be suitable for use with PaddleOCR by resizing, normalizing, padding,
     and transposing it into the required format.
@@ -510,7 +559,11 @@ def preprocess_image_for_paddle(array: np.ndarray, image_max_dimension: int = 96
     new_height = (normalized.shape[0] + 31) // 32 * 32
     new_width = (normalized.shape[1] + 31) // 32 * 32
     padded, (pad_width, pad_height) = pad_image(
-        normalized, target_height=new_height, target_width=new_width, background_color=0, dtype=np.float32
+        normalized,
+        target_height=new_height,
+        target_width=new_width,
+        background_color=0,
+        dtype=np.float32,
     )
 
     # PaddleOCR NIM (GRPC) requires input to be (channel, height, width).
@@ -616,7 +669,9 @@ def is_ready(http_endpoint: str, ready_endpoint: str) -> bool:
         else:
             # Any other code is confusing. We should log it with a warning
             # as it could be something that might hold up ready state
-            logger.warning(f"'{url}' HTTP Status: {resp.status_code} - Response Payload: {resp.json()}")
+            logger.warning(
+                f"'{url}' HTTP Status: {resp.status_code} - Response Payload: {resp.json()}"
+            )
             return False
     except requests.HTTPError as http_err:
         logger.warning(f"'{url}' produced a HTTP error: {http_err}")
@@ -664,11 +719,15 @@ def _query_metadata(
                 return field_value
             else:
                 # If the field is empty, retry
-                logger.warning(f"No {field_name} field in response from '{url}'. Retrying.")
+                logger.warning(
+                    f"No {field_name} field in response from '{url}'. Retrying."
+                )
                 return retry_value
         else:
             # Any other code is confusing. We should log it with a warning
-            logger.warning(f"'{url}' HTTP Status: {resp.status_code} - Response Payload: {resp.text}")
+            logger.warning(
+                f"'{url}' HTTP Status: {resp.status_code} - Response Payload: {resp.text}"
+            )
             return retry_value
     except requests.HTTPError as http_err:
         logger.warning(f"'{url}' produced a HTTP error: {http_err}")
@@ -688,9 +747,15 @@ def _query_metadata(
         return retry_value
 
 
-@multiprocessing_cache(max_calls=100)  # Cache results first to avoid redundant retries from backoff
+@multiprocessing_cache(
+    max_calls=100
+)  # Cache results first to avoid redundant retries from backoff
 @backoff.on_predicate(backoff.expo, max_time=30)
-def get_version(http_endpoint: str, metadata_endpoint: str = "/v1/metadata", version_field: str = "version") -> str:
+def get_version(
+    http_endpoint: str,
+    metadata_endpoint: str = "/v1/metadata",
+    version_field: str = "version",
+) -> str:
     """
     Get the version of the server from its metadata endpoint.
 
@@ -721,7 +786,9 @@ def get_version(http_endpoint: str, metadata_endpoint: str = "/v1/metadata", ver
     )
 
 
-@multiprocessing_cache(max_calls=100)  # Cache results first to avoid redundant retries from backoff
+@multiprocessing_cache(
+    max_calls=100
+)  # Cache results first to avoid redundant retries from backoff
 @backoff.on_predicate(backoff.expo, max_time=30)
 def get_model_name(
     http_endpoint: str,

@@ -50,7 +50,9 @@ class DeplotModelInterface(ModelInterface):
         if "base64_images" in data:
             base64_list = data["base64_images"]
             if not isinstance(base64_list, list):
-                raise ValueError("The 'base64_images' key must contain a list of base64-encoded strings.")
+                raise ValueError(
+                    "The 'base64_images' key must contain a list of base64-encoded strings."
+                )
             image_arrays = [base64_to_numpy(b64) for b64 in base64_list]
 
         elif "base64_image" in data:
@@ -63,7 +65,9 @@ class DeplotModelInterface(ModelInterface):
 
         return data
 
-    def format_input(self, data: Dict[str, Any], protocol: str, max_batch_size: int, **kwargs) -> Any:
+    def format_input(
+        self, data: Dict[str, Any], protocol: str, max_batch_size: int, **kwargs
+    ) -> Any:
         """
         Format input data for the specified protocol (gRPC or HTTP) for Deplot.
         For HTTP, we now construct multiple messages—one per image batch—along with
@@ -99,7 +103,9 @@ class DeplotModelInterface(ModelInterface):
             If the protocol is invalid, or if no valid images are found.
         """
         if "image_arrays" not in data:
-            raise KeyError("Expected 'image_arrays' in data. Call prepare_data_for_inference first.")
+            raise KeyError(
+                "Expected 'image_arrays' in data. Call prepare_data_for_inference first."
+            )
 
         image_arrays = data["image_arrays"]
         # Compute image dimensions from each image array.
@@ -110,7 +116,9 @@ class DeplotModelInterface(ModelInterface):
             return [lst[i : i + chunk_size] for i in range(0, len(lst), chunk_size)]
 
         if protocol == "grpc":
-            logger.debug("Formatting input for gRPC Deplot model (potentially batched).")
+            logger.debug(
+                "Formatting input for gRPC Deplot model (potentially batched)."
+            )
             processed = []
             for arr in image_arrays:
                 # Ensure each image has shape (1, H, W, C)
@@ -129,11 +137,15 @@ class DeplotModelInterface(ModelInterface):
             orig_chunks = chunk_list(image_arrays, max_batch_size)
             dims_chunks = chunk_list(image_dims, max_batch_size)
 
-            for proc_chunk, orig_chunk, dims_chunk in zip(proc_chunks, orig_chunks, dims_chunks):
+            for proc_chunk, orig_chunk, dims_chunk in zip(
+                proc_chunks, orig_chunks, dims_chunks
+            ):
                 # Concatenate along the batch dimension to form a single input.
                 batched_input = np.concatenate(proc_chunk, axis=0)
                 formatted_batches.append(batched_input)
-                formatted_batch_data.append({"image_arrays": orig_chunk, "image_dims": dims_chunk})
+                formatted_batch_data.append(
+                    {"image_arrays": orig_chunk, "image_dims": dims_chunk}
+                )
             return formatted_batches, formatted_batch_data
 
         elif protocol == "http":
@@ -149,7 +161,9 @@ class DeplotModelInterface(ModelInterface):
             orig_chunks = chunk_list(image_arrays, max_batch_size)
             dims_chunks = chunk_list(image_dims, max_batch_size)
 
-            for b64_chunk, orig_chunk, dims_chunk in zip(b64_chunks, orig_chunks, dims_chunks):
+            for b64_chunk, orig_chunk, dims_chunk in zip(
+                b64_chunks, orig_chunks, dims_chunks
+            ):
                 payload = self._prepare_deplot_payload(
                     base64_list=b64_chunk,
                     max_tokens=kwargs.get("max_tokens", 500),
@@ -157,13 +171,21 @@ class DeplotModelInterface(ModelInterface):
                     top_p=kwargs.get("top_p", 0.9),
                 )
                 formatted_batches.append(payload)
-                formatted_batch_data.append({"image_arrays": orig_chunk, "image_dims": dims_chunk})
+                formatted_batch_data.append(
+                    {"image_arrays": orig_chunk, "image_dims": dims_chunk}
+                )
             return formatted_batches, formatted_batch_data
 
         else:
             raise ValueError("Invalid protocol specified. Must be 'grpc' or 'http'.")
 
-    def parse_output(self, response: Any, protocol: str, data: Optional[Dict[str, Any]] = None, **kwargs) -> Any:
+    def parse_output(
+        self,
+        response: Any,
+        protocol: str,
+        data: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> Any:
         """
         Parse the model's inference response.
         """
@@ -264,7 +286,9 @@ class DeplotModelInterface(ModelInterface):
         The original code expected a single choice with a single textual content.
         """
         if "choices" not in json_response or not json_response["choices"]:
-            raise RuntimeError("Unexpected response format: 'choices' key is missing or empty.")
+            raise RuntimeError(
+                "Unexpected response format: 'choices' key is missing or empty."
+            )
 
         # If the service only returns one textual result, we return that one.
         return json_response["choices"][0]["message"]["content"]

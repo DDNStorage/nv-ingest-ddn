@@ -105,7 +105,9 @@ def test_format_input_grpc(model_interface):
     prepared_data = model_interface.prepare_data_for_inference(input_data)
 
     # format_input returns a tuple: (batched_inputs, formatted_batch_data)
-    batched_inputs, batch_data = model_interface.format_input(prepared_data, "grpc", max_batch_size=2)
+    batched_inputs, batch_data = model_interface.format_input(
+        prepared_data, "grpc", max_batch_size=2
+    )
 
     # Check batched_inputs is a list of NumPy arrays
     assert isinstance(batched_inputs, list)
@@ -142,7 +144,9 @@ def test_format_input_http(model_interface):
     prepared_data = model_interface.prepare_data_for_inference(input_data)
 
     # format_input returns a tuple: (payload_batches, formatted_batch_data)
-    payload_batches, batch_data = model_interface.format_input(prepared_data, "http", max_batch_size=2)
+    payload_batches, batch_data = model_interface.format_input(
+        prepared_data, "http", max_batch_size=2
+    )
 
     # Verify payload structure.
     assert isinstance(payload_batches, list)
@@ -170,8 +174,12 @@ def test_format_input_invalid_protocol(model_interface):
     images = [create_test_image()]
     input_data = {"images": images}
     prepared_data = model_interface.prepare_data_for_inference(input_data)
-    with pytest.raises(ValueError, match="Invalid protocol specified. Must be 'grpc' or 'http'."):
-        model_interface.format_input(prepared_data, "invalid_protocol", max_batch_size=1)
+    with pytest.raises(
+        ValueError, match="Invalid protocol specified. Must be 'grpc' or 'http'."
+    ):
+        model_interface.format_input(
+            prepared_data, "invalid_protocol", max_batch_size=1
+        )
 
 
 def test_parse_output_grpc(model_interface):
@@ -188,19 +196,83 @@ def test_parse_output_http_valid(model_interface):
             {
                 "index": 0,
                 "bounding_boxes": {
-                    "table": [{"x_min": 0.1, "y_min": 0.1, "x_max": 0.2, "y_max": 0.2, "confidence": 0.9}],
-                    "chart": [{"x_min": 0.3, "y_min": 0.3, "x_max": 0.4, "y_max": 0.4, "confidence": 0.8}],
-                    "title": [{"x_min": 0.5, "y_min": 0.5, "x_max": 0.6, "y_max": 0.6, "confidence": 0.95}],
-                    "infographic": [{"x_min": 0.7, "y_min": 0.7, "x_max": 0.8, "y_max": 0.8, "confidence": 0.85}],
+                    "table": [
+                        {
+                            "x_min": 0.1,
+                            "y_min": 0.1,
+                            "x_max": 0.2,
+                            "y_max": 0.2,
+                            "confidence": 0.9,
+                        }
+                    ],
+                    "chart": [
+                        {
+                            "x_min": 0.3,
+                            "y_min": 0.3,
+                            "x_max": 0.4,
+                            "y_max": 0.4,
+                            "confidence": 0.8,
+                        }
+                    ],
+                    "title": [
+                        {
+                            "x_min": 0.5,
+                            "y_min": 0.5,
+                            "x_max": 0.6,
+                            "y_max": 0.6,
+                            "confidence": 0.95,
+                        }
+                    ],
+                    "infographic": [
+                        {
+                            "x_min": 0.7,
+                            "y_min": 0.7,
+                            "x_max": 0.8,
+                            "y_max": 0.8,
+                            "confidence": 0.85,
+                        }
+                    ],
                 },
             },
             {
                 "index": 1,
                 "bounding_boxes": {
-                    "table": [{"x_min": 0.15, "y_min": 0.15, "x_max": 0.25, "y_max": 0.25, "confidence": 0.85}],
-                    "chart": [{"x_min": 0.35, "y_min": 0.35, "x_max": 0.45, "y_max": 0.45, "confidence": 0.75}],
-                    "title": [{"x_min": 0.55, "y_min": 0.55, "x_max": 0.65, "y_max": 0.65, "confidence": 0.92}],
-                    "infographic": [{"x_min": 0.75, "y_min": 0.75, "x_max": 0.85, "y_max": 0.85, "confidence": 0.82}],
+                    "table": [
+                        {
+                            "x_min": 0.15,
+                            "y_min": 0.15,
+                            "x_max": 0.25,
+                            "y_max": 0.25,
+                            "confidence": 0.85,
+                        }
+                    ],
+                    "chart": [
+                        {
+                            "x_min": 0.35,
+                            "y_min": 0.35,
+                            "x_max": 0.45,
+                            "y_max": 0.45,
+                            "confidence": 0.75,
+                        }
+                    ],
+                    "title": [
+                        {
+                            "x_min": 0.55,
+                            "y_min": 0.55,
+                            "x_max": 0.65,
+                            "y_max": 0.65,
+                            "confidence": 0.92,
+                        }
+                    ],
+                    "infographic": [
+                        {
+                            "x_min": 0.75,
+                            "y_min": 0.75,
+                            "x_max": 0.85,
+                            "y_max": 0.85,
+                            "confidence": 0.82,
+                        }
+                    ],
                 },
             },
         ]
@@ -224,7 +296,9 @@ def test_parse_output_http_valid(model_interface):
 
 def test_parse_output_invalid_protocol(model_interface):
     response = "Some response"
-    with pytest.raises(ValueError, match="Invalid protocol specified. Must be 'grpc' or 'http'."):
+    with pytest.raises(
+        ValueError, match="Invalid protocol specified. Must be 'grpc' or 'http'."
+    ):
         model_interface.parse_output(response, "invalid_protocol")
 
 

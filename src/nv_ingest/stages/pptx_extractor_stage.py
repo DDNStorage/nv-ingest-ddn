@@ -22,7 +22,13 @@ from nv_ingest.util.exception_handlers.pdf import create_exception_tag
 logger = logging.getLogger(f"morpheus.{__name__}")
 
 
-def decode_and_extract(base64_row, task_props, validated_config: Any, trace_info: Dict, default="python_pptx"):
+def decode_and_extract(
+    base64_row,
+    task_props,
+    validated_config: Any,
+    trace_info: Dict,
+    default="python_pptx",
+):
     """
     Decodes base64 content from a row and extracts data from it using the specified extraction method.
 
@@ -74,18 +80,25 @@ def decode_and_extract(base64_row, task_props, validated_config: Any, trace_info
             extract_method = default
 
         if validated_config.pptx_extraction_config is not None:
-            extract_params["pptx_extraction_config"] = validated_config.pptx_extraction_config
+            extract_params["pptx_extraction_config"] = (
+                validated_config.pptx_extraction_config
+            )
 
         if trace_info is not None:
             extract_params["trace_info"] = trace_info
 
         func = getattr(pptx, extract_method, default)
-        logger.debug("decode_and_extract: Running extraction method: %s", extract_method)
+        logger.debug(
+            "decode_and_extract: Running extraction method: %s", extract_method
+        )
         extracted_data = func(pptx_stream, **extract_params)
         return extracted_data
 
     except Exception as e:
-        err_msg = f"decode_and_extract: Error processing PPTX for source '{source_id}'. " f"Original error: {e}"
+        err_msg = (
+            f"decode_and_extract: Error processing PPTX for source '{source_id}'. "
+            f"Original error: {e}"
+        )
         logger.error(err_msg, exc_info=True)
         # Return an exception tag to indicate extraction failure.
         exception_tag = create_exception_tag(error_message=err_msg, source_id=source_id)
@@ -93,7 +106,12 @@ def decode_and_extract(base64_row, task_props, validated_config: Any, trace_info
         return exception_tag
 
 
-def _process_pptx_bytes(df, task_props: dict, validated_config: Any, trace_info: Optional[Dict[str, Any]] = None):
+def _process_pptx_bytes(
+    df,
+    task_props: dict,
+    validated_config: Any,
+    trace_info: Optional[Dict[str, Any]] = None,
+):
     """
     Processes a pandas DataFrame containing PPTX files in base64 encoding.
     Each PPTX's content is replaced with its extracted text.
@@ -116,15 +134,22 @@ def _process_pptx_bytes(df, task_props: dict, validated_config: Any, trace_info:
     """
     try:
         _decode_and_extract = functools.partial(
-            decode_and_extract, task_props=task_props, validated_config=validated_config, trace_info=trace_info
+            decode_and_extract,
+            task_props=task_props,
+            validated_config=validated_config,
+            trace_info=trace_info,
         )
         sr_extraction = df.apply(_decode_and_extract, axis=1)
         sr_extraction = sr_extraction.explode().dropna()
 
         if not sr_extraction.empty:
-            extracted_df = pd.DataFrame(sr_extraction.to_list(), columns=["document_type", "metadata", "uuid"])
+            extracted_df = pd.DataFrame(
+                sr_extraction.to_list(), columns=["document_type", "metadata", "uuid"]
+            )
         else:
-            extracted_df = pd.DataFrame({"document_type": [], "metadata": [], "uuid": []})
+            extracted_df = pd.DataFrame(
+                {"document_type": [], "metadata": [], "uuid": []}
+            )
         logger.debug("_process_pptx_bytes: Extraction complete.")
         return extracted_df
 
@@ -171,11 +196,21 @@ def generate_pptx_extractor_stage(
     """
     try:
         validated_config = PPTXExtractorSchema(**extractor_config)
-        _wrapped_process_fn = functools.partial(_process_pptx_bytes, validated_config=validated_config)
+        _wrapped_process_fn = functools.partial(
+            _process_pptx_bytes, validated_config=validated_config
+        )
         return MultiProcessingBaseStage(
-            c=c, pe_count=pe_count, task=task, task_desc=task_desc, process_fn=_wrapped_process_fn, document_type="pptx"
+            c=c,
+            pe_count=pe_count,
+            task=task,
+            task_desc=task_desc,
+            process_fn=_wrapped_process_fn,
+            document_type="pptx",
         )
     except Exception as e:
-        err_msg = f"generate_pptx_extractor_stage: Error generating PPTX extractor stage. " f"Original error: {e}"
+        err_msg = (
+            f"generate_pptx_extractor_stage: Error generating PPTX extractor stage. "
+            f"Original error: {e}"
+        )
         logger.error(err_msg, exc_info=True)
         raise type(e)(err_msg) from e

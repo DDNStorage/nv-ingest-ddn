@@ -47,14 +47,20 @@ from nv_ingest.util.nim import nemoretriever_parse as nemoretriever_parse_utils
 from nv_ingest.util.nim.helpers import create_inference_client
 from nv_ingest.util.pdf.metadata_aggregators import Base64Image
 from nv_ingest.util.pdf.metadata_aggregators import LatexTable
-from nv_ingest.util.pdf.metadata_aggregators import construct_image_metadata_from_pdf_image
+from nv_ingest.util.pdf.metadata_aggregators import (
+    construct_image_metadata_from_pdf_image,
+)
 from nv_ingest.util.pdf.metadata_aggregators import construct_text_metadata
 from nv_ingest.util.pdf.metadata_aggregators import extract_pdf_metadata
 from nv_ingest.util.pdf.pdfium import pdfium_pages_to_numpy
 from nv_ingest.extraction_workflows.pdf.pdfium_helper import _extract_page_elements
 from nv_ingest.extraction_workflows.pdf.pdfium_helper import YOLOX_MAX_BATCH_SIZE
-from nv_ingest.extraction_workflows.pdf.pdfium_helper import YOLOX_PAGE_IMAGE_PREPROC_HEIGHT
-from nv_ingest.extraction_workflows.pdf.pdfium_helper import YOLOX_PAGE_IMAGE_PREPROC_WIDTH
+from nv_ingest.extraction_workflows.pdf.pdfium_helper import (
+    YOLOX_PAGE_IMAGE_PREPROC_HEIGHT,
+)
+from nv_ingest.extraction_workflows.pdf.pdfium_helper import (
+    YOLOX_PAGE_IMAGE_PREPROC_WIDTH,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -111,17 +117,23 @@ def nemoretriever_parse(
     paddle_output_format = kwargs.get("paddle_output_format", "pseudo_markdown")
     paddle_output_format = TableFormatEnum[paddle_output_format.upper()]
 
-    if (extract_tables_method == "yolox") and (extract_tables or extract_charts or extract_infographics):
+    if (extract_tables_method == "yolox") and (
+        extract_tables or extract_charts or extract_infographics
+    ):
         pdfium_config = kwargs.get("pdfium_config", {})
         if isinstance(pdfium_config, dict):
             pdfium_config = PDFiumConfigSchema(**pdfium_config)
     nemoretriever_parse_config = kwargs.get("nemoretriever_parse_config", {})
     if isinstance(nemoretriever_parse_config, dict):
-        nemoretriever_parse_config = NemoRetrieverParseConfigSchema(**nemoretriever_parse_config)
+        nemoretriever_parse_config = NemoRetrieverParseConfigSchema(
+            **nemoretriever_parse_config
+        )
 
     # get base metadata
     metadata_col = kwargs.get("metadata_column", "metadata")
-    base_unified_metadata = row_data[metadata_col] if metadata_col in row_data.index else {}
+    base_unified_metadata = (
+        row_data[metadata_col] if metadata_col in row_data.index else {}
+    )
 
     # get base source_metadata
     base_source_metadata = base_unified_metadata.get("source_metadata", {})
@@ -172,15 +184,24 @@ def nemoretriever_parse(
 
             page_image, padding_offset = _convert_pdfium_page_to_numpy_for_parser(page)
             pages_for_ocr.append((page_idx, page_image))
-            page_image_for_tables, padding_offset_for_tables = _convert_pdfium_page_to_numpy_for_yolox(page)
-            pages_for_tables.append((page_idx, page_image_for_tables, padding_offset_for_tables))
+            page_image_for_tables, padding_offset_for_tables = (
+                _convert_pdfium_page_to_numpy_for_yolox(page)
+            )
+            pages_for_tables.append(
+                (page_idx, page_image_for_tables, padding_offset_for_tables)
+            )
 
             page.close()
 
             # Whenever pages_as_images hits NEMORETRIEVER_PARSE_MAX_BATCH_SIZE, submit a job
-            if (extract_text) and (len(pages_for_ocr) >= NEMORETRIEVER_PARSE_MAX_BATCH_SIZE):
+            if (extract_text) and (
+                len(pages_for_ocr) >= NEMORETRIEVER_PARSE_MAX_BATCH_SIZE
+            ):
                 future_parser = executor.submit(
-                    lambda *args, **kwargs: ("parser", _extract_text_and_bounding_boxes(*args, **kwargs)),
+                    lambda *args, **kwargs: (
+                        "parser",
+                        _extract_text_and_bounding_boxes(*args, **kwargs),
+                    ),
                     pages_for_ocr[:],  # pass a copy
                     nemoretriever_parse_client,
                     trace_info=trace_info,
@@ -195,7 +216,10 @@ def nemoretriever_parse(
                 and (len(pages_for_tables) >= YOLOX_MAX_BATCH_SIZE)
             ):
                 future_yolox = executor.submit(
-                    lambda *args, **kwargs: ("yolox", _extract_page_elements(*args, **kwargs)),
+                    lambda *args, **kwargs: (
+                        "yolox",
+                        _extract_page_elements(*args, **kwargs),
+                    ),
                     pages_for_tables[:],  # pass a copy
                     pdfium_config,
                     page_count,
@@ -213,7 +237,10 @@ def nemoretriever_parse(
         # After page loop, if we still have leftover pages_as_images, submit one last job
         if extract_text and pages_for_ocr:
             future_parser = executor.submit(
-                lambda *args, **kwargs: ("parser", _extract_text_and_bounding_boxes(*args, **kwargs)),
+                lambda *args, **kwargs: (
+                    "parser",
+                    _extract_text_and_bounding_boxes(*args, **kwargs),
+                ),
                 pages_for_ocr[:],  # pass a copy
                 nemoretriever_parse_client,
                 trace_info=trace_info,
@@ -227,7 +254,10 @@ def nemoretriever_parse(
             and pages_for_tables
         ):
             future_yolox = executor.submit(
-                lambda *args, **kwargs: ("yolox", _extract_page_elements(*args, **kwargs)),
+                lambda *args, **kwargs: (
+                    "yolox",
+                    _extract_page_elements(*args, **kwargs),
+                ),
                 pages_for_tables[:],
                 pdfium_config,
                 page_count,
@@ -246,7 +276,9 @@ def nemoretriever_parse(
         # Now wait for all futures to complete
         for fut in concurrent.futures.as_completed(futures):
             model_name, extracted_items = fut.result()  # blocks until finished
-            if (model_name == "yolox") and (extract_tables or extract_charts or extract_infographics):
+            if (model_name == "yolox") and (
+                extract_tables or extract_charts or extract_infographics
+            ):
                 extracted_data.extend(extracted_items)
             elif model_name == "parser":
                 parser_results.extend(extracted_items)
@@ -278,12 +310,18 @@ def nemoretriever_parse(
                 continue
 
             if identify_nearby_objects:
-                _insert_page_nearby_blocks(page_nearby_blocks, cls, txt, transformed_bbox)
+                _insert_page_nearby_blocks(
+                    page_nearby_blocks, cls, txt, transformed_bbox
+                )
 
             if extract_text:
                 page_text.append(txt)
 
-            if (extract_tables_method == "nemoretriever_parse") and (extract_tables) and (cls == "Table"):
+            if (
+                (extract_tables_method == "nemoretriever_parse")
+                and (extract_tables)
+                and (cls == "Table")
+            ):
                 table = LatexTable(
                     latex=txt,
                     bbox=transformed_bbox,
@@ -363,7 +401,10 @@ def nemoretriever_parse(
                     source_metadata,
                     base_unified_metadata,
                     delimiter="\n\n",
-                    bbox_max_dimensions=(NEMORETRIEVER_PARSE_MAX_WIDTH, NEMORETRIEVER_PARSE_MAX_HEIGHT),
+                    bbox_max_dimensions=(
+                        NEMORETRIEVER_PARSE_MAX_WIDTH,
+                        NEMORETRIEVER_PARSE_MAX_HEIGHT,
+                    ),
                     nearby_objects=page_nearby_blocks,
                 )
             )
@@ -458,11 +499,20 @@ def _send_inference_request(
 def _convert_pdfium_page_to_numpy_for_parser(
     page: pdfium.PdfPage,
     render_dpi: int = NEMORETRIEVER_PARSE_RENDER_DPI,
-    scale_tuple: Tuple[int, int] = (NEMORETRIEVER_PARSE_MAX_WIDTH, NEMORETRIEVER_PARSE_MAX_HEIGHT),
-    padding_tuple: Tuple[int, int] = (NEMORETRIEVER_PARSE_MAX_WIDTH, NEMORETRIEVER_PARSE_MAX_HEIGHT),
+    scale_tuple: Tuple[int, int] = (
+        NEMORETRIEVER_PARSE_MAX_WIDTH,
+        NEMORETRIEVER_PARSE_MAX_HEIGHT,
+    ),
+    padding_tuple: Tuple[int, int] = (
+        NEMORETRIEVER_PARSE_MAX_WIDTH,
+        NEMORETRIEVER_PARSE_MAX_HEIGHT,
+    ),
 ) -> np.ndarray:
     page_images, padding_offsets = pdfium_pages_to_numpy(
-        [page], render_dpi=render_dpi, scale_tuple=scale_tuple, padding_tuple=padding_tuple
+        [page],
+        render_dpi=render_dpi,
+        scale_tuple=scale_tuple,
+        padding_tuple=padding_tuple,
     )
 
     return page_images[0], padding_offsets[0]
@@ -470,10 +520,18 @@ def _convert_pdfium_page_to_numpy_for_parser(
 
 def _convert_pdfium_page_to_numpy_for_yolox(
     page: pdfium.PdfPage,
-    scale_tuple: Tuple[int, int] = (YOLOX_PAGE_IMAGE_PREPROC_WIDTH, YOLOX_PAGE_IMAGE_PREPROC_HEIGHT),
-    padding_tuple: Tuple[int, int] = (YOLOX_PAGE_IMAGE_PREPROC_WIDTH, YOLOX_PAGE_IMAGE_PREPROC_HEIGHT),
+    scale_tuple: Tuple[int, int] = (
+        YOLOX_PAGE_IMAGE_PREPROC_WIDTH,
+        YOLOX_PAGE_IMAGE_PREPROC_HEIGHT,
+    ),
+    padding_tuple: Tuple[int, int] = (
+        YOLOX_PAGE_IMAGE_PREPROC_WIDTH,
+        YOLOX_PAGE_IMAGE_PREPROC_HEIGHT,
+    ),
 ) -> np.ndarray:
-    page_images, padding_offsets = pdfium_pages_to_numpy([page], scale_tuple=scale_tuple, padding_tuple=padding_tuple)
+    page_images, padding_offsets = pdfium_pages_to_numpy(
+        [page], scale_tuple=scale_tuple, padding_tuple=padding_tuple
+    )
 
     return page_images[0], padding_offsets[0]
 
@@ -541,4 +599,8 @@ def _construct_table_metadata(
 
     validated_unified_metadata = validate_metadata(ext_unified_metadata)
 
-    return [ContentTypeEnum.STRUCTURED, validated_unified_metadata.model_dump(), str(uuid.uuid4())]
+    return [
+        ContentTypeEnum.STRUCTURED,
+        validated_unified_metadata.model_dump(),
+        str(uuid.uuid4()),
+    ]

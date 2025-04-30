@@ -35,10 +35,14 @@ def annotate_cm(control_message: IngestControlMessage, source_id=None, **kwargs)
 
     # Ensure 'annotation_timestamp' is not overridden by kwargs
     if "annotation_timestamp" in kwargs:
-        raise ValueError("'annotation_timestamp' is a reserved key and cannot be specified.")
+        raise ValueError(
+            "'annotation_timestamp' is a reserved key and cannot be specified."
+        )
 
     message = kwargs.get("message")
-    annotation_key = f"annotation::{message}" if message else f"annotation::{uuid.uuid4()}"
+    annotation_key = (
+        f"annotation::{message}" if message else f"annotation::{uuid.uuid4()}"
+    )
 
     annotation_timestamp = datetime.now()
     try:
@@ -84,7 +88,9 @@ def annotate_task_result(control_message, result, task_id, source_id=None, **kwa
                 f"Invalid result string: {result}. Must be one of {[status.name for status in TaskResultStatus]}."
             )
     elif not isinstance(result, TaskResultStatus):
-        raise ValueError("result must be an instance of TaskResultStatus Enum or a valid result string.")
+        raise ValueError(
+            "result must be an instance of TaskResultStatus Enum or a valid result string."
+        )
 
     # Annotate the control message with task-related information, including the result and task_id.
     annotate_cm(

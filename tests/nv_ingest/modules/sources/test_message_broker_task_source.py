@@ -93,9 +93,17 @@ def test_process_message_normal(
 
     # Simulate ControlMessageTask instances.
     fake_task_instance = MagicMock()
-    fake_task_instance.model_dump.return_value = {"id": "task1", "type": "process", "properties": {"p": 1}}
+    fake_task_instance.model_dump.return_value = {
+        "id": "task1",
+        "type": "process",
+        "properties": {"p": 1},
+    }
     fake_task_instance2 = MagicMock()
-    fake_task_instance2.model_dump.return_value = {"id": "auto", "type": "unknown", "properties": {"p": 2}}
+    fake_task_instance2.model_dump.return_value = {
+        "id": "auto",
+        "type": "unknown",
+        "properties": {"p": 2},
+    }
     mock_ControlMessageTask.side_effect = [fake_task_instance, fake_task_instance2]
 
     # Build a valid job dictionary.
@@ -130,15 +138,21 @@ def test_process_message_normal(
     # Verify that tasks were added.
     assert fake_cm.add_task.call_count == 2
     # Check trace-related metadata/timestamps.
-    trace_meta_calls = [call for call in fake_cm.set_metadata.call_args_list if "trace" in call[0][0]]
-    trace_timestamp_calls = [call for call in fake_cm.set_timestamp.call_args_list if "trace" in call[0][0]]
+    trace_meta_calls = [
+        call for call in fake_cm.set_metadata.call_args_list if "trace" in call[0][0]
+    ]
+    trace_timestamp_calls = [
+        call for call in fake_cm.set_timestamp.call_args_list if "trace" in call[0][0]
+    ]
     assert trace_meta_calls or trace_timestamp_calls
     fake_cm.set_metadata.assert_any_call("trace_id", "trace-98765")
 
 
 @patch(f"{MODULE_UNDER_TEST}.MODULE_NAME", new="dummy_module")
 @patch(f"{MODULE_UNDER_TEST}.annotate_cm")
-@patch(f"{MODULE_UNDER_TEST}.validate_ingest_job", side_effect=ValueError("Invalid job"))
+@patch(
+    f"{MODULE_UNDER_TEST}.validate_ingest_job", side_effect=ValueError("Invalid job")
+)
 @patch(f"{MODULE_UNDER_TEST}.IngestControlMessage")
 def test_process_message_validation_failure_with_job_id(
     mock_IngestControlMessage, mock_validate_ingest_job, mock_annotate_cm
@@ -164,9 +178,13 @@ def test_process_message_validation_failure_with_job_id(
         process_message(job_copy, ts_fetched)
 
 
-@patch(f"{MODULE_UNDER_TEST}.validate_ingest_job", side_effect=ValueError("Invalid job"))
+@patch(
+    f"{MODULE_UNDER_TEST}.validate_ingest_job", side_effect=ValueError("Invalid job")
+)
 @patch(f"{MODULE_UNDER_TEST}.IngestControlMessage")
-def test_process_message_validation_failure_no_job_id(mock_IngestControlJob, mock_validate_ingest_job):
+def test_process_message_validation_failure_no_job_id(
+    mock_IngestControlJob, mock_validate_ingest_job
+):
     """
     Test that if validate_ingest_job fails and there is no 'job_id' in the job dict,
     process_message re‑raises the exception.
@@ -282,7 +300,9 @@ def test_fetch_and_process_messages_timeout_error():
 
     client.fetch_message = fetch_override
     config = DummyValidatedConfig(task_queue="queue1")
-    with patch(f"{MODULE_UNDER_TEST}.process_message", return_value="processed") as mock_process_message:
+    with patch(
+        f"{MODULE_UNDER_TEST}.process_message", return_value="processed"
+    ) as mock_process_message:
         gen = fetch_and_process_messages(client, config)
         result = next(gen)
         gen.close()
@@ -312,7 +332,9 @@ def test_fetch_and_process_messages_exception_handling():
 
     client.fetch_message = fetch_override
     config = DummyValidatedConfig(task_queue="queue1")
-    with patch(f"{MODULE_UNDER_TEST}.process_message", return_value="processed") as mock_process_message:
+    with patch(
+        f"{MODULE_UNDER_TEST}.process_message", return_value="processed"
+    ) as mock_process_message:
         gen = fetch_and_process_messages(client, config)
         result = next(gen)
         gen.close()

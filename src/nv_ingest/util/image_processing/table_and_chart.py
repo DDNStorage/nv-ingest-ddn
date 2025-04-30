@@ -92,7 +92,9 @@ def match_bboxes(yolox_box, paddle_ocr_boxes, already_matched=None, delta=2.0):
     return matches
 
 
-def join_yolox_graphic_elements_and_paddle_output(yolox_output, paddle_boxes, paddle_txts):
+def join_yolox_graphic_elements_and_paddle_output(
+    yolox_output, paddle_boxes, paddle_txts
+):
     """
     Matching boxes
     We need to associate a text to the paddle detections.
@@ -139,7 +141,9 @@ def join_yolox_graphic_elements_and_paddle_output(yolox_output, paddle_boxes, pa
         for yolox_box in yolox_output[k]:
             # if there's a score at the end, drop the score.
             yolox_box = yolox_box[:4]
-            paddle_ids = match_bboxes(yolox_box, paddle_boxes, already_matched=already_matched, delta=4)
+            paddle_ids = match_bboxes(
+                yolox_box, paddle_boxes, already_matched=already_matched, delta=4
+            )
 
             if len(paddle_ids) > 0:
                 text = " ".join(paddle_txts[paddle_ids].tolist())
@@ -169,7 +173,13 @@ def convert_paddle_response_to_psuedo_markdown(bboxes, texts):
     bboxes = bboxes.reshape(-1, 8)[:, [0, 1, 2, -1]]
 
     preds_df = pd.DataFrame(
-        {"x0": bboxes[:, 0], "y0": bboxes[:, 1], "x1": bboxes[:, 2], "y1": bboxes[:, 3], "text": texts}
+        {
+            "x0": bboxes[:, 0],
+            "y0": bboxes[:, 1],
+            "x1": bboxes[:, 2],
+            "y1": bboxes[:, 3],
+            "text": texts,
+        }
     )
     preds_df = preds_df.sort_values("y0")
 
@@ -186,7 +196,9 @@ def convert_paddle_response_to_psuedo_markdown(bboxes, texts):
     return results
 
 
-def join_yolox_table_structure_and_paddle_output(yolox_cell_preds, paddle_ocr_boxes, paddle_ocr_txts):
+def join_yolox_table_structure_and_paddle_output(
+    yolox_cell_preds, paddle_ocr_boxes, paddle_ocr_txts
+):
     if (not paddle_ocr_boxes) or (not paddle_ocr_txts):
         return ""
 
@@ -222,7 +234,8 @@ def join_yolox_table_structure_and_paddle_output(yolox_cell_preds, paddle_ocr_bo
             {
                 "index": i,
                 "paddle_box": b,
-                "is_table": isinstance(col_ids, np.ndarray) and isinstance(row_ids, np.ndarray),
+                "is_table": isinstance(col_ids, np.ndarray)
+                and isinstance(row_ids, np.ndarray),
                 "cell_id": matches_cell[0] if len(matches_cell) else -1,
                 "cell": cell,
                 "col_ids": col_ids,
@@ -250,7 +263,9 @@ def join_yolox_table_structure_and_paddle_output(yolox_cell_preds, paddle_ocr_bo
         markdown_table = display_markdown(mat, use_header=False)
 
         all_boxes = np.stack(df_table.paddle_box.values)
-        table_box = np.concatenate([all_boxes[:, [0, 1]].min(0), all_boxes[:, [2, 3]].max(0)])
+        table_box = np.concatenate(
+            [all_boxes[:, [0, 1]].min(0), all_boxes[:, [2, 3]].max(0)]
+        )
 
         df_table_to_text = pd.DataFrame(
             [
@@ -441,7 +456,9 @@ def display_markdown(
         header = "| " + " | ".join(data[0]) + " |"
         separator = "| " + " | ".join(["---"] * max_cols) + " |"
         body = "\n".join("| " + " | ".join(row) + " |" for row in data[1:])
-        markdown_table = f"{header}\n{separator}\n{body}" if body else f"{header}\n{separator}"
+        markdown_table = (
+            f"{header}\n{separator}\n{body}" if body else f"{header}\n{separator}"
+        )
 
     else:
         markdown_table = "\n".join("| " + " | ".join(row) + " |" for row in data)

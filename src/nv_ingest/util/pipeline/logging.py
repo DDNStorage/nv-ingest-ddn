@@ -5,7 +5,9 @@
 
 from morpheus.utils.logger import configure_logging
 
-from nv_ingest.util.logging.configuration import configure_logging as configure_local_logging
+from nv_ingest.util.logging.configuration import (
+    configure_logging as configure_local_logging,
+)
 from nv_ingest.util.pipeline.stage_builders import *
 
 # Convert log level from string to logging level
@@ -37,6 +39,8 @@ def setup_logging(log_level):
             log_level = "INFO"
 
     log_level_value = _log_level_mapping.get(log_level.upper(), logging.INFO)
-    logging.basicConfig(level=log_level_value, format="%(asctime)s - %(levelname)s - %(message)s")
+    logging.basicConfig(
+        level=log_level_value, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
     configure_logging(log_level=log_level_value)
     configure_local_logging(logger, log_level_value)

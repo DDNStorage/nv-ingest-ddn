@@ -89,7 +89,9 @@ def decode_and_extract(
         if validated_config.pdfium_config is not None:
             extract_params["pdfium_config"] = validated_config.pdfium_config
         if validated_config.nemoretriever_parse_config is not None:
-            extract_params["nemoretriever_parse_config"] = validated_config.nemoretriever_parse_config
+            extract_params["nemoretriever_parse_config"] = (
+                validated_config.nemoretriever_parse_config
+            )
         if trace_info is not None:
             extract_params["trace_info"] = trace_info
 
@@ -97,13 +99,18 @@ def decode_and_extract(
             extract_method = default
 
         func = getattr(pdf, extract_method, default)
-        logger.debug("decode_and_extract: Running extraction method: %s", extract_method)
+        logger.debug(
+            "decode_and_extract: Running extraction method: %s", extract_method
+        )
         extracted_data = func(pdf_stream, **extract_params)
 
         return extracted_data
 
     except Exception as e:
-        err_msg = f"decode_and_extract: Error processing PDF for source '{source_id}'. " f"Original error: {e}"
+        err_msg = (
+            f"decode_and_extract: Error processing PDF for source '{source_id}'. "
+            f"Original error: {e}"
+        )
         logger.error(err_msg, exc_info=True)
         traceback.print_exc()
 
@@ -139,14 +146,20 @@ def process_pdf_bytes(df, task_props, validated_config, trace_info=None):
             validated_config=validated_config,
             trace_info=trace_info,
         )
-        logger.debug(f"process_pdf_bytes: Processing PDFs with extraction method: {task_props.get('method', None)}")
+        logger.debug(
+            f"process_pdf_bytes: Processing PDFs with extraction method: {task_props.get('method', None)}"
+        )
         sr_extraction = df.apply(_decode_and_extract, axis=1)
         sr_extraction = sr_extraction.explode().dropna()
 
         if not sr_extraction.empty:
-            extracted_df = pd.DataFrame(sr_extraction.to_list(), columns=["document_type", "metadata", "uuid"])
+            extracted_df = pd.DataFrame(
+                sr_extraction.to_list(), columns=["document_type", "metadata", "uuid"]
+            )
         else:
-            extracted_df = pd.DataFrame({"document_type": [], "metadata": [], "uuid": []})
+            extracted_df = pd.DataFrame(
+                {"document_type": [], "metadata": [], "uuid": []}
+            )
 
         return extracted_df, {"trace_info": trace_info}
 
@@ -186,9 +199,16 @@ def generate_pdf_extractor_stage(
     """
     try:
         validated_config = PDFExtractorSchema(**extractor_config)
-        _wrapped_process_fn = functools.partial(process_pdf_bytes, validated_config=validated_config)
+        _wrapped_process_fn = functools.partial(
+            process_pdf_bytes, validated_config=validated_config
+        )
         return MultiProcessingBaseStage(
-            c=c, pe_count=pe_count, task=task, task_desc=task_desc, process_fn=_wrapped_process_fn, document_type="pdf"
+            c=c,
+            pe_count=pe_count,
+            task=task,
+            task_desc=task_desc,
+            process_fn=_wrapped_process_fn,
+            document_type="pdf",
         )
     except Exception as e:
         err_msg = f"generate_pdf_extractor_stage: Error generating PDF extractor stage. Original error: {e}"

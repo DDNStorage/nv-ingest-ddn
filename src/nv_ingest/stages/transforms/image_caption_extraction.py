@@ -13,7 +13,9 @@ import pandas as pd
 from pydantic import BaseModel
 from morpheus.config import Config
 
-from nv_ingest.schemas.image_caption_extraction_schema import ImageCaptionExtractionSchema
+from nv_ingest.schemas.image_caption_extraction_schema import (
+    ImageCaptionExtractionSchema,
+)
 from nv_ingest.schemas.metadata_schema import ContentTypeEnum
 from nv_ingest.stages.multiprocessing_stage import MultiProcessingBaseStage
 from nv_ingest.util.image_processing.transforms import scale_image_to_encoding_size
@@ -41,13 +43,19 @@ def _prepare_dataframes_mod(df) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
         return df, df_matched, bool_index
 
     except Exception as e:
-        err_msg = f"_prepare_dataframes_mod: Error preparing dataframes. Original error: {e}"
+        err_msg = (
+            f"_prepare_dataframes_mod: Error preparing dataframes. Original error: {e}"
+        )
         logger.error(err_msg, exc_info=True)
         raise type(e)(err_msg) from e
 
 
 def _generate_captions(
-    base64_images: List[str], prompt: str, api_key: str, endpoint_url: str, model_name: str
+    base64_images: List[str],
+    prompt: str,
+    api_key: str,
+    endpoint_url: str,
+    model_name: str,
 ) -> List[str]:
     """
     Sends a list of base64-encoded PNG images to the VLM model API using the NimClient,
@@ -104,7 +112,10 @@ def _generate_captions(
 
 
 def caption_extract_stage(
-    df: pd.DataFrame, task_props: Dict[str, Any], validated_config: Any, trace_info: Optional[Dict[str, Any]] = None
+    df: pd.DataFrame,
+    task_props: Dict[str, Any],
+    validated_config: Any,
+    trace_info: Optional[Dict[str, Any]] = None,
 ) -> pd.DataFrame:
     """
     Extracts captions for image content in the DataFrame using the VLM model API via VLMModelInterface.
@@ -139,16 +150,22 @@ def caption_extract_stage(
         model_name = task_props.get("model_name") or validated_config.model_name
 
         # Create a mask for rows where the document type is IMAGE.
-        df_mask = df["metadata"].apply(lambda meta: meta.get("content_metadata", {}).get("type") == "image")
+        df_mask = df["metadata"].apply(
+            lambda meta: meta.get("content_metadata", {}).get("type") == "image"
+        )
 
         if not df_mask.any():
             return df
 
         # Collect all base64 images from the rows where the document type is IMAGE.
-        base64_images = df.loc[df_mask, "metadata"].apply(lambda meta: meta["content"]).tolist()
+        base64_images = (
+            df.loc[df_mask, "metadata"].apply(lambda meta: meta["content"]).tolist()
+        )
 
         # Generate captions for all images using the new VLMModelInterface.
-        captions = _generate_captions(base64_images, prompt, api_key, endpoint_url, model_name)
+        captions = _generate_captions(
+            base64_images, prompt, api_key, endpoint_url, model_name
+        )
 
         # Update the DataFrame: for each image row, assign the corresponding caption.
         # (Assuming that the order of captions matches the order of images in base64_images.)
@@ -164,7 +181,9 @@ def caption_extract_stage(
         return df
 
     except Exception as e:
-        err_msg = f"caption_extract_stage: Error extracting captions. Original error: {e}"
+        err_msg = (
+            f"caption_extract_stage: Error extracting captions. Original error: {e}"
+        )
         logger.error(err_msg, exc_info=True)
         raise type(e)(err_msg) from e
 
@@ -204,12 +223,20 @@ def generate_caption_extraction_stage(
     """
     try:
         validated_config = ImageCaptionExtractionSchema(**caption_config)
-        _wrapped_caption_extract = partial(caption_extract_stage, validated_config=validated_config)
+        _wrapped_caption_extract = partial(
+            caption_extract_stage, validated_config=validated_config
+        )
 
-        logger.debug(f"Generating caption extraction stage with {pe_count} processing elements. Task: {task}")
+        logger.debug(
+            f"Generating caption extraction stage with {pe_count} processing elements. Task: {task}"
+        )
 
         return MultiProcessingBaseStage(
-            c=c, pe_count=pe_count, task=task, task_desc=task_desc, process_fn=_wrapped_caption_extract
+            c=c,
+            pe_count=pe_count,
+            task=task,
+            task_desc=task_desc,
+            process_fn=_wrapped_caption_extract,
         )
 
     except Exception as e:

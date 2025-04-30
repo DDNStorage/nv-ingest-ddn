@@ -6,7 +6,9 @@ import pytest
 import threading
 from uuid import uuid4
 
-from nv_ingest.util.message_brokers.simple_message_broker.ordered_message_queue import OrderedMessageQueue
+from nv_ingest.util.message_brokers.simple_message_broker.ordered_message_queue import (
+    OrderedMessageQueue,
+)
 
 
 @pytest.fixture

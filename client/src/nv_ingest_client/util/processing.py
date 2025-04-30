@@ -90,7 +90,11 @@ def handle_future_result(
         failed, description = check_ingest_result(result)
 
         if failed:
-            raise IngestJobFailure(f"Ingest job failed: {description}", description, result.get("annotations"))
+            raise IngestJobFailure(
+                f"Ingest job failed: {description}",
+                description,
+                result.get("annotations"),
+            )
     except Exception as e:
         logger.debug(f"Error processing future result: {e}")
         raise e

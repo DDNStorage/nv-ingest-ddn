@@ -83,7 +83,9 @@ def unstructured_io(
     api_key = kwargs.get("unstructured_api_key", None)
 
     # get unstructured.io url
-    unstructured_url = kwargs.get("unstructured_url", "https://api.unstructured.io/general/v0/general")
+    unstructured_url = kwargs.get(
+        "unstructured_url", "https://api.unstructured.io/general/v0/general"
+    )
 
     # get unstructured.io strategy
     strategy = kwargs.get("unstructured_strategy", "auto")
@@ -109,7 +111,9 @@ def unstructured_io(
 
     # get base metadata
     metadata_col = kwargs.get("metadata_column", "metadata")
-    base_unified_metadata = row_data[metadata_col] if metadata_col in row_data.index else {}
+    base_unified_metadata = (
+        row_data[metadata_col] if metadata_col in row_data.index else {}
+    )
 
     # get base source_metadata
     base_source_metadata = base_unified_metadata.get("source_metadata", {})
@@ -227,7 +231,9 @@ def unstructured_io(
             if (extract_images and identify_nearby_objects) and (len(item["text"]) > 0):
                 points = item["metadata"]["coordinates"]["points"]
                 page_nearby_blocks["text"]["content"].append(" ".join(item["text"]))
-                page_nearby_blocks["text"]["bbox"].append((points[0][0], points[0][1], points[2][0], points[2][1]))
+                page_nearby_blocks["text"]["bbox"].append(
+                    (points[0][0], points[0][1], points[2][0], points[2][1])
+                )
 
         # Extract images
         if extract_images and item["type"] == "Image":
@@ -342,7 +348,11 @@ def _construct_image_metadata(
 
     validated_unified_metadata = validate_metadata(unified_metadata)
 
-    return [ContentTypeEnum.IMAGE.value, validated_unified_metadata.model_dump(), str(uuid.uuid4())]
+    return [
+        ContentTypeEnum.IMAGE.value,
+        validated_unified_metadata.model_dump(),
+        str(uuid.uuid4()),
+    ]
 
 
 def _construct_table_metadata(
@@ -386,4 +396,8 @@ def _construct_table_metadata(
 
     validated_unified_metadata = validate_metadata(unified_metadata)
 
-    return [ContentTypeEnum.STRUCTURED.value, validated_unified_metadata.model_dump(), str(uuid.uuid4())]
+    return [
+        ContentTypeEnum.STRUCTURED.value,
+        validated_unified_metadata.model_dump(),
+        str(uuid.uuid4()),
+    ]

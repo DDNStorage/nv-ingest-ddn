@@ -31,7 +31,10 @@ def bo20_validate(extract_fn, chart_validation_fn, table_validation_fn, dump_dir
 
         text_extracts = [x for x in pdf_extract if x["document_type"] == "text"]
         text_extracts = [
-            {"page_num": x["metadata"]["content_metadata"]["page_number"], "ingest_content": x["metadata"]["content"]}
+            {
+                "page_num": x["metadata"]["content_metadata"]["page_number"],
+                "ingest_content": x["metadata"]["content"],
+            }
             for x in text_extracts
         ]
 
@@ -50,9 +53,12 @@ def bo20_validate(extract_fn, chart_validation_fn, table_validation_fn, dump_dir
             page_num = table["page"]
             bo20_content = table["paddle_ocr"]
             try:
-                possible_matches = [x for x in table_extracts if x["page_num"] == page_num]
+                possible_matches = [
+                    x for x in table_extracts if x["page_num"] == page_num
+                ]
                 similarities = [
-                    cosine_sim(bo20_content, poss_match["ingest_content"]) for poss_match in possible_matches
+                    cosine_sim(bo20_content, poss_match["ingest_content"])
+                    for poss_match in possible_matches
                 ]
                 max_sim = max(similarities)
                 match_id = similarities.index(max_sim)
@@ -63,12 +69,16 @@ def bo20_validate(extract_fn, chart_validation_fn, table_validation_fn, dump_dir
                             "fn": fn,
                             "page_num": page_num,
                             "bo20_content": bo20_content,
-                            "ingest_content": possible_matches[match_id]["ingest_content"],
+                            "ingest_content": possible_matches[match_id][
+                                "ingest_content"
+                            ],
                             "cos_sim": max_sim,
                         }
                     )
                 else:
-                    table_no_matches.append({"fn": fn, "page_num": page_num, "bo20_content": bo20_content})
+                    table_no_matches.append(
+                        {"fn": fn, "page_num": page_num, "bo20_content": bo20_content}
+                    )
             except Exception as e:
                 print(f"TABLE_SIM: {fn}: {page_num} {bo20_content}, {e}")
 
@@ -84,9 +94,12 @@ def bo20_validate(extract_fn, chart_validation_fn, table_validation_fn, dump_dir
             page_num = chart["page"]
             bo20_content = chart["input"]
             try:
-                possible_matches = [x for x in table_extracts if x["page_num"] == page_num]
+                possible_matches = [
+                    x for x in table_extracts if x["page_num"] == page_num
+                ]
                 similarities = [
-                    cosine_sim(bo20_content, poss_match["ingest_content"]) for poss_match in possible_matches
+                    cosine_sim(bo20_content, poss_match["ingest_content"])
+                    for poss_match in possible_matches
                 ]
                 found_match = False
                 if len(similarities) > 0:
@@ -99,12 +112,16 @@ def bo20_validate(extract_fn, chart_validation_fn, table_validation_fn, dump_dir
                             "fn": fn,
                             "page_num": page_num,
                             "bo20_content": bo20_content,
-                            "ingest_content": possible_matches[match_id]["ingest_content"],
+                            "ingest_content": possible_matches[match_id][
+                                "ingest_content"
+                            ],
                             "cos_sim": max_sim,
                         }
                     )
                 else:
-                    chart_no_matches.append({"fn": fn, "page_num": page_num, "bo20_content": bo20_content})
+                    chart_no_matches.append(
+                        {"fn": fn, "page_num": page_num, "bo20_content": bo20_content}
+                    )
             except Exception as e:
                 print(f"CHART_SIM {fn}: {page_num} \n {bo20_content}, \n{e}")
 
@@ -119,4 +136,8 @@ def bo20_validate(extract_fn, chart_validation_fn, table_validation_fn, dump_dir
                 f"{fn}: {len(table_no_matches)} unmatched tables, {len(chart_no_matches)} unmatched charts"
             )
 
-    return str(len(extract_results)) + "/20 files processed:\n" + "\n".join(sorted(result_lines))
+    return (
+        str(len(extract_results))
+        + "/20 files processed:\n"
+        + "\n".join(sorted(result_lines))
+    )

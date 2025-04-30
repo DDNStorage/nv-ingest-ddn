@@ -17,8 +17,12 @@ from morpheus.config import Config
 
 from nv_ingest.schemas.chart_extractor_schema import ChartExtractorSchema
 from nv_ingest.stages.multiprocessing_stage import MultiProcessingBaseStage
-from nv_ingest.util.image_processing.table_and_chart import join_yolox_graphic_elements_and_paddle_output
-from nv_ingest.util.image_processing.table_and_chart import process_yolox_graphic_elements
+from nv_ingest.util.image_processing.table_and_chart import (
+    join_yolox_graphic_elements_and_paddle_output,
+)
+from nv_ingest.util.image_processing.table_and_chart import (
+    process_yolox_graphic_elements,
+)
 from nv_ingest.util.image_processing.transforms import base64_to_numpy
 from nv_ingest.util.nim.helpers import NimClient
 from nv_ingest.util.nim.helpers import create_inference_client
@@ -104,17 +108,25 @@ def _update_metadata(
 
     # Ensure both clients returned lists of results matching the number of input images.
     if not (isinstance(yolox_results, list) and isinstance(paddle_results, list)):
-        raise ValueError("Expected list results from both yolox_client and paddle_client infer calls.")
+        raise ValueError(
+            "Expected list results from both yolox_client and paddle_client infer calls."
+        )
 
     if len(yolox_results) != len(valid_arrays):
-        raise ValueError(f"Expected {len(valid_arrays)} yolox results, got {len(yolox_results)}")
+        raise ValueError(
+            f"Expected {len(valid_arrays)} yolox results, got {len(yolox_results)}"
+        )
     if len(paddle_results) != len(valid_images):
-        raise ValueError(f"Expected {len(valid_images)} paddle results, got {len(paddle_results)}")
+        raise ValueError(
+            f"Expected {len(valid_images)} paddle results, got {len(paddle_results)}"
+        )
 
     # Join the corresponding results from both services for each image.
     for idx, (yolox_res, paddle_res) in enumerate(zip(yolox_results, paddle_results)):
         bounding_boxes, text_predictions = paddle_res
-        yolox_elements = join_yolox_graphic_elements_and_paddle_output(yolox_res, bounding_boxes, text_predictions)
+        yolox_elements = join_yolox_graphic_elements_and_paddle_output(
+            yolox_res, bounding_boxes, text_predictions
+        )
         chart_content = process_yolox_graphic_elements(yolox_elements)
         original_index = valid_indices[idx]
         results[original_index] = (base64_images[original_index], chart_content)
@@ -141,13 +153,19 @@ def _create_clients(
             )
             yolox_version = None  # Default to the latest version
     except Exception:
-        logger.waring("Failed to get yolox-page-elements version after 30 seconds. Falling back to the latest version.")
+        logger.waring(
+            "Failed to get yolox-page-elements version after 30 seconds. Falling back to the latest version."
+        )
         yolox_version = None  # Default to the latest version
 
-    yolox_model_interface = YoloxGraphicElementsModelInterface(yolox_version=yolox_version)
+    yolox_model_interface = YoloxGraphicElementsModelInterface(
+        yolox_version=yolox_version
+    )
     paddle_model_interface = PaddleOCRModelInterface()
 
-    logger.debug(f"Inference protocols: yolox={yolox_protocol}, paddle={paddle_protocol}")
+    logger.debug(
+        f"Inference protocols: yolox={yolox_protocol}, paddle={paddle_protocol}"
+    )
 
     yolox_client = create_inference_client(
         endpoints=yolox_endpoints,
@@ -167,7 +185,10 @@ def _create_clients(
 
 
 def _extract_chart_data(
-    df: pd.DataFrame, task_props: Dict[str, Any], validated_config: Any, trace_info: Optional[Dict] = None
+    df: pd.DataFrame,
+    task_props: Dict[str, Any],
+    validated_config: Any,
+    trace_info: Optional[Dict] = None,
 ) -> Tuple[pd.DataFrame, Dict]:
     """
     Extracts chart data from a DataFrame in a bulk fashion rather than row-by-row.
@@ -322,7 +343,9 @@ def generate_chart_extractor_stage(
     try:
         validated_config = ChartExtractorSchema(**stage_config)
 
-        _wrapped_process_fn = functools.partial(_extract_chart_data, validated_config=validated_config)
+        _wrapped_process_fn = functools.partial(
+            _extract_chart_data, validated_config=validated_config
+        )
 
         return MultiProcessingBaseStage(
             c=c,

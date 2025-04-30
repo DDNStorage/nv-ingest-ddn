@@ -7,7 +7,9 @@ from nv_ingest.util.pipeline.pipeline_runners import start_pipeline_subprocess
 from nv_ingest.util.pipeline.pipeline_runners import PipelineCreationSchema
 from nv_ingest_client.client import Ingestor, NvIngestClient
 from nv_ingest_client.message_clients.simple.simple_client import SimpleClient
-from nv_ingest.util.logging.configuration import configure_logging as configure_local_logging
+from nv_ingest.util.logging.configuration import (
+    configure_logging as configure_local_logging,
+)
 
 # Configure the logger
 logger = logging.getLogger(__name__)
@@ -25,7 +27,9 @@ def run_ingestor():
     """
     logger.info("Setting up Ingestor client...")
     client = NvIngestClient(
-        message_client_allocator=SimpleClient, message_client_port=7671, message_client_hostname="localhost"
+        message_client_allocator=SimpleClient,
+        message_client_port=7671,
+        message_client_hostname="localhost",
     )
 
     ingestor = (
@@ -57,13 +61,17 @@ def main():
         config_data = {}
 
         # Filter out None values to let the schema defaults handle them
-        config_data = {key: value for key, value in config_data.items() if value is not None}
+        config_data = {
+            key: value for key, value in config_data.items() if value is not None
+        }
 
         # Construct the pipeline configuration
         config = PipelineCreationSchema(**config_data)
 
         # Start the pipeline subprocess
-        pipeline_process = start_pipeline_subprocess(config, stderr=sys.stderr, stdout=sys.stdout)
+        pipeline_process = start_pipeline_subprocess(
+            config, stderr=sys.stderr, stdout=sys.stdout
+        )
 
         # Optionally, wait a bit before starting the ingestor to ensure the pipeline is ready
         time.sleep(10)

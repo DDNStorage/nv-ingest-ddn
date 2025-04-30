@@ -164,7 +164,9 @@ class NvIngestClient:
         job_state = self._job_states.get(job_index)
 
         if not job_state:
-            raise ValueError(f"Job with ID {job_index} does not exist in JobStates: {self._job_states}")
+            raise ValueError(
+                f"Job with ID {job_index} does not exist in JobStates: {self._job_states}"
+            )
         if required_state and (job_state.state not in required_state):
             raise ValueError(
                 f"Job with ID {job_state.job_spec.job_id} has invalid state "
@@ -254,7 +256,9 @@ class NvIngestClient:
         return job_id
 
     def add_task(self, job_index: str, task: Task) -> None:
-        job_state = self._get_and_check_job_state(job_index, required_state=JobStateEnum.PENDING)
+        job_state = self._get_and_check_job_state(
+            job_index, required_state=JobStateEnum.PENDING
+        )
 
         job_state.job_spec.add_task(task)
 
@@ -286,7 +290,9 @@ class NvIngestClient:
 
         return self.add_task(job_index, task_factory(task_type, **task_params))
 
-    def _fetch_job_result(self, job_index: str, timeout: float = 100, data_only: bool = True) -> Tuple[Dict, str, str]:
+    def _fetch_job_result(
+        self, job_index: str, timeout: float = 100, data_only: bool = True
+    ) -> Tuple[Dict, str, str]:
         """
         Fetches the job result from a message client, handling potential errors and state changes.
 
@@ -305,7 +311,8 @@ class NvIngestClient:
         """
         try:
             job_state = self._get_and_check_job_state(
-                job_index, required_state=[JobStateEnum.SUBMITTED, JobStateEnum.SUBMITTED_ASYNC]
+                job_index,
+                required_state=[JobStateEnum.SUBMITTED, JobStateEnum.SUBMITTED_ASYNC],
             )
             response = self._message_client.fetch_message(job_state.job_id, timeout)
 
@@ -318,35 +325,52 @@ class NvIngestClient:
 
                     return response_json, job_index, job_state.trace_id
                 except json.JSONDecodeError as err:
-                    logger.error(f"Error decoding job result for job ID {job_index}: {err}")
+                    logger.error(
+                        f"Error decoding job result for job ID {job_index}: {err}"
+                    )
                     raise ValueError(f"Error decoding job result: {err}") from err
                 finally:
                     # Only pop once we know we've successfully decoded the response or errored out
                     _ = self._pop_job_state(job_index)
             else:
-                raise TimeoutError(f"Timeout: No response within {timeout} seconds for job ID {job_index}")
+                raise TimeoutError(
+                    f"Timeout: No response within {timeout} seconds for job ID {job_index}"
+                )
 
         except TimeoutError:
             raise
         except RuntimeError as err:
-            logger.error(f"Unexpected error while fetching job result for job ID {job_index}: {err}")
+            logger.error(
+                f"Unexpected error while fetching job result for job ID {job_index}: {err}"
+            )
             raise
         except Exception as err:
-            logger.error(f"Unexpected error while fetching job result for job ID {job_index}: {err}")
+            logger.error(
+                f"Unexpected error while fetching job result for job ID {job_index}: {err}"
+            )
             raise
 
     # The Pythonic invocation and the CLI invocation approach currently have different approaches to timeouts
     # This distinction is made obvious by provided two separate functions. One for "_cli" and one for
     # direct Python use. This is the "_cli" approach
-    def fetch_job_result_cli(self, job_ids: Union[str, List[str]], timeout: float = 100, data_only: bool = True):
+    def fetch_job_result_cli(
+        self,
+        job_ids: Union[str, List[str]],
+        timeout: float = 100,
+        data_only: bool = True,
+    ):
         if isinstance(job_ids, str):
             job_ids = [job_ids]
 
-        return [self._fetch_job_result(job_id, timeout, data_only) for job_id in job_ids]
+        return [
+            self._fetch_job_result(job_id, timeout, data_only) for job_id in job_ids
+        ]
 
     # Nv-Ingest jobs are often "long running". Therefore after
     # submission we intermittently check if the job is completed.
-    def _fetch_job_result_wait(self, job_id: str, timeout: float = 60, data_only: bool = True):
+    def _fetch_job_result_wait(
+        self, job_id: str, timeout: float = 60, data_only: bool = True
+    ):
         while True:
             try:
                 return [self._fetch_job_result(job_id, timeout, data_only)]
@@ -364,7 +388,10 @@ class NvIngestClient:
         verbose: bool = False,
         completion_callback: Optional[Callable[[Dict, str], None]] = None,
         return_failures: bool = False,
-    ) -> Union[List[Tuple[Optional[Dict], str]], Tuple[List[Tuple[Optional[Dict], str]], List[Tuple[str, str]]]]:
+    ) -> Union[
+        List[Tuple[Optional[Dict], str]],
+        Tuple[List[Tuple[Optional[Dict], str]], List[Tuple[str, str]]],
+    ]:
         """
         Fetches job results for multiple job IDs concurrently with individual timeouts and retry logic.
 
@@ -413,14 +440,19 @@ class NvIngestClient:
                     retries += 1
                     time.sleep(retry_delay)  # Wait before retrying
                 except (RuntimeError, Exception) as err:
-                    logger.error(f"Error while fetching result for job ID {job_id}: {err}")
+                    logger.error(
+                        f"Error while fetching result for job ID {job_id}: {err}"
+                    )
                     return None, job_id
             logger.error(f"Max retries exceeded for job {job_id}.")
             return None, job_id
 
         # Use ThreadPoolExecutor to fetch results concurrently
         with ThreadPoolExecutor() as executor:
-            futures = {executor.submit(fetch_with_retries, job_id): job_id for job_id in job_ids}
+            futures = {
+                executor.submit(fetch_with_retries, job_id): job_id
+                for job_id in job_ids
+            }
 
             # Collect results as futures complete
             for future in as_completed(futures):
@@ -439,35 +471,45 @@ class NvIngestClient:
                         f"{self._job_index_to_job_spec[job_id].source_id}"
                     )
                     logger.error(error_msg)
-                    failures.append((self._job_index_to_job_spec[job_id].source_id, str(e)))
+                    failures.append(
+                        (self._job_index_to_job_spec[job_id].source_id, str(e))
+                    )
                 except json.JSONDecodeError as e:
                     error_msg = (
                         f"Decoding error while processing job ID {job_id}: "
                         f"{self._job_index_to_job_spec[job_id].source_id}\n{e}"
                     )
                     logger.error(error_msg)
-                    failures.append((self._job_index_to_job_spec[job_id].source_id, str(e)))
+                    failures.append(
+                        (self._job_index_to_job_spec[job_id].source_id, str(e))
+                    )
                 except RuntimeError as e:
                     error_msg = (
                         f"Error while processing job ID {job_id}: "
                         f"{self._job_index_to_job_spec[job_id].source_id}\n{e}"
                     )
                     logger.error(error_msg)
-                    failures.append((self._job_index_to_job_spec[job_id].source_id, str(e)))
+                    failures.append(
+                        (self._job_index_to_job_spec[job_id].source_id, str(e))
+                    )
                 except IngestJobFailure as e:
                     error_msg = (
                         f"Error while processing job ID {job_id}: "
                         f"{self._job_index_to_job_spec[job_id].source_id}\n{e.description}"
                     )
                     logger.error(error_msg)
-                    failures.append((self._job_index_to_job_spec[job_id].source_id, e.annotations))
+                    failures.append(
+                        (self._job_index_to_job_spec[job_id].source_id, e.annotations)
+                    )
                 except Exception as e:
                     error_msg = (
                         f"Error while fetching result for job ID {job_id}: "
                         f"{self._job_index_to_job_spec[job_id].source_id}\n{e}"
                     )
                     logger.error(error_msg)
-                    failures.append((self._job_index_to_job_spec[job_id].source_id, str(e)))
+                    failures.append(
+                        (self._job_index_to_job_spec[job_id].source_id, str(e))
+                    )
                 finally:
                     # Clean up the job spec mapping
                     del self._job_index_to_job_spec[job_id]
@@ -493,11 +535,16 @@ class NvIngestClient:
         for future in as_completed(submission_futures.keys()):
             job_state = submission_futures[future]
             job_state.state = JobStateEnum.SUBMITTED
-            job_state.trace_id = future.result()[0]  # Trace_id from `submit_job` endpoint submission
+            job_state.trace_id = future.result()[
+                0
+            ]  # Trace_id from `submit_job` endpoint submission
             job_state.future = None
 
     def fetch_job_result_async(
-        self, job_ids: Union[str, List[str]], timeout: float = 10, data_only: bool = True
+        self,
+        job_ids: Union[str, List[str]],
+        timeout: float = 10,
+        data_only: bool = True,
     ) -> Dict[Future, str]:
         """
         Fetches job results for a list or a single job ID asynchronously and returns a mapping of futures to job IDs.
@@ -519,7 +566,9 @@ class NvIngestClient:
         future_to_job_id = {}
         for job_id in job_ids:
             job_state = self._get_and_check_job_state(job_id)
-            future = self._worker_pool.submit(self.fetch_job_result_cli, job_id, timeout, data_only)
+            future = self._worker_pool.submit(
+                self.fetch_job_result_cli, job_id, timeout, data_only
+            )
             job_state.future = future
             future_to_job_id[future] = job_id
 
@@ -552,17 +601,22 @@ class NvIngestClient:
         """
 
         job_state = self._get_and_check_job_state(
-            job_index, required_state=[JobStateEnum.PENDING, JobStateEnum.SUBMITTED_ASYNC]
+            job_index,
+            required_state=[JobStateEnum.PENDING, JobStateEnum.SUBMITTED_ASYNC],
         )
 
         try:
             message = json.dumps(job_state.job_spec.to_dict())
 
-            response = self._message_client.submit_message(job_queue_id, message, for_nv_ingest=True)
+            response = self._message_client.submit_message(
+                job_queue_id, message, for_nv_ingest=True
+            )
             x_trace_id = response.trace_id
             transaction_id = response.transaction_id
             job_id = "" if transaction_id is None else transaction_id.replace('"', "")
-            logger.debug(f"Submitted job {job_index} to queue {job_queue_id} and got back job ID {job_id}")
+            logger.debug(
+                f"Submitted job {job_index} to queue {job_queue_id} and got back job ID {job_id}"
+            )
 
             job_state.state = JobStateEnum.SUBMITTED
             job_state.job_id = job_id
@@ -573,12 +627,17 @@ class NvIngestClient:
             return x_trace_id
         except Exception as err:
             traceback.print_exc()
-            logger.error(f"Failed to submit job {job_index} to queue {job_queue_id}: {err}")
+            logger.error(
+                f"Failed to submit job {job_index} to queue {job_queue_id}: {err}"
+            )
             job_state.state = JobStateEnum.FAILED
             raise
 
     def submit_job(
-        self, job_indices: Union[str, List[str]], job_queue_id: str, batch_size: int = 10
+        self,
+        job_indices: Union[str, List[str]],
+        job_queue_id: str,
+        batch_size: int = 10,
     ) -> List[Union[Dict, None]]:
         if isinstance(job_indices, str):
             job_indices = [job_indices]
@@ -596,7 +655,9 @@ class NvIngestClient:
             for job_id in batch:
                 try:
                     x_trace_id = self._submit_job(job_id, job_queue_id)
-                except Exception as e:  # Even if one fails, we should continue with the rest of the batch.
+                except (
+                    Exception
+                ) as e:  # Even if one fails, we should continue with the rest of the batch.
                     submission_errors.append(e)
                     continue
                 results.append(x_trace_id)
@@ -604,11 +665,15 @@ class NvIngestClient:
         if submission_errors:
             error_msg = str(submission_errors[0])
             if len(submission_errors) > 1:
-                error_msg += f"... [{len(submission_errors) - 1} more messages truncated]"
+                error_msg += (
+                    f"... [{len(submission_errors) - 1} more messages truncated]"
+                )
             raise type(submission_errors[0])(error_msg)
         return results
 
-    def submit_job_async(self, job_indices: Union[str, List[str]], job_queue_id: str) -> Dict[Future, str]:
+    def submit_job_async(
+        self, job_indices: Union[str, List[str]], job_queue_id: str
+    ) -> Dict[Future, str]:
         """
         Asynchronously submits one or more jobs to a specified job queue using a thread pool.
         This method handles both single job ID or a list of job IDs.
@@ -646,7 +711,9 @@ class NvIngestClient:
 
         return future_to_job_index
 
-    def create_jobs_for_batch(self, files_batch: List[str], tasks: Dict[str, Any]) -> List[str]:
+    def create_jobs_for_batch(
+        self, files_batch: List[str], tasks: Dict[str, Any]
+    ) -> List[str]:
         """
         Create and submit job specifications (JobSpecs) for a batch of files, returning the job IDs.
         This function takes a batch of files, processes each file to extract its content and type,
@@ -704,7 +771,9 @@ class NvIngestClient:
         JobSpec : The class representing a job specification.
         """
         if not isinstance(tasks, dict):
-            raise ValueError("`tasks` must be a dictionary of task names -> task specifications.")
+            raise ValueError(
+                "`tasks` must be a dictionary of task names -> task specifications."
+            )
 
         job_specs = create_job_specs_for_batch(files_batch)
 
@@ -727,7 +796,9 @@ class NvIngestClient:
                     raise ValueError(f"Invalid task type: '{task_name}'")
 
                 if str(task_config) in seen_tasks:
-                    raise ValueError(f"Duplicate task detected: {task_name} with config {task_config}")
+                    raise ValueError(
+                        f"Duplicate task detected: {task_name} with config {task_config}"
+                    )
 
                 job_spec.add_task(task_config)
 

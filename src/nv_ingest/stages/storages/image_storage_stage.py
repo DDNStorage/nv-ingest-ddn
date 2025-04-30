@@ -45,7 +45,9 @@ class ImageStorageStage(PassThruTypeMixin, SinglePortStage):
 
         module_name = "image_storage"
 
-        self._module_loader: ModuleLoader = ImageStorageLoaderFactory.get_instance(module_name, module_config)
+        self._module_loader: ModuleLoader = ImageStorageLoaderFactory.get_instance(
+            module_name, module_config
+        )
 
     @property
     def name(self) -> str:
@@ -71,7 +73,9 @@ class ImageStorageStage(PassThruTypeMixin, SinglePortStage):
         # Provide your own logic here; for example:
         return (ExecutionMode.CPU,)
 
-    def _build_single(self, builder: mrc.Builder, input_node: mrc.SegmentObject) -> mrc.SegmentObject:
+    def _build_single(
+        self, builder: mrc.Builder, input_node: mrc.SegmentObject
+    ) -> mrc.SegmentObject:
         module = self._module_loader.load(builder)
 
         # Input and Output port names should be same as input and output port names of write_to_vector_db module.

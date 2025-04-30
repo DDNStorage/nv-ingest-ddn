@@ -121,7 +121,9 @@ def test_format_input_grpc(paddle_ocr_model):
         # Supply both "image_arrays" and a dummy "image_dims" (which will be overwritten)
         img = np.zeros((32, 32, 3))
         data = {"image_arrays": [img], "image_dims": [(32, 32)]}
-        batches, batch_data = paddle_ocr_model.format_input(data, protocol="grpc", max_batch_size=1)
+        batches, batch_data = paddle_ocr_model.format_input(
+            data, protocol="grpc", max_batch_size=1
+        )
         # The grpc branch expands each preprocessed image with an added batch dimension.
         result = batches[0]
         assert isinstance(result, np.ndarray)
@@ -181,7 +183,9 @@ def test_format_input_http(paddle_ocr_model, mocker):
 
     mocker.patch.object(paddle_ocr_model, "format_input", side_effect=fake_format_input)
 
-    batches, batch_data = paddle_ocr_model.format_input(data, protocol="http", max_batch_size=1)
+    batches, batch_data = paddle_ocr_model.format_input(
+        data, protocol="http", max_batch_size=1
+    )
     result = batches[0]
     # Check that the payload follows the new structure.
     assert "input" in result
@@ -221,7 +225,9 @@ def test_parse_output_http_pseudo_markdown(paddle_ocr_model, mock_paddle_http_re
         return_value=[("| mock_text |", "pseudo_markdown")],
     ) as mock_extract:
         # Note: We no longer pass table_content_format because the http branch ignores extra kwargs.
-        result = paddle_ocr_model.parse_output(mock_paddle_http_response, protocol="http")
+        result = paddle_ocr_model.parse_output(
+            mock_paddle_http_response, protocol="http"
+        )
         # Verify that the returned output matches our expected tuple.
         assert len(result) == 1
         assert result[0][0] == "| mock_text |"
@@ -244,9 +250,13 @@ def test_parse_output_http_simple(paddle_ocr_model, mock_paddle_http_response):
     expected_texts = ["mock_text"]
     # Patch _extract_content_from_paddle_http_response so that it returns the expected "simple" output.
     with patch.object(
-        paddle_ocr_model, "_extract_content_from_paddle_http_response", return_value=[(expected_bboxes, expected_texts)]
+        paddle_ocr_model,
+        "_extract_content_from_paddle_http_response",
+        return_value=[(expected_bboxes, expected_texts)],
     ) as mock_extract:
-        result = paddle_ocr_model.parse_output(mock_paddle_http_response, protocol="http")
+        result = paddle_ocr_model.parse_output(
+            mock_paddle_http_response, protocol="http"
+        )
         assert len(result) == 1
         assert result[0][0] == expected_bboxes
         assert result[0][1] == expected_texts
@@ -277,7 +287,9 @@ def test_parse_output_grpc_simple(paddle_ocr_model):
     # - text prediction data (as bytes, when decoded to JSON, yields "mock_text")
     grpc_response = create_valid_grpc_response_batched("mock_text")
 
-    result = paddle_ocr_model.parse_output(grpc_response, protocol="grpc", data=data, table_content_format="simple")
+    result = paddle_ocr_model.parse_output(
+        grpc_response, protocol="grpc", data=data, table_content_format="simple"
+    )
 
     expected_bboxes = [[[0.1, 0.2], [0.2, 0.2], [0.2, 0.3], [0.1, 0.3]]]
     expected_texts = ["mock_text"]

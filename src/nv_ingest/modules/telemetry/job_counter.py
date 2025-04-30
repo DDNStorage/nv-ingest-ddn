@@ -11,7 +11,9 @@ from morpheus.utils.module_utils import register_module
 from mrc.core import operators as ops
 
 from nv_ingest.schemas.job_counter_schema import JobCounterSchema
-from nv_ingest.util.exception_handlers.decorators import nv_ingest_node_failure_context_manager
+from nv_ingest.util.exception_handlers.decorators import (
+    nv_ingest_node_failure_context_manager,
+)
 from nv_ingest.util.modules.config_validator import fetch_and_validate_module_config
 from nv_ingest.util.telemetry.global_stats import GlobalStats
 from nv_ingest.util.tracing import traceable
@@ -25,7 +27,9 @@ MODULE_NAMESPACE = "nv_ingest"
 JobCounterLoaderFactory = ModuleLoaderFactory(MODULE_NAME, MODULE_NAMESPACE)
 
 
-def _count_jobs_impl(message: IngestControlMessage, validated_config, stats) -> IngestControlMessage:
+def _count_jobs_impl(
+    message: IngestControlMessage, validated_config, stats
+) -> IngestControlMessage:
     """
     Private helper function to count jobs.
 
@@ -89,7 +93,9 @@ def _job_counter(builder: mrc.Builder) -> None:
             logger.exception("count_jobs: Failed to run job counter")
             raise type(e)("count_jobs: Failed to run job counter") from e
 
-    job_counter_node = builder.make_node(f"{validated_config.name}_counter", ops.map(count_jobs))
+    job_counter_node = builder.make_node(
+        f"{validated_config.name}_counter", ops.map(count_jobs)
+    )
     # Register the input and output of the module
     builder.register_module_input("input", job_counter_node)
     builder.register_module_output("output", job_counter_node)

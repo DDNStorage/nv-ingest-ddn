@@ -31,7 +31,9 @@ def cm_ensure_payload_not_null(control_message: IngestControlMessage):
         raise ValueError("Payload cannot be None")
 
 
-def cm_set_failure(control_message: IngestControlMessage, reason: str) -> IngestControlMessage:
+def cm_set_failure(
+    control_message: IngestControlMessage, reason: str
+) -> IngestControlMessage:
     """
     Sets the failure metadata on a IngestControlMessage.
 
@@ -143,16 +145,24 @@ def nv_ingest_source_failure_context_manager(
             try:
                 result = func(*args, **kwargs)
                 if not isinstance(result, IngestControlMessage):
-                    raise TypeError(f"{func.__name__} output is not a IngestControlMessage as expected.")
+                    raise TypeError(
+                        f"{func.__name__} output is not a IngestControlMessage as expected."
+                    )
                 if not payload_can_be_empty and result.get_metadata("payload") is None:
-                    raise ValueError(f"{func.__name__} IngestControlMessage payload cannot be null.")
+                    raise ValueError(
+                        f"{func.__name__} IngestControlMessage payload cannot be null."
+                    )
 
                 # Success annotation.
-                annotate_task_result(result, result=TaskResultStatus.SUCCESS, task_id=annotation_id)
+                annotate_task_result(
+                    result, result=TaskResultStatus.SUCCESS, task_id=annotation_id
+                )
             except Exception as e:
                 error_message = f"Error in {func.__name__}: {e}"
                 # Prepare a new IngestControlMessage for failure annotation if needed.
-                if "result" not in locals() or not isinstance(result, IngestControlMessage):
+                if "result" not in locals() or not isinstance(
+                    result, IngestControlMessage
+                ):
                     result = IngestControlMessage()
                 cm_set_failure(result, error_message)
                 annotate_task_result(

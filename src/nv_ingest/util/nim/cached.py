@@ -61,7 +61,9 @@ class CachedModelInterface(ModelInterface):
         if "base64_images" in data:
             base64_list = data["base64_images"]
             if not isinstance(base64_list, list):
-                raise ValueError("The 'base64_images' key must contain a list of base64-encoded strings.")
+                raise ValueError(
+                    "The 'base64_images' key must contain a list of base64-encoded strings."
+                )
             data["image_arrays"] = [base64_to_numpy(img) for img in base64_list]
 
         elif "base64_image" in data:
@@ -69,11 +71,15 @@ class CachedModelInterface(ModelInterface):
             data["image_arrays"] = [base64_to_numpy(data["base64_image"])]
 
         else:
-            raise KeyError("Input data must include 'base64_image' or 'base64_images' with base64-encoded images.")
+            raise KeyError(
+                "Input data must include 'base64_image' or 'base64_images' with base64-encoded images."
+            )
 
         return data
 
-    def format_input(self, data: Dict[str, Any], protocol: str, max_batch_size: int, **kwargs) -> Any:
+    def format_input(
+        self, data: Dict[str, Any], protocol: str, max_batch_size: int, **kwargs
+    ) -> Any:
         """
         Format input data for the specified protocol ("grpc" or "http"), handling batched images.
         Additionally, returns batched data that coalesces the original image arrays and their dimensions
@@ -107,7 +113,9 @@ class CachedModelInterface(ModelInterface):
             If the protocol is invalid, or if no valid images are found.
         """
         if "image_arrays" not in data:
-            raise KeyError("Expected 'image_arrays' in data. Make sure prepare_data_for_inference was called.")
+            raise KeyError(
+                "Expected 'image_arrays' in data. Make sure prepare_data_for_inference was called."
+            )
 
         image_arrays = data["image_arrays"]
         # Compute dimensions for each image.
@@ -136,11 +144,15 @@ class CachedModelInterface(ModelInterface):
 
             batched_inputs = []
             formatted_batch_data = []
-            for proc_chunk, orig_chunk, dims_chunk in zip(batched_image_chunks, orig_chunks, dims_chunks):
+            for proc_chunk, orig_chunk, dims_chunk in zip(
+                batched_image_chunks, orig_chunks, dims_chunks
+            ):
                 # Concatenate along the batch dimension => shape (B, H, W, C)
                 batched_input = np.concatenate(proc_chunk, axis=0)
                 batched_inputs.append(batched_input)
-                formatted_batch_data.append({"image_arrays": orig_chunk, "image_dims": dims_chunk})
+                formatted_batch_data.append(
+                    {"image_arrays": orig_chunk, "image_dims": dims_chunk}
+                )
             return batched_inputs, formatted_batch_data
 
         elif protocol == "http":
@@ -154,7 +166,10 @@ class CachedModelInterface(ModelInterface):
                 buffered = io.BytesIO()
                 image_pil.save(buffered, format="PNG")
                 base64_img = base64.b64encode(buffered.getvalue()).decode("utf-8")
-                image_item = {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_img}"}}
+                image_item = {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{base64_img}"},
+                }
                 content_list.append(image_item)
 
             # Chunk the content list, original arrays, and dimensions.
@@ -164,17 +179,27 @@ class CachedModelInterface(ModelInterface):
 
             payload_batches = []
             formatted_batch_data = []
-            for chunk, orig_chunk, dims_chunk in zip(content_chunks, orig_chunks, dims_chunks):
+            for chunk, orig_chunk, dims_chunk in zip(
+                content_chunks, orig_chunks, dims_chunks
+            ):
                 message = {"content": chunk}
                 payload = {"messages": [message]}
                 payload_batches.append(payload)
-                formatted_batch_data.append({"image_arrays": orig_chunk, "image_dims": dims_chunk})
+                formatted_batch_data.append(
+                    {"image_arrays": orig_chunk, "image_dims": dims_chunk}
+                )
             return payload_batches, formatted_batch_data
 
         else:
             raise ValueError("Invalid protocol specified. Must be 'grpc' or 'http'.")
 
-    def parse_output(self, response: Any, protocol: str, data: Optional[Dict[str, Any]] = None, **kwargs: Any) -> Any:
+    def parse_output(
+        self,
+        response: Any,
+        protocol: str,
+        data: Optional[Dict[str, Any]] = None,
+        **kwargs: Any,
+    ) -> Any:
         """
         Parse the output from the Cached model's inference response.
 
@@ -213,9 +238,13 @@ class CachedModelInterface(ModelInterface):
         elif protocol == "http":
             logger.debug("Parsing output from HTTP Cached model (batched).")
             if not isinstance(response, dict):
-                raise RuntimeError("Expected JSON/dict response for HTTP, got something else.")
+                raise RuntimeError(
+                    "Expected JSON/dict response for HTTP, got something else."
+                )
             if "data" not in response or not response["data"]:
-                raise RuntimeError("Unexpected response format: 'data' key missing or empty.")
+                raise RuntimeError(
+                    "Unexpected response format: 'data' key missing or empty."
+                )
 
             contents: List[str] = []
             for item in response["data"]:
@@ -228,7 +257,9 @@ class CachedModelInterface(ModelInterface):
         else:
             raise ValueError("Invalid protocol specified. Must be 'grpc' or 'http'.")
 
-    def process_inference_results(self, output: Any, protocol: str, **kwargs: Any) -> Any:
+    def process_inference_results(
+        self, output: Any, protocol: str, **kwargs: Any
+    ) -> Any:
         """
         Process inference results for the Cached model.
 
@@ -269,6 +300,8 @@ class CachedModelInterface(ModelInterface):
             If the response format is unexpected (missing 'data' or empty).
         """
         if "data" not in json_response or not json_response["data"]:
-            raise RuntimeError("Unexpected response format: 'data' key is missing or empty.")
+            raise RuntimeError(
+                "Unexpected response format: 'data' key is missing or empty."
+            )
 
         return json_response["data"][0]["content"]

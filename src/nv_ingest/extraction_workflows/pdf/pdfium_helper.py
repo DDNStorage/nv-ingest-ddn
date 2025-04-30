@@ -38,7 +38,9 @@ from nv_ingest.util.nim.yolox import YOLOX_PAGE_IMAGE_PREPROC_HEIGHT
 from nv_ingest.util.nim.yolox import YOLOX_PAGE_IMAGE_PREPROC_WIDTH
 from nv_ingest.util.nim.yolox import get_yolox_model_name
 from nv_ingest.util.pdf.metadata_aggregators import CroppedImageWithContent
-from nv_ingest.util.pdf.metadata_aggregators import construct_image_metadata_from_pdf_image
+from nv_ingest.util.pdf.metadata_aggregators import (
+    construct_image_metadata_from_pdf_image,
+)
 from nv_ingest.util.pdf.metadata_aggregators import construct_page_element_metadata
 from nv_ingest.util.pdf.metadata_aggregators import construct_text_metadata
 from nv_ingest.util.pdf.metadata_aggregators import extract_pdf_metadata
@@ -75,7 +77,9 @@ def extract_page_elements_using_image_ensemble(
     yolox_model_name = get_yolox_model_name(yolox_http_endpoint)
 
     try:
-        model_interface = yolox_utils.YoloxPageElementsModelInterface(yolox_model_name=yolox_model_name)
+        model_interface = yolox_utils.YoloxPageElementsModelInterface(
+            yolox_model_name=yolox_model_name
+        )
         yolox_client = create_inference_client(
             config.yolox_endpoints,
             model_interface,
@@ -242,7 +246,9 @@ def _extract_page_images(
     if extract_images_method == "simple":
         extracted_image_data = extract_nested_simple_images_from_pdfium_page(page)
     else:  # if extract_images_method == "group"
-        extracted_image_data = extract_image_like_objects_from_pdfium_page(page, merge=True, **extract_images_params)
+        extracted_image_data = extract_image_like_objects_from_pdfium_page(
+            page, merge=True, **extract_images_params
+        )
 
     extracted_images = []
     for image_data in extracted_image_data:
@@ -280,7 +286,9 @@ def _extract_page_elements(
     """
     extracted_page_elements = []
 
-    page_element_results = extract_page_elements_using_image_ensemble(pages, pdfium_config, trace_info=trace_info)
+    page_element_results = extract_page_elements_using_image_ensemble(
+        pages, pdfium_config, trace_info=trace_info
+    )
 
     # Build metadata for each
     for page_idx, page_element in page_element_results:
@@ -335,7 +343,9 @@ def pdfium_extractor(
     if isinstance(pdfium_config, dict):
         pdfium_config = PDFiumConfigSchema(**pdfium_config)
 
-    base_unified_metadata = row_data[metadata_col] if metadata_col in row_data.index else {}
+    base_unified_metadata = (
+        row_data[metadata_col] if metadata_col in row_data.index else {}
+    )
     base_source_metadata = base_unified_metadata.get("source_metadata", {})
     source_location = base_source_metadata.get("source_location", "")
     collection_id = base_source_metadata.get("collection_id", "")
@@ -377,7 +387,9 @@ def pdfium_extractor(
     pages_for_tables = []  # We'll accumulate (page_idx, np_image, padding_offset) here
     futures = []  # We'll keep track of all the Future objects for table/charts
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=pdfium_config.workers_per_progress_engine) as executor:
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=pdfium_config.workers_per_progress_engine
+    ) as executor:
         # PAGE LOOP
         for page_idx in range(page_count):
             page = doc.get_page(page_idx)
@@ -424,8 +436,14 @@ def pdfium_extractor(
             if extract_tables or extract_charts or extract_infographics:
                 image, padding_offsets = pdfium_pages_to_numpy(
                     [page],
-                    scale_tuple=(YOLOX_PAGE_IMAGE_PREPROC_WIDTH, YOLOX_PAGE_IMAGE_PREPROC_HEIGHT),
-                    padding_tuple=(YOLOX_PAGE_IMAGE_PREPROC_WIDTH, YOLOX_PAGE_IMAGE_PREPROC_HEIGHT),
+                    scale_tuple=(
+                        YOLOX_PAGE_IMAGE_PREPROC_WIDTH,
+                        YOLOX_PAGE_IMAGE_PREPROC_HEIGHT,
+                    ),
+                    padding_tuple=(
+                        YOLOX_PAGE_IMAGE_PREPROC_WIDTH,
+                        YOLOX_PAGE_IMAGE_PREPROC_HEIGHT,
+                    ),
                     trace_info=trace_info,
                 )
                 pages_for_tables.append((page_idx, image[0], padding_offsets[0]))
@@ -451,7 +469,9 @@ def pdfium_extractor(
             page.close()
 
         # After page loop, if we still have leftover pages_for_tables, submit one last job
-        if (extract_tables or extract_charts or extract_infographics) and pages_for_tables:
+        if (
+            extract_tables or extract_charts or extract_infographics
+        ) and pages_for_tables:
             future = executor.submit(
                 _extract_page_elements,
                 pages_for_tables[:],

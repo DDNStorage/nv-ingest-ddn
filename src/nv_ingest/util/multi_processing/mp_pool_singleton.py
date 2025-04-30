@@ -75,22 +75,34 @@ class ProcessWorkerPoolSingleton:
         logger.debug("Creating ProcessWorkerPoolSingleton instance...")
         with cls._lock:
             if cls._instance is None:
-                max_worker_limit: int = int(os.environ.get("MAX_INGEST_PROCESS_WORKERS", -1))
+                max_worker_limit: int = int(
+                    os.environ.get("MAX_INGEST_PROCESS_WORKERS", -1)
+                )
                 instance = super().__new__(cls)
                 # Determine available CPU count using affinity if possible
                 available: Optional[int] = (
-                    len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else os.cpu_count()
+                    len(os.sched_getaffinity(0))
+                    if hasattr(os, "sched_getaffinity")
+                    else os.cpu_count()
                 )
                 # Use 40% of available CPUs, ensuring at least one worker
                 max_workers: int = math.floor(max(1, available * 0.4))
                 if (max_worker_limit > 0) and (max_workers > max_worker_limit):
                     max_workers = max_worker_limit
-                logger.debug("Creating ProcessWorkerPoolSingleton instance with max workers: %d", max_workers)
+                logger.debug(
+                    "Creating ProcessWorkerPoolSingleton instance with max workers: %d",
+                    max_workers,
+                )
                 instance._initialize(max_workers)
-                logger.debug("ProcessWorkerPoolSingleton instance created: %s", instance)
+                logger.debug(
+                    "ProcessWorkerPoolSingleton instance created: %s", instance
+                )
                 cls._instance = instance
             else:
-                logger.debug("ProcessWorkerPoolSingleton instance already exists: %s", cls._instance)
+                logger.debug(
+                    "ProcessWorkerPoolSingleton instance already exists: %s",
+                    cls._instance,
+                )
         return cls._instance
 
     def _initialize(self, total_max_workers: int) -> None:
@@ -114,10 +126,14 @@ class ProcessWorkerPoolSingleton:
             2 * total_max_workers,
         )
         for i in range(total_max_workers):
-            p: mp.Process = self._context.Process(target=self._worker, args=(self._task_queue,))
+            p: mp.Process = self._context.Process(
+                target=self._worker, args=(self._task_queue,)
+            )
             p.start()
             self._processes.append(p)
-            logger.debug("Started worker process %d/%d: PID %d", i + 1, total_max_workers, p.pid)
+            logger.debug(
+                "Started worker process %d/%d: PID %d", i + 1, total_max_workers, p.pid
+            )
         logger.debug("Initialized with max workers: %d", total_max_workers)
 
     @staticmethod
@@ -190,5 +206,7 @@ class ProcessWorkerPoolSingleton:
         # Wait for all processes to finish.
         for i, p in enumerate(self._processes):
             p.join()
-            logger.debug("Worker process %d/%d joined: PID %d", i + 1, self._total_workers, p.pid)
+            logger.debug(
+                "Worker process %d/%d joined: PID %d", i + 1, self._total_workers, p.pid
+            )
         logger.debug("ProcessWorkerPoolSingleton closed.")

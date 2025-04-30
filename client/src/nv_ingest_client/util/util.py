@@ -17,7 +17,9 @@ import pypdfium2 as pdfium
 from docx import Document as DocxDocument
 from nv_ingest_client.primitives.jobs.job_spec import JobSpec
 from nv_ingest_client.util.file_processing.extract import DocumentTypeEnum
-from nv_ingest_client.util.file_processing.extract import detect_encoding_and_read_text_file
+from nv_ingest_client.util.file_processing.extract import (
+    detect_encoding_and_read_text_file,
+)
 from nv_ingest_client.util.file_processing.extract import extract_file_content
 from nv_ingest_client.util.file_processing.extract import get_or_infer_file_type
 from pptx import Presentation
@@ -33,14 +35,20 @@ logger = logging.getLogger(__name__)
 
 class ClientConfigSchema:
     def __init__(self):
-        self.embedding_nim_endpoint: str = os.getenv("EMBEDDING_NIM_ENDPOINT", "https://integrate.api.nvidia.com/v1")
-        self.embedding_nim_model_name: str = os.getenv("EMBEDDING_NIM_MODEL_NAME", "nvidia/llama-3.2-nv-embedqa-1b-v2")
+        self.embedding_nim_endpoint: str = os.getenv(
+            "EMBEDDING_NIM_ENDPOINT", "https://integrate.api.nvidia.com/v1"
+        )
+        self.embedding_nim_model_name: str = os.getenv(
+            "EMBEDDING_NIM_MODEL_NAME", "nvidia/llama-3.2-nv-embedqa-1b-v2"
+        )
         self.nvidia_build_api_key: str = os.getenv("NVIDIA_BUILD_API_KEY", "")
         self.nv_ranker_nim_endpoint: str = os.getenv(
             "RERANKER_NIM_ENDPOINT",
             "https://ai.api.nvidia.com/v1/retrieval/nvidia/llama-3_2-nv-rerankqa-1b-v2/reranking",
         )
-        self.nv_ranker_nim_model_name: str = os.getenv("RERANKER_NIM_MODEL_NAME", "nvidia/llama-3.2-nv-rerankqa-1b-v2")
+        self.nv_ranker_nim_model_name: str = os.getenv(
+            "RERANKER_NIM_MODEL_NAME", "nvidia/llama-3.2-nv-rerankqa-1b-v2"
+        )
 
 
 def estimate_page_count(file_path: str) -> int:
@@ -96,9 +104,13 @@ def count_pages_for_text(file_path: str) -> int:
     """
     try:
         with open(file_path, "rb") as file:  # Open file in binary mode
-            file_stream = BytesIO(file.read())  # Create BytesIO object from file content
+            file_stream = BytesIO(
+                file.read()
+            )  # Create BytesIO object from file content
 
-        content = detect_encoding_and_read_text_file(file_stream)  # Read and decode content
+        content = detect_encoding_and_read_text_file(
+            file_stream
+        )  # Read and decode content
         word_count = len(content.split())
         pages_estimated = word_count / 300
         return round(pages_estimated)
@@ -146,7 +158,9 @@ def _process_file(file_path: str):
 
     try:
         file_name = os.path.basename(file_path)
-        content, document_type = extract_file_content(file_path)  # Call the synchronous function directly
+        content, document_type = extract_file_content(
+            file_path
+        )  # Call the synchronous function directly
 
         return {
             "source_name": file_name,
@@ -272,7 +286,10 @@ def check_ingest_result(json_payload: Dict) -> typing.Tuple[bool, str]:
     if is_failed:
         try:
             source_id = (
-                json_payload.get("data", [])[0].get("metadata", {}).get("source_metadata", {}).get("source_name", "")
+                json_payload.get("data", [])[0]
+                .get("metadata", {})
+                .get("source_metadata", {})
+                .get("source_name", "")
             )
         except Exception:
             source_id = ""
@@ -286,7 +303,9 @@ def check_ingest_result(json_payload: Dict) -> typing.Tuple[bool, str]:
         for annot_id, value in json_payload["annotations"].items():
             if "task_result" in value and value["task_result"] == "FAILURE":
                 message = value.get("message", "Unknown")
-                description += f"\n↪ Event that caused this failure: {annot_id} -> {message}"
+                description += (
+                    f"\n↪ Event that caused this failure: {annot_id} -> {message}"
+                )
                 break
 
     return is_failed, description
@@ -371,7 +390,9 @@ def create_job_specs_for_batch(files_batch: List[str]) -> List[JobSpec]:
     job_specs = []
     for file_name in files_batch:
         try:
-            file_content, file_type = extract_file_content(file_name)  # Assume these are defined
+            file_content, file_type = extract_file_content(
+                file_name
+            )  # Assume these are defined
             file_type = file_type.value
         except ValueError as ve:
             logger.error(f"Error extracting content from {file_name}: {ve}")
@@ -382,7 +403,9 @@ def create_job_specs_for_batch(files_batch: List[str]) -> List[JobSpec]:
             payload=file_content,
             source_id=file_name,
             source_name=file_name,
-            extended_options={"tracing_options": {"trace": True, "ts_send": time.time_ns()}},
+            extended_options={
+                "tracing_options": {"trace": True, "ts_send": time.time_ns()}
+            },
         )
         job_specs.append(job_spec)
 
@@ -439,8 +462,15 @@ def get_content(results: List[any]):
         A dictionary containing the extracted text content and the extracted table content
     """
 
-    text_elems = [elem for result in results for elem in result if elem["document_type"] == "text"]
-    structured_elems = [elem for result in results for elem in result if elem["document_type"] == "structured"]
+    text_elems = [
+        elem for result in results for elem in result if elem["document_type"] == "text"
+    ]
+    structured_elems = [
+        elem
+        for result in results
+        for elem in result
+        if elem["document_type"] == "structured"
+    ]
 
     text_content = [
         {

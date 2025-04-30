@@ -17,7 +17,14 @@ logger = logging.getLogger(__name__)
 
 class AsyncZipkinClient:
 
-    def __init__(self, host: str, port: int, concurrent_requests: int, max_retries: int = 10, retry_delay: int = 5):
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        concurrent_requests: int,
+        max_retries: int = 10,
+        retry_delay: int = 5,
+    ):
         if host.startswith("http"):
             self._host = host
         else:
@@ -63,7 +70,9 @@ class AsyncZipkinClient:
         urls = []
         for trace_id in trace_ids:
             logger.debug(f"Trace-ID in URL: {trace_id}")
-            urls.append((trace_id, f"{self._host}:{self._port}/api/v2/trace/{trace_id}"))
+            urls.append(
+                (trace_id, f"{self._host}:{self._port}/api/v2/trace/{trace_id}")
+            )
 
         sem = asyncio.Semaphore(self._concurrent_requests)
         tasks = [self.fetch(sem, url[0], url[1]) for url in urls]
@@ -73,7 +82,10 @@ class AsyncZipkinClient:
 
 
 def collect_traces_from_zipkin(
-    zipkin_host: str, zipkin_port: int, trace_id_map: Dict[str, str], concurrent_requests: Optional[int] = 1
+    zipkin_host: str,
+    zipkin_port: int,
+    trace_id_map: Dict[str, str],
+    concurrent_requests: Optional[int] = 1,
 ) -> Dict[str, str]:
     zipkin_client = AsyncZipkinClient(zipkin_host, zipkin_port, concurrent_requests)
 
@@ -90,7 +102,9 @@ def write_results_to_output_directory(
     output_directory: str,
     trace_responses: List[Dict[str, str]],
 ) -> None:
-    logger.info(f"Writing {len(trace_responses)} to output_directory: {output_directory}")
+    logger.info(
+        f"Writing {len(trace_responses)} to output_directory: {output_directory}"
+    )
 
     # Check if the output directory exists; if not, create it
     if not os.path.exists(output_directory):
@@ -107,7 +121,9 @@ def write_results_to_output_directory(
 
     # For each input file, create an output file with its profile data
     for trace in trace_responses:
-        with open(f"{zipkin_profiles_directory}/{trace['trace_id']}.json", "w") as trace_file:
+        with open(
+            f"{zipkin_profiles_directory}/{trace['trace_id']}.json", "w"
+        ) as trace_file:
             trace_file.write(json.dumps(trace["json"]))
 
     # Write all of the combined profile data to a single file

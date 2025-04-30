@@ -24,7 +24,9 @@ def extract_and_print_results(results):
     Extract and print the results from the Triton server response.
     """
     try:
-        text = " ".join([output[0].decode("utf-8") for output in results.as_numpy("output")])
+        text = " ".join(
+            [output[0].decode("utf-8") for output in results.as_numpy("output")]
+        )
         logger.info(text)
         logger.info(json.loads(text))
     except Exception as e:
@@ -37,7 +39,9 @@ def extract_and_print_results(results):
 
 @click.command()
 @click.argument("image_path", type=click.Path(exists=True))
-@click.option("--display", is_flag=True, help="Display the image before sending it for inference.")
+@click.option(
+    "--display", is_flag=True, help="Display the image before sending it for inference."
+)
 def main(image_path, display):
     # Configuration
     url = "localhost:8007"

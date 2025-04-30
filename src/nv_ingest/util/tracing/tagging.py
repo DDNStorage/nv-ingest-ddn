@@ -65,9 +65,9 @@ def traceable(trace_name=None):
             ts_fetched = datetime.now()
             message = args[0]
 
-            do_trace_tagging = (message.has_metadata("config::add_trace_tagging") is True) and (
-                message.get_metadata("config::add_trace_tagging") is True
-            )
+            do_trace_tagging = (
+                message.has_metadata("config::add_trace_tagging") is True
+            ) and (message.get_metadata("config::add_trace_tagging") is True)
 
             trace_prefix = trace_name if trace_name else func.__name__
 
@@ -76,8 +76,12 @@ def traceable(trace_name=None):
                 ts_entry = datetime.now()
                 message.set_timestamp(f"trace::entry::{trace_prefix}", ts_entry)
                 if ts_send:
-                    message.set_timestamp(f"trace::entry::{trace_prefix}_channel_in", ts_send)
-                    message.set_timestamp(f"trace::exit::{trace_prefix}_channel_in", ts_fetched)
+                    message.set_timestamp(
+                        f"trace::entry::{trace_prefix}_channel_in", ts_send
+                    )
+                    message.set_timestamp(
+                        f"trace::exit::{trace_prefix}_channel_in", ts_fetched
+                    )
 
             # Call the decorated function
             result = func(*args, **kwargs)
@@ -154,7 +158,9 @@ def traceable_func(trace_name=None, dedupe=True):
 
             # If `trace_name` is a formattable string, e.g., "pdf_extractor::{model_name}",
             # search `args` and `kwargs` to replace the placeholder.
-            placeholders = [x[1] for x in string.Formatter().parse(trace_name) if x[1] is not None]
+            placeholders = [
+                x[1] for x in string.Formatter().parse(trace_name) if x[1] is not None
+            ]
             if placeholders:
                 format_kwargs = {}
                 for name in placeholders:
@@ -176,7 +182,9 @@ def traceable_func(trace_name=None, dedupe=True):
                 trace_entry_key += "_{}"
                 trace_exit_key += "_{}"
                 i = 0
-                while (trace_entry_key.format(i) in trace_info) or (trace_exit_key.format(i) in trace_info):
+                while (trace_entry_key.format(i) in trace_info) or (
+                    trace_exit_key.format(i) in trace_info
+                ):
                     i += 1
                 trace_entry_key = trace_entry_key.format(i)
                 trace_exit_key = trace_exit_key.format(i)

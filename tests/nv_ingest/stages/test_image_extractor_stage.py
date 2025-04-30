@@ -17,7 +17,9 @@ MODULE_UNDER_TEST = "nv_ingest.stages.extractors.image_extractor_stage"
 # Define the test function using pytest
 @patch(f"{MODULE_UNDER_TEST}.decode_and_extract")
 def test_process_image_single_row(mock_decode_and_extract):
-    mock_decode_and_extract.return_value = [{"document_type": "type1", "metadata": {"key": "value"}, "uuid": "1234"}]
+    mock_decode_and_extract.return_value = [
+        {"document_type": "type1", "metadata": {"key": "value"}, "uuid": "1234"}
+    ]
 
     input_df = pd.DataFrame({"source_id": [1], "content": ["base64encodedstring"]})
 
@@ -25,7 +27,9 @@ def test_process_image_single_row(mock_decode_and_extract):
     validated_config = MagicMock()
     trace_info = {}
 
-    processed_df, trace_info_output = process_image(input_df, task_props, validated_config, trace_info)
+    processed_df, trace_info_output = process_image(
+        input_df, task_props, validated_config, trace_info
+    )
 
     assert len(processed_df) == 1
     assert "document_type" in processed_df.columns
@@ -46,7 +50,9 @@ def test_process_image_empty_dataframe(mock_decode_and_extract):
     validated_config = MagicMock()
     trace_info = {}
 
-    processed_df, trace_info_output = process_image(input_df, task_props, validated_config, trace_info)
+    processed_df, trace_info_output = process_image(
+        input_df, task_props, validated_config, trace_info
+    )
 
     assert processed_df.empty
     assert "document_type" in processed_df.columns
@@ -62,13 +68,20 @@ def test_process_image_multiple_rows(mock_decode_and_extract):
         [{"document_type": "type2", "metadata": {"key": "value2"}, "uuid": "5678"}],
     ]
 
-    input_df = pd.DataFrame({"source_id": [1, 2], "content": ["base64encodedstring1", "base64encodedstring2"]})
+    input_df = pd.DataFrame(
+        {
+            "source_id": [1, 2],
+            "content": ["base64encodedstring1", "base64encodedstring2"],
+        }
+    )
 
     task_props = {"method": "some_method"}
     validated_config = MagicMock()
     trace_info = {}
 
-    processed_df, trace_info_output = process_image(input_df, task_props, validated_config, trace_info)
+    processed_df, trace_info_output = process_image(
+        input_df, task_props, validated_config, trace_info
+    )
 
     assert len(processed_df) == 2
     assert processed_df.iloc[0]["document_type"] == "type1"
@@ -104,13 +117,17 @@ def test_decode_and_extract_valid_method(mock_image_helpers):
 
     # Sample inputs as a pandas Series (row)
     base64_content = base64.b64encode(b"dummy_image_data").decode("utf-8")
-    base64_row = pd.Series({"content": base64_content, "document_type": "image", "source_id": 1})
+    base64_row = pd.Series(
+        {"content": base64_content, "document_type": "image", "source_id": 1}
+    )
     task_props = {"method": "image", "params": {}}
     validated_config = MagicMock()
     trace_info = []
 
     # Call the function
-    result = decode_and_extract(base64_row, task_props, validated_config, default="image", trace_info=trace_info)
+    result = decode_and_extract(
+        base64_row, task_props, validated_config, default="image", trace_info=trace_info
+    )
 
     # Assert that the mocked function was called correctly
     assert result == "extracted_data"
@@ -127,7 +144,9 @@ def test_decode_and_extract_missing_content_key(mock_image_helpers):
 
     # Expecting a KeyError
     with pytest.raises(KeyError):
-        decode_and_extract(base64_row, task_props, validated_config, trace_info=trace_info)
+        decode_and_extract(
+            base64_row, task_props, validated_config, trace_info=trace_info
+        )
 
 
 @patch(f"{MODULE_UNDER_TEST}.image_helpers")
@@ -142,13 +161,21 @@ def test_decode_and_extract_fallback_to_default_method(mock_image_helpers):
 
     # Input with a non-existing extraction method as a pandas Series (row)
     base64_content = base64.b64encode(b"dummy_image_data").decode("utf-8")
-    base64_row = pd.Series({"content": base64_content, "document_type": "image", "source_id": 1})
+    base64_row = pd.Series(
+        {"content": base64_content, "document_type": "image", "source_id": 1}
+    )
     task_props = {"method": "non_existing_method", "params": {}}
     validated_config = MagicMock()
     trace_info = []
 
     # Call the function
-    result = decode_and_extract(base64_row, task_props, validated_config, default="default", trace_info=trace_info)
+    result = decode_and_extract(
+        base64_row,
+        task_props,
+        validated_config,
+        default="default",
+        trace_info=trace_info,
+    )
 
     # Assert that the default function was called instead of the missing one
     assert result == "default_extracted_data"
@@ -163,13 +190,17 @@ def test_decode_and_extract_with_trace_info(mock_image_helpers):
 
     # Sample inputs with trace_info as a pandas Series (row)
     base64_content = base64.b64encode(b"dummy_image_data").decode("utf-8")
-    base64_row = pd.Series({"content": base64_content, "document_type": "image", "source_id": 1})
+    base64_row = pd.Series(
+        {"content": base64_content, "document_type": "image", "source_id": 1}
+    )
     task_props = {"method": "image", "params": {}}
     validated_config = MagicMock()
     trace_info = [{"some": "trace_info"}]
 
     # Call the function
-    result = decode_and_extract(base64_row, task_props, validated_config, trace_info=trace_info)
+    result = decode_and_extract(
+        base64_row, task_props, validated_config, trace_info=trace_info
+    )
 
     # Assert that the mocked function was called with trace_info in params
     assert result == "extracted_data_with_trace"
@@ -187,16 +218,21 @@ def test_decode_and_extract_handles_exception_in_extraction(mock_image_helpers):
 
     # Sample inputs as a pandas Series (row)
     base64_content = base64.b64encode(b"dummy_image_data").decode("utf-8")
-    base64_row = pd.Series({"content": base64_content, "document_type": "image", "source_id": 1})
+    base64_row = pd.Series(
+        {"content": base64_content, "document_type": "image", "source_id": 1}
+    )
     task_props = {"method": "image", "params": {}}  # Use a valid method name
     validated_config = MagicMock()
     trace_info = []
 
     # Expecting an exception during extraction
     with pytest.raises(Exception) as excinfo:
-        decode_and_extract(base64_row, task_props, validated_config, trace_info=trace_info)
+        decode_and_extract(
+            base64_row, task_props, validated_config, trace_info=trace_info
+        )
 
     # Verify the exception message
     assert (
-        str(excinfo.value) == "decode_and_extract: Unhandled exception for source '1'. Original error: Extraction error"
+        str(excinfo.value)
+        == "decode_and_extract: Unhandled exception for source '1'. Original error: Extraction error"
     )

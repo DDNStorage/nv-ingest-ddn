@@ -137,4 +137,7 @@ def test_docx_image(doc_stream, document_df):
         assert extracted_data[idx][0] == "image"
 
         # validate image type
-        assert extracted_data[idx][1]["image_metadata"]["image_type"] == ImageTypeEnum.image_type_1
+        assert (
+            extracted_data[idx][1]["image_metadata"]["image_type"]
+            == ImageTypeEnum.image_type_1
+        )

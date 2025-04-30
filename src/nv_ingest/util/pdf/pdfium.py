@@ -112,7 +112,9 @@ def pdfium_try_get_bitmap_as_numpy(image_obj) -> np.ndarray:
 
     # Final check if bitmap is still None
     if image_bitmap is None:
-        logger.debug("Failed to obtain bitmap from the image object after both attempts.")
+        logger.debug(
+            "Failed to obtain bitmap from the image object after both attempts."
+        )
         raise ValueError("Failed to retrieve bitmap from the PdfImage object.")
 
     # Convert the bitmap to a NumPy array
@@ -307,7 +309,9 @@ def extract_merged_images_from_pdfium_page(page, merge=True, **kwargs):
     if (not merge) or (not image_bboxes):
         return image_bboxes
 
-    merged_groups = group_bounding_boxes(image_bboxes, threshold=threshold, max_num_boxes=max_num_boxes)
+    merged_groups = group_bounding_boxes(
+        image_bboxes, threshold=threshold, max_num_boxes=max_num_boxes
+    )
     merged_bboxes = combine_groups_into_bboxes(image_bboxes, merged_groups)
 
     return merged_bboxes
@@ -341,8 +345,12 @@ def extract_merged_shapes_from_pdfium_page(page, merge=True, **kwargs):
 
     merged_bboxes = []
 
-    path_groups = group_bounding_boxes(path_bboxes, threshold=threshold, max_num_boxes=max_num_boxes)
-    path_bboxes = combine_groups_into_bboxes(path_bboxes, path_groups, min_num_components=min_num_components)
+    path_groups = group_bounding_boxes(
+        path_bboxes, threshold=threshold, max_num_boxes=max_num_boxes
+    )
+    path_bboxes = combine_groups_into_bboxes(
+        path_bboxes, path_groups, min_num_components=min_num_components
+    )
     for bbox in path_bboxes:
         bbox_area = abs(bbox[0] - bbox[2]) * abs(bbox[1] - bbox[3])
         # Exclude shapes that are too large (likely page backgrounds or false positives)
@@ -374,7 +382,9 @@ def extract_forms_from_pdfium_page(page, **kwargs):
         form_bboxes.append(form_bbox)
 
     merged_bboxes = []
-    form_groups = group_bounding_boxes(form_bboxes, threshold=threshold, max_num_boxes=max_num_boxes)
+    form_groups = group_bounding_boxes(
+        form_bboxes, threshold=threshold, max_num_boxes=max_num_boxes
+    )
     form_bboxes = combine_groups_into_bboxes(form_bboxes, form_groups)
     for bbox in form_bboxes:
         bbox_area = abs(bbox[0] - bbox[2]) * abs(bbox[1] - bbox[3])
@@ -401,8 +411,12 @@ def extract_image_like_objects_from_pdfium_page(page, merge=True, **kwargs):
             render_dpi=72,  # dpi = 72 is equivalent to scale = 1.
             rotation=rotation,  # Without rotation, coordinates from page.get_pos() will not match.
         )
-        image_bboxes = extract_merged_images_from_pdfium_page(page, merge=merge, **kwargs)
-        shape_bboxes = extract_merged_shapes_from_pdfium_page(page, merge=merge, **kwargs)
+        image_bboxes = extract_merged_images_from_pdfium_page(
+            page, merge=merge, **kwargs
+        )
+        shape_bboxes = extract_merged_shapes_from_pdfium_page(
+            page, merge=merge, **kwargs
+        )
         form_bboxes = extract_forms_from_pdfium_page(page, **kwargs)
     except Exception as e:
         logger.error(f"Unhandled error extracting image: {e}")
@@ -412,7 +426,9 @@ def extract_image_like_objects_from_pdfium_page(page, merge=True, **kwargs):
     extracted_images = []
     for bbox in image_bboxes + shape_bboxes + form_bboxes:
         try:
-            cropped_image = crop_image(original_images[0], bbox, min_width=10, min_height=10)
+            cropped_image = crop_image(
+                original_images[0], bbox, min_width=10, min_height=10
+            )
             if cropped_image is None:  # Small images are filtered out.
                 continue
             image_base64 = numpy_to_base64(cropped_image)

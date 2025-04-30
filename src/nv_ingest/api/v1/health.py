@@ -64,11 +64,15 @@ async def get_ready_state() -> dict:
     # We give the users an option to disable checking all distributed services for "readiness"
     check_all_components = os.getenv("READY_CHECK_ALL_COMPONENTS", "True").lower()
     if check_all_components in ["1", "true", "yes"]:
-        yolox_page_elements_ready = is_ready(os.getenv("YOLOX_HTTP_ENDPOINT", None), "/v1/health/ready")
+        yolox_page_elements_ready = is_ready(
+            os.getenv("YOLOX_HTTP_ENDPOINT", None), "/v1/health/ready"
+        )
         yolox_graphic_elements_ready = is_ready(
             os.getenv("YOLOX_GRAPHIC_ELEMENTS_HTTP_ENDPOINT", None), "/v1/health/ready"
         )
-        paddle_ready = is_ready(os.getenv("PADDLE_HTTP_ENDPOINT", None), "/v1/health/ready")
+        paddle_ready = is_ready(
+            os.getenv("PADDLE_HTTP_ENDPOINT", None), "/v1/health/ready"
+        )
 
         if (
             ingest_ready

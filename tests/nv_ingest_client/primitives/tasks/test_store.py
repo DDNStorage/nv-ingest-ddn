@@ -31,7 +31,12 @@ def test_store_task_initialization():
 
 
 def test_store_task_str_representation():
-    task = StoreTask(structured=True, images=True, store_method="minio", params={"endpoint": "minio:9000"})
+    task = StoreTask(
+        structured=True,
+        images=True,
+        store_method="minio",
+        params={"endpoint": "minio:9000"},
+    )
     expected_str = (
         "Store Task:\n"
         "  store structured types: True\n"
@@ -82,4 +87,6 @@ def test_store_task_to_dict(
     expected_dict["task_properties"]["params"]["extra_param_1"] = extra_param_1
     expected_dict["task_properties"]["params"]["extra_param_2"] = extra_param_2
 
-    assert task.to_dict() == expected_dict, "The to_dict method did not return the expected dictionary representation"
+    assert (
+        task.to_dict() == expected_dict
+    ), "The to_dict method did not return the expected dictionary representation"

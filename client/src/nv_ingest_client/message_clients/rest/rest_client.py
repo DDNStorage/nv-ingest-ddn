@@ -153,7 +153,9 @@ class RestClient(MessageBrokerClientBase):
             self._client.ping()
             return ResponseSchema(response_code=0)
         except (httpx.HTTPError, AttributeError):
-            return ResponseSchema(response_code=1, response_reason="Failed to ping HTTP server")
+            return ResponseSchema(
+                response_code=1, response_reason="Failed to ping HTTP server"
+            )
 
     def generate_url(self, user_provided_url, user_provided_port) -> str:
         """Examines the user defined URL for http*://. If that
@@ -230,24 +232,34 @@ class RestClient(MessageBrokerClientBase):
                         except RuntimeError as rte:
                             raise rte
 
-            except (ConnectionError, requests.HTTPError, requests.exceptions.ConnectionError) as err:
+            except (
+                ConnectionError,
+                requests.HTTPError,
+                requests.exceptions.ConnectionError,
+            ) as err:
                 logger.error(f"Error during fetching, retrying... Error: {err}")
                 self._client = None  # Invalidate client to force reconnection
                 try:
                     retries = self.perform_retry_backoff(retries)
                 except RuntimeError as rte:
                     # Max retries reached
-                    return ResponseSchema(response_code=1, response_reason=str(rte), response=str(err))
+                    return ResponseSchema(
+                        response_code=1, response_reason=str(rte), response=str(err)
+                    )
                 except TimeoutError:
                     raise
             except Exception as e:
                 # Handle non-http specific exceptions
                 logger.error(f"Unexpected error during fetch from {url}: {e}")
                 return ResponseSchema(
-                    response_code=1, response_reason=f"Unexpected error during fetch: {e}", response=None
+                    response_code=1,
+                    response_reason=f"Unexpected error during fetch: {e}",
+                    response=None,
                 )
 
-    def submit_message(self, channel_name: str, message: str, for_nv_ingest: bool = False) -> ResponseSchema:
+    def submit_message(
+        self, channel_name: str, message: str, for_nv_ingest: bool = False
+    ) -> ResponseSchema:
         """
         Submits a JobSpec to a specified HTTP endpoint with retries on failure.
 
@@ -270,7 +282,11 @@ class RestClient(MessageBrokerClientBase):
             try:
                 # Submit via HTTP
                 url = f"{self.generate_url(self._host, self._port)}{self._submit_endpoint}"
-                result = requests.post(url, json={"payload": message}, headers={"Content-Type": "application/json"})
+                result = requests.post(
+                    url,
+                    json={"payload": message},
+                    headers={"Content-Type": "application/json"},
+                )
 
                 response_code = result.status_code
                 if response_code in _TERMINAL_RESPONSE_STATUSES:
@@ -283,7 +299,9 @@ class RestClient(MessageBrokerClientBase):
                 else:
                     # If 200 we are good, otherwise let's try again
                     if response_code == 200:
-                        logger.debug(f"JobSpec successfully submitted to http endpoint {self._submit_endpoint}")
+                        logger.debug(
+                            f"JobSpec successfully submitted to http endpoint {self._submit_endpoint}"
+                        )
                         # The REST interface returns a JobId, so we capture that here
                         x_trace_id = result.headers.get("x-trace-id")
                         return ResponseSchema(
@@ -303,12 +321,18 @@ class RestClient(MessageBrokerClientBase):
                     retries = self.perform_retry_backoff(retries)
                 except RuntimeError as rte:
                     # Max retries reached
-                    return ResponseSchema(response_code=1, response_reason=str(rte), response=str(e))
+                    return ResponseSchema(
+                        response_code=1, response_reason=str(rte), response=str(e)
+                    )
             except Exception as e:
                 # Handle non-http specific exceptions
-                logger.error(f"Unexpected error during submission of JobSpec to {url}: {e}")
+                logger.error(
+                    f"Unexpected error during submission of JobSpec to {url}: {e}"
+                )
                 return ResponseSchema(
-                    response_code=1, response_reason=f"Unexpected error during JobSpec submission: {e}", response=None
+                    response_code=1,
+                    response_reason=f"Unexpected error during JobSpec submission: {e}",
+                    response=None,
                 )
 
     def perform_retry_backoff(self, existing_retries) -> int:

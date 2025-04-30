@@ -76,7 +76,9 @@ def test_filter_decorator_complex_nested_match():
       - properties: a dict with a nested dict whose 'key' starts with "start"
         and a list that includes the elements 1 and 2.
     """
-    required_tasks = [("taskComplex", {"nested": {"key": "regex:^start"}, "list": [1, 2]})]
+    required_tasks = [
+        ("taskComplex", {"nested": {"key": "regex:^start"}, "list": [1, 2]})
+    ]
 
     @filter_by_task(required_tasks)
     def dummy_func(message):
@@ -105,7 +107,9 @@ def test_filter_decorator_complex_nested_no_match():
       - properties: a dict with a nested dict whose 'key' does not start with "start"
         and a list missing one required element.
     """
-    required_tasks = [("taskComplex", {"nested": {"key": "regex:^start"}, "list": [1, 2, 3]})]
+    required_tasks = [
+        ("taskComplex", {"nested": {"key": "regex:^start"}, "list": [1, 2, 3]})
+    ]
 
     @filter_by_task(required_tasks)
     def dummy_func(message):

@@ -96,7 +96,9 @@ def decode_and_extract(
             f"{validated_config.image_extraction_config}"
         )
         if validated_config.image_extraction_config is not None:
-            extract_params["image_extraction_config"] = validated_config.image_extraction_config
+            extract_params["image_extraction_config"] = (
+                validated_config.image_extraction_config
+            )
 
         if trace_info is not None:
             extract_params["trace_info"] = trace_info
@@ -105,7 +107,9 @@ def decode_and_extract(
             extract_method = default
 
         func = getattr(image_helpers, extract_method, default)
-        logger.debug("decode_and_extract: Running extraction method: %s", extract_method)
+        logger.debug(
+            "decode_and_extract: Running extraction method: %s", extract_method
+        )
         extracted_data = func(image_stream, document_type, **extract_params)
         return extracted_data
 
@@ -116,7 +120,10 @@ def decode_and_extract(
 
 
 def process_image(
-    df: pd.DataFrame, task_props: Dict[str, Any], validated_config: Any, trace_info: Optional[Dict[str, Any]] = None
+    df: pd.DataFrame,
+    task_props: Dict[str, Any],
+    validated_config: Any,
+    trace_info: Optional[Dict[str, Any]] = None,
 ) -> pd.DataFrame:
     """
     Processes a pandas DataFrame containing image files in base64 encoding.
@@ -161,14 +168,20 @@ def process_image(
             validated_config=validated_config,
             trace_info=trace_info,
         )
-        logger.debug(f"process_image: Processing with method: {task_props.get('method', None)}")
+        logger.debug(
+            f"process_image: Processing with method: {task_props.get('method', None)}"
+        )
         sr_extraction = df.apply(_decode_and_extract, axis=1)
         sr_extraction = sr_extraction.explode().dropna()
 
         if not sr_extraction.empty:
-            extracted_df = pd.DataFrame(sr_extraction.to_list(), columns=["document_type", "metadata", "uuid"])
+            extracted_df = pd.DataFrame(
+                sr_extraction.to_list(), columns=["document_type", "metadata", "uuid"]
+            )
         else:
-            extracted_df = pd.DataFrame({"document_type": [], "metadata": [], "uuid": []})
+            extracted_df = pd.DataFrame(
+                {"document_type": [], "metadata": [], "uuid": []}
+            )
 
         return extracted_df, {"trace_info": trace_info}
 
@@ -210,7 +223,9 @@ def generate_image_extractor_stage(
     """
     try:
         validated_config = ImageExtractorSchema(**extractor_config)
-        _wrapped_process_fn = functools.partial(process_image, validated_config=validated_config)
+        _wrapped_process_fn = functools.partial(
+            process_image, validated_config=validated_config
+        )
         return MultiProcessingBaseStage(
             c=c,
             pe_count=pe_count,

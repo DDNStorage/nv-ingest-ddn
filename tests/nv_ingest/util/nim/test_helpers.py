@@ -104,8 +104,12 @@ def test_init_missing_http_endpoint():
 def test_init_http_auth_token():
     dummy_interface = DummyModelInterface()
     # Patch generate_url to return a dummy URL.
-    with patch(f"{MODULE_UNDER_TEST}.generate_url", return_value="http://example.com") as mock_gen:
-        client = NimClient(dummy_interface, "http", (None, "http_endpoint"), auth_token="secret")
+    with patch(
+        f"{MODULE_UNDER_TEST}.generate_url", return_value="http://example.com"
+    ) as mock_gen:
+        client = NimClient(
+            dummy_interface, "http", (None, "http_endpoint"), auth_token="secret"
+        )
         assert client.endpoint_url == "http://example.com"
         assert "Authorization" in client.headers
         assert client.headers["Authorization"] == "Bearer secret"
@@ -114,7 +118,9 @@ def test_init_http_auth_token():
 def test_infer_grpc_success(grpc_endpoints):
     dummy_interface = DummyModelInterface()
     # Patch the gRPC client so that its infer() and get_model_config() behave as expected.
-    with patch(f"{MODULE_UNDER_TEST}.grpcclient.InferenceServerClient") as mock_grpc_client:
+    with patch(
+        f"{MODULE_UNDER_TEST}.grpcclient.InferenceServerClient"
+    ) as mock_grpc_client:
         fake_client = mock_grpc_client.return_value
 
         # Simulate get_model_config returning a config with max_batch_size = 2.
@@ -171,7 +177,9 @@ def test_infer_http_retry_failure(http_endpoints):
         fake_response.raise_for_status.side_effect = Exception("HTTP Inference error")
         mock_post.return_value = fake_response
 
-        client = NimClient(dummy_interface, "http", http_endpoints, max_retries=2, timeout=0.1)
+        client = NimClient(
+            dummy_interface, "http", http_endpoints, max_retries=2, timeout=0.1
+        )
         data = {"input_data": "test"}
         with pytest.raises(Exception, match="HTTP Inference error"):
             client.infer(data, model_name="dummy_model")
@@ -180,7 +188,9 @@ def test_infer_http_retry_failure(http_endpoints):
 def test_infer_grpc_infer_exception(grpc_endpoints):
     dummy_interface = DummyModelInterface()
     # Patch the gRPC client so that its infer() call fails.
-    with patch(f"{MODULE_UNDER_TEST}.grpcclient.InferenceServerClient") as mock_grpc_client:
+    with patch(
+        f"{MODULE_UNDER_TEST}.grpcclient.InferenceServerClient"
+    ) as mock_grpc_client:
         fake_client = mock_grpc_client.return_value
         fake_client.infer.side_effect = Exception("gRPC Inference error")
         fake_config = Mock()
@@ -200,7 +210,9 @@ def test_infer_parse_output_exception(grpc_endpoints):
             raise Exception("Parsing error")
 
     dummy_interface = FaultyModelInterface()
-    with patch(f"{MODULE_UNDER_TEST}.grpcclient.InferenceServerClient") as mock_grpc_client:
+    with patch(
+        f"{MODULE_UNDER_TEST}.grpcclient.InferenceServerClient"
+    ) as mock_grpc_client:
         fake_client = mock_grpc_client.return_value
         fake_response = Mock()
         fake_response.as_numpy.return_value = np.array([0])
@@ -222,7 +234,9 @@ def test_infer_process_results_exception(grpc_endpoints):
             raise Exception("Processing error")
 
     dummy_interface = FaultyModelInterface()
-    with patch(f"{MODULE_UNDER_TEST}.grpcclient.InferenceServerClient") as mock_grpc_client:
+    with patch(
+        f"{MODULE_UNDER_TEST}.grpcclient.InferenceServerClient"
+    ) as mock_grpc_client:
         fake_client = mock_grpc_client.return_value
         fake_response = Mock()
         fake_response.as_numpy.return_value = np.array([0])
@@ -239,7 +253,9 @@ def test_infer_process_results_exception(grpc_endpoints):
 
 def test_close_grpc(grpc_endpoints):
     dummy_interface = DummyModelInterface()
-    with patch(f"{MODULE_UNDER_TEST}.grpcclient.InferenceServerClient") as mock_grpc_client:
+    with patch(
+        f"{MODULE_UNDER_TEST}.grpcclient.InferenceServerClient"
+    ) as mock_grpc_client:
         fake_client = mock_grpc_client.return_value
         fake_client.close = Mock()
         client = NimClient(dummy_interface, "grpc", grpc_endpoints)
@@ -249,7 +265,9 @@ def test_close_grpc(grpc_endpoints):
 
 def test_try_set_max_batch_size(grpc_endpoints):
     dummy_interface = DummyModelInterface()
-    with patch(f"{MODULE_UNDER_TEST}.grpcclient.InferenceServerClient") as mock_grpc_client:
+    with patch(
+        f"{MODULE_UNDER_TEST}.grpcclient.InferenceServerClient"
+    ) as mock_grpc_client:
         fake_client = mock_grpc_client.return_value
         fake_config = Mock()
         fake_config.config = Mock(max_batch_size=4)

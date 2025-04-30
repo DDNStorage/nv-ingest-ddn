@@ -22,15 +22,21 @@ def test_singleton():
 def test_set_stat():
     gs = GlobalStats.get_instance()
     gs.set_stat("submitted_jobs", 5)
-    assert gs.get_stat("submitted_jobs") == 5, "Stat 'submitted_jobs' should be set to 5"
+    assert (
+        gs.get_stat("submitted_jobs") == 5
+    ), "Stat 'submitted_jobs' should be set to 5"
 
 
 def test_increment_stat():
     gs = GlobalStats.get_instance()
     gs.increment_stat("submitted_jobs", 2)
-    assert gs.get_stat("submitted_jobs") == 2, "Stat 'submitted_jobs' should be incremented by 2"
+    assert (
+        gs.get_stat("submitted_jobs") == 2
+    ), "Stat 'submitted_jobs' should be incremented by 2"
     gs.increment_stat("submitted_jobs")
-    assert gs.get_stat("submitted_jobs") == 3, "Stat 'submitted_jobs' should be incremented by 1"
+    assert (
+        gs.get_stat("submitted_jobs") == 3
+    ), "Stat 'submitted_jobs' should be incremented by 1"
 
 
 def test_append_job_stat():
@@ -41,8 +47,12 @@ def test_append_job_stat():
     for value in values:
         gs.append_job_stat(job_name, value)
 
-    assert gs.get_job_stat(job_name, "mean") == mean(values), "Mean should be calculated correctly"
-    assert gs.get_job_stat(job_name, "median") == median(values), "Median should be calculated correctly"
+    assert gs.get_job_stat(job_name, "mean") == mean(
+        values
+    ), "Mean should be calculated correctly"
+    assert gs.get_job_stat(job_name, "median") == median(
+        values
+    ), "Median should be calculated correctly"
 
 
 def test_append_job_stat_window_size():
@@ -73,7 +83,9 @@ def test_reset_all_stats():
     gs.reset_all_stats()
 
     assert gs.get_stat("submitted_jobs") == 0, "All global stats should be reset to 0"
-    assert gs.get_job_stat("job_1", "values") == deque(), "All job stats should be reset"
+    assert (
+        gs.get_job_stat("job_1", "values") == deque()
+    ), "All job stats should be reset"
 
 
 def test_get_all_stats():
@@ -83,6 +95,12 @@ def test_get_all_stats():
     gs.append_job_stat("job_1", 20)
 
     all_stats = gs.get_all_stats()
-    assert all_stats["global_stats"]["submitted_jobs"] == 5, "Global stats should be retrieved correctly"
-    assert all_stats["job_stats"]["job_1"]["mean"] == 15, "Job stats should be retrieved correctly"
-    assert all_stats["job_stats"]["job_1"]["median"] == 15, "Job stats should be retrieved correctly"
+    assert (
+        all_stats["global_stats"]["submitted_jobs"] == 5
+    ), "Global stats should be retrieved correctly"
+    assert (
+        all_stats["job_stats"]["job_1"]["mean"] == 15
+    ), "Job stats should be retrieved correctly"
+    assert (
+        all_stats["job_stats"]["job_1"]["median"] == 15
+    ), "Job stats should be retrieved correctly"

@@ -50,7 +50,9 @@ class TestImageCaptionExtraction(unittest.TestCase):
     @patch(f"{MODULE_UNDER_TEST}.ContentTypeEnum", new=DummyContentTypeEnum)
     def test_prepare_dataframes_mod_valid(self):
         # Build a DataFrame with a "document_type" column.
-        df = pd.DataFrame({"document_type": ["image", "text", "image"], "other_column": [10, 20, 30]})
+        df = pd.DataFrame(
+            {"document_type": ["image", "text", "image"], "other_column": [10, 20, 30]}
+        )
         full_df, image_df, bool_index = _prepare_dataframes_mod(df)
         # Only the rows with document_type equal to "image" should be selected.
         expected_mask = df["document_type"] == "image"
@@ -78,7 +80,9 @@ class TestImageCaptionExtraction(unittest.TestCase):
         endpoint_url = "http://dummy-endpoint"
         model_name = "dummy_model"
 
-        captions = _generate_captions(base64_images, prompt, api_key, endpoint_url, model_name)
+        captions = _generate_captions(
+            base64_images, prompt, api_key, endpoint_url, model_name
+        )
 
         # Check that scale_image_to_encoding_size was called once per image.
         self.assertEqual(mock_scale.call_count, len(base64_images))
@@ -187,7 +191,9 @@ class TestImageCaptionExtraction(unittest.TestCase):
     def test_caption_extract_stage_error(self, mock_generate_captions):
         # Simulate an error when generating captions.
         mock_generate_captions.side_effect = Exception("Test error")
-        data = [{"metadata": {"content": "img1", "content_metadata": {"type": "image"}}}]
+        data = [
+            {"metadata": {"content": "img1", "content_metadata": {"type": "image"}}}
+        ]
         df = pd.DataFrame(data)
         task_props = {
             "api_key": "dummy_api_key",

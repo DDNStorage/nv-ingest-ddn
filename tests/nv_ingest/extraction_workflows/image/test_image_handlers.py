@@ -6,8 +6,12 @@ import pytest
 from PIL import Image
 
 from nv_ingest.extraction_workflows.image.image_handlers import convert_svg_to_bitmap
-from nv_ingest.extraction_workflows.image.image_handlers import extract_page_element_images
-from nv_ingest.extraction_workflows.image.image_handlers import load_and_preprocess_image
+from nv_ingest.extraction_workflows.image.image_handlers import (
+    extract_page_element_images,
+)
+from nv_ingest.extraction_workflows.image.image_handlers import (
+    load_and_preprocess_image,
+)
 from nv_ingest.util.pdf.metadata_aggregators import CroppedImageWithContent
 
 
@@ -66,7 +70,7 @@ def test_load_and_preprocess_image_invalid_format():
 def test_load_and_preprocess_image_corrupt_image():
     """Test that a corrupt image raises an error."""
     # Create a valid JPEG header but corrupt the rest
-    corrupt_stream = io.BytesIO(b"\xFF\xD8\xFF\xE0" + b"\x00" * 10)
+    corrupt_stream = io.BytesIO(b"\xff\xd8\xff\xe0" + b"\x00" * 10)
 
     # Expect an OSError when trying to open a corrupt image stream
     try:
@@ -156,10 +160,17 @@ def test_extract_page_element_images_single_table():
     # Verify attribute values
     assert cropped_image_data.content == ""
     assert cropped_image_data.type_string == "table"
-    assert cropped_image_data.bbox == (64, 64, 192, 192)  # Scaled bounding box from (0.1, 0.1, 0.3, 0.3)
+    assert cropped_image_data.bbox == (
+        64,
+        64,
+        192,
+        192,
+    )  # Scaled bounding box from (0.1, 0.1, 0.3, 0.3)
     assert cropped_image_data.max_width == 640
     assert cropped_image_data.max_height == 640
-    assert isinstance(cropped_image_data.image, str)  # Assuming the image is base64-encoded
+    assert isinstance(
+        cropped_image_data.image, str
+    )  # Assuming the image is base64-encoded
 
 
 def test_extract_page_element_images_single_chart():
@@ -201,7 +212,10 @@ def test_extract_page_element_images_multiple_objects():
 
 def test_extract_page_element_images_invalid_bounding_box():
     """Test with an invalid bounding box to check handling of incorrect coordinates."""
-    annotation_dict = {"table": [[704, 704, 960, 960, 0.9]], "chart": []}  # Out of bounds
+    annotation_dict = {
+        "table": [[704, 704, 960, 960, 0.9]],
+        "chart": [],
+    }  # Out of bounds
     original_image = np.random.rand(640, 640, 3)
     page_elements = []
 
@@ -213,4 +227,9 @@ def test_extract_page_element_images_invalid_bounding_box():
     assert page_idx == 3
     assert isinstance(cropped_image_data, CroppedImageWithContent)
     assert cropped_image_data.type_string == "table"
-    assert cropped_image_data.bbox == (704, 704, 960, 960)  # Scaled bounding box with out-of-bounds values
+    assert cropped_image_data.bbox == (
+        704,
+        704,
+        960,
+        960,
+    )  # Scaled bounding box with out-of-bounds values

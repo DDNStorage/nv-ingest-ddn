@@ -55,10 +55,22 @@ def test_op_write_params(milvus_test_dict):
 @pytest.mark.parametrize(
     "collection_name, expected_results",
     [
-        ({"text": ["text", "charts", "tables"]}, {"enable_text": True, "enable_charts": True, "enable_tables": True}),
-        ({"text": ["text", "tables"]}, {"enable_text": True, "enable_charts": False, "enable_tables": True}),
-        ({"text": ["text", "charts"]}, {"enable_text": True, "enable_charts": True, "enable_tables": False}),
-        ({"text": ["text"]}, {"enable_text": True, "enable_charts": False, "enable_tables": False}),
+        (
+            {"text": ["text", "charts", "tables"]},
+            {"enable_text": True, "enable_charts": True, "enable_tables": True},
+        ),
+        (
+            {"text": ["text", "tables"]},
+            {"enable_text": True, "enable_charts": False, "enable_tables": True},
+        ),
+        (
+            {"text": ["text", "charts"]},
+            {"enable_text": True, "enable_charts": True, "enable_tables": False},
+        ),
+        (
+            {"text": ["text"]},
+            {"enable_text": True, "enable_charts": False, "enable_tables": False},
+        ),
     ],
 )
 def test_op_dict_to_params(collection_name, expected_results):
@@ -81,13 +93,24 @@ def test_milvus_meta_collection(tmp_path, sparse):
     create_nvingest_collection(collection_name, milvus_uri=milvus_uri, sparse=sparse)
     results = grab_meta_collection_info(collection_name, milvus_uri=milvus_uri)
     keys = list(results[0].keys())
-    assert ["pk", "collection_name", "indexes", "models", "timestamp", "user_fields"] == keys
+    assert [
+        "pk",
+        "collection_name",
+        "indexes",
+        "models",
+        "timestamp",
+        "user_fields",
+    ] == keys
     entity = results[0]
     env_schema = ClientConfigSchema()
     assert entity["collection_name"] == collection_name
     assert entity["models"]["embedding_model"] == env_schema.embedding_nim_model_name
     assert entity["indexes"]["dense_index"] == "FLAT"
-    assert entity["indexes"]["sparse_index"] == "SPARSE_INVERTED_INDEX" if sparse else "None"
+    assert (
+        entity["indexes"]["sparse_index"] == "SPARSE_INVERTED_INDEX"
+        if sparse
+        else "None"
+    )
 
 
 def test_milvus_meta_multiple_coll(tmp_path):

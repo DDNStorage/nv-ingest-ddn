@@ -28,22 +28,32 @@ def setup_files(tmp_path):
 
 def test_ensure_directory_with_permissions_create(tmp_path):
     new_dir = tmp_path / "new_dir"
-    ensure_directory_with_permissions(str(new_dir)), "Should create directory and return True"
+    ensure_directory_with_permissions(
+        str(new_dir)
+    ), "Should create directory and return True"
 
 
 def test_ensure_directory_with_permissions_existing(tmp_path):
     # Using an existing directory (tmp_path itself) to check read/write permission
-    ensure_directory_with_permissions(str(tmp_path)), "Should return True for existing directory with permissions"
+    ensure_directory_with_permissions(
+        str(tmp_path)
+    ), "Should return True for existing directory with permissions"
 
 
-def test_ensure_directory_with_permissions_no_write_permission_parent(tmp_path, monkeypatch):
+def test_ensure_directory_with_permissions_no_write_permission_parent(
+    tmp_path, monkeypatch
+):
     # Temporarily modify has_permissions to simulate no write permission on parent directory
-    def mock_has_permissions(path: str, read: bool = False, write: bool = False) -> bool:
+    def mock_has_permissions(
+        path: str, read: bool = False, write: bool = False
+    ) -> bool:
         if write:
             return False  # Simulate no write permission
         return True  # Assume read permission is okay
 
-    monkeypatch.setattr("nv_ingest_client.cli.util.system.has_permissions", mock_has_permissions)
+    monkeypatch.setattr(
+        "nv_ingest_client.cli.util.system.has_permissions", mock_has_permissions
+    )
 
     with pytest.raises(OSError) as e:
         ensure_directory_with_permissions(str(tmp_path / "no_write_permission"))
@@ -67,14 +77,20 @@ def test_configure_logging(mock_basicConfig, mock_setLevel):
 
 def test_has_permissions_nonexistent_path(tmp_path):
     nonexistent_path = tmp_path / "nonexistent"
-    assert not has_permissions(str(nonexistent_path)), "Nonexistent path should return False"
+    assert not has_permissions(
+        str(nonexistent_path)
+    ), "Nonexistent path should return False"
 
 
 def test_has_permissions_readable_file(setup_files):
     readable_file, _ = setup_files
-    assert has_permissions(str(readable_file), read=True), "Should return True for readable file"
+    assert has_permissions(
+        str(readable_file), read=True
+    ), "Should return True for readable file"
 
 
 def test_has_permissions_writable_file(setup_files):
     _, writable_file = setup_files
-    assert has_permissions(str(writable_file), write=True), "Should return True for writable file"
+    assert has_permissions(
+        str(writable_file), write=True
+    ), "Should return True for writable file"

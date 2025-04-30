@@ -6,8 +6,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nv_ingest.extraction_workflows.pdf.nemoretriever_parse_helper import _construct_table_metadata
-from nv_ingest.extraction_workflows.pdf.nemoretriever_parse_helper import nemoretriever_parse
+from nv_ingest.extraction_workflows.pdf.nemoretriever_parse_helper import (
+    _construct_table_metadata,
+)
+from nv_ingest.extraction_workflows.pdf.nemoretriever_parse_helper import (
+    nemoretriever_parse,
+)
 from nv_ingest.schemas.metadata_schema import AccessLevelEnum
 from nv_ingest.schemas.metadata_schema import TextTypeEnum
 from nv_ingest.util.nim import nemoretriever_parse as nemoretriever_parse_utils
@@ -42,13 +46,20 @@ def mock_parser_config():
 
 
 @patch(f"{_MODULE_UNDER_TEST}.create_inference_client")
-def test_nemoretriever_parse_text_extraction(mock_client, sample_pdf_stream, document_df, mock_parser_config):
+def test_nemoretriever_parse_text_extraction(
+    mock_client, sample_pdf_stream, document_df, mock_parser_config
+):
     mock_client_instance = MagicMock()
     mock_client.return_value = mock_client_instance
     mock_client_instance.infer.return_value = [
         [
             {
-                "bbox": {"xmin": 0.16633729456384325, "ymin": 0.0969, "xmax": 0.3097820480404551, "ymax": 0.1102},
+                "bbox": {
+                    "xmin": 0.16633729456384325,
+                    "ymin": 0.0969,
+                    "xmax": 0.3097820480404551,
+                    "ymax": 0.1102,
+                },
                 "text": "testing",
                 "type": "Text",
             }
@@ -74,13 +85,20 @@ def test_nemoretriever_parse_text_extraction(mock_client, sample_pdf_stream, doc
 
 
 @patch(f"{_MODULE_UNDER_TEST}.create_inference_client")
-def test_nemoretriever_parse_table_extraction(mock_client, sample_pdf_stream, document_df, mock_parser_config):
+def test_nemoretriever_parse_table_extraction(
+    mock_client, sample_pdf_stream, document_df, mock_parser_config
+):
     mock_client_instance = MagicMock()
     mock_client.return_value = mock_client_instance
     mock_client_instance.infer.return_value = [
         [
             {
-                "bbox": {"xmin": 1 / 1024, "ymin": 2 / 1280, "xmax": 101 / 1024, "ymax": 102 / 1280},
+                "bbox": {
+                    "xmin": 1 / 1024,
+                    "ymin": 2 / 1280,
+                    "xmax": 101 / 1024,
+                    "ymax": 102 / 1280,
+                },
                 "text": "table text",
                 "type": "Table",
             }
@@ -103,18 +121,28 @@ def test_nemoretriever_parse_table_extraction(mock_client, sample_pdf_stream, do
     assert result[0][0].value == "structured"
     assert result[0][1]["table_metadata"]["table_content"] == "table text"
     assert result[0][1]["table_metadata"]["table_location"] == (1, 2, 101, 102)
-    assert result[0][1]["table_metadata"]["table_location_max_dimensions"] == (1024, 1280)
+    assert result[0][1]["table_metadata"]["table_location_max_dimensions"] == (
+        1024,
+        1280,
+    )
     assert result[1][0].value == "text"
 
 
 @patch(f"{_MODULE_UNDER_TEST}.create_inference_client")
-def test_nemoretriever_parse_image_extraction(mock_client, sample_pdf_stream, document_df, mock_parser_config):
+def test_nemoretriever_parse_image_extraction(
+    mock_client, sample_pdf_stream, document_df, mock_parser_config
+):
     mock_client_instance = MagicMock()
     mock_client.return_value = mock_client_instance
     mock_client_instance.infer.return_value = [
         [
             {
-                "bbox": {"xmin": 1 / 1024, "ymin": 2 / 1280, "xmax": 101 / 1024, "ymax": 102 / 1280},
+                "bbox": {
+                    "xmin": 1 / 1024,
+                    "ymin": 2 / 1280,
+                    "xmax": 101 / 1024,
+                    "ymax": 102 / 1280,
+                },
                 "text": "",
                 "type": "Picture",
             }
@@ -137,23 +165,38 @@ def test_nemoretriever_parse_image_extraction(mock_client, sample_pdf_stream, do
     assert result[0][0].value == "image"
     assert result[0][1]["content"][:10] == "iVBORw0KGg"  # PNG format header
     assert result[0][1]["image_metadata"]["image_location"] == (1, 2, 101, 102)
-    assert result[0][1]["image_metadata"]["image_location_max_dimensions"] == (1024, 1280)
+    assert result[0][1]["image_metadata"]["image_location_max_dimensions"] == (
+        1024,
+        1280,
+    )
     assert result[1][0].value == "text"
 
 
 @patch(f"{_MODULE_UNDER_TEST}.create_inference_client")
-def test_nemoretriever_parse_text_extraction_bboxes(mock_client, sample_pdf_stream, document_df, mock_parser_config):
+def test_nemoretriever_parse_text_extraction_bboxes(
+    mock_client, sample_pdf_stream, document_df, mock_parser_config
+):
     mock_client_instance = MagicMock()
     mock_client.return_value = mock_client_instance
     mock_client_instance.infer.return_value = [
         [
             {
-                "bbox": {"xmin": 0.16633729456384325, "ymin": 0.0969, "xmax": 0.3097820480404551, "ymax": 0.1102},
+                "bbox": {
+                    "xmin": 0.16633729456384325,
+                    "ymin": 0.0969,
+                    "xmax": 0.3097820480404551,
+                    "ymax": 0.1102,
+                },
                 "text": "testing0",
                 "type": "Title",
             },
             {
-                "bbox": {"xmin": 0.16633729456384325, "ymin": 0.0969, "xmax": 0.3097820480404551, "ymax": 0.1102},
+                "bbox": {
+                    "xmin": 0.16633729456384325,
+                    "ymin": 0.0969,
+                    "xmax": 0.3097820480404551,
+                    "ymax": 0.1102,
+                },
                 "text": "testing1",
                 "type": "Text",
             },

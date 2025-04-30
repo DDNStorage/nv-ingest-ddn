@@ -63,7 +63,9 @@ def test_prepare_data_for_inference_valid(model_interface):
     assert "image_arrays" in result
     assert isinstance(result["image_arrays"][0], np.ndarray)
     assert result["image_arrays"][0].shape == (64, 64, 3)  # Assuming RGB image
-    assert result["image_arrays"][0].dtype == np.uint8  # Assuming image is loaded as uint8
+    assert (
+        result["image_arrays"][0].dtype == np.uint8
+    )  # Assuming image is loaded as uint8
 
 
 def test_prepare_data_for_inference_invalid_base64(model_interface):
@@ -100,7 +102,9 @@ def test_format_input_grpc_with_ndim_3(model_interface):
     data = model_interface.prepare_data_for_inference({"base64_image": base64_img})
 
     # format_input returns a tuple: (batched_inputs, formatted_batch_data)
-    formatted_batches, batch_data = model_interface.format_input(data, "grpc", max_batch_size=1)
+    formatted_batches, batch_data = model_interface.format_input(
+        data, "grpc", max_batch_size=1
+    )
 
     # Check that the batched input is a single numpy array with a new batch dimension.
     assert isinstance(formatted_batches, list)
@@ -136,7 +140,9 @@ def test_format_input_grpc_with_ndim_other(model_interface):
         base64_img = base64.b64encode(buffer.getvalue()).decode("utf-8")
 
     data = model_interface.prepare_data_for_inference({"base64_image": base64_img})
-    formatted_batches, batch_data = model_interface.format_input(data, "grpc", max_batch_size=1)
+    formatted_batches, batch_data = model_interface.format_input(
+        data, "grpc", max_batch_size=1
+    )
 
     # Check that the batched input is a numpy array without expansion.
     assert isinstance(formatted_batches, list)
@@ -171,7 +177,9 @@ def test_format_input_http(model_interface):
     # Build the data dictionary directly with the "image_arrays" key.
     data = {"image_arrays": [arr]}
 
-    payload_batches, batch_data = model_interface.format_input(data, "http", max_batch_size=1)
+    payload_batches, batch_data = model_interface.format_input(
+        data, "http", max_batch_size=1
+    )
 
     # Verify the HTTP payload structure.
     assert isinstance(payload_batches, list)
@@ -216,7 +224,9 @@ def test_format_input_invalid_protocol(model_interface):
     base64_img = create_base64_image()
     data = model_interface.prepare_data_for_inference({"base64_image": base64_img})
 
-    with pytest.raises(ValueError, match="Invalid protocol specified. Must be 'grpc' or 'http'."):
+    with pytest.raises(
+        ValueError, match="Invalid protocol specified. Must be 'grpc' or 'http'."
+    ):
         model_interface.format_input(data, "invalid_protocol", max_batch_size=1)
 
 
@@ -256,7 +266,9 @@ def test_parse_output_http_missing_data_key(model_interface):
     """
     json_response = {}
 
-    with pytest.raises(RuntimeError, match="Unexpected response format: 'data' key missing or empty."):
+    with pytest.raises(
+        RuntimeError, match="Unexpected response format: 'data' key missing or empty."
+    ):
         model_interface.parse_output(json_response, "http")
 
 
@@ -267,7 +279,9 @@ def test_parse_output_http_empty_data(model_interface):
     """
     json_response = {"data": []}
 
-    with pytest.raises(RuntimeError, match="Unexpected response format: 'data' key missing or empty."):
+    with pytest.raises(
+        RuntimeError, match="Unexpected response format: 'data' key missing or empty."
+    ):
         model_interface.parse_output(json_response, "http")
 
 
@@ -278,7 +292,9 @@ def test_parse_output_invalid_protocol(model_interface):
     """
     response = "Some response"
 
-    with pytest.raises(ValueError, match="Invalid protocol specified. Must be 'grpc' or 'http'."):
+    with pytest.raises(
+        ValueError, match="Invalid protocol specified. Must be 'grpc' or 'http'."
+    ):
         model_interface.parse_output(response, "invalid_protocol")
 
 
@@ -313,7 +329,10 @@ def test_extract_content_from_nim_response_missing_data(model_interface):
     """
     json_response = {}
 
-    with pytest.raises(RuntimeError, match="Unexpected response format: 'data' key is missing or empty."):
+    with pytest.raises(
+        RuntimeError,
+        match="Unexpected response format: 'data' key is missing or empty.",
+    ):
         model_interface._extract_content_from_nim_response(json_response)
 
 
@@ -324,5 +343,8 @@ def test_extract_content_from_nim_response_empty_data(model_interface):
     """
     json_response = {"data": []}
 
-    with pytest.raises(RuntimeError, match="Unexpected response format: 'data' key is missing or empty."):
+    with pytest.raises(
+        RuntimeError,
+        match="Unexpected response format: 'data' key is missing or empty.",
+    ):
         model_interface._extract_content_from_nim_response(json_response)

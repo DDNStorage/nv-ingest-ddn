@@ -14,7 +14,9 @@ from typing_extensions import Annotated
 logger = logging.getLogger(__name__)
 
 
-def build_default_milvus_config(embedding_size: int = 1024) -> typing.Dict[str, typing.Any]:
+def build_default_milvus_config(
+    embedding_size: int = 1024,
+) -> typing.Dict[str, typing.Any]:
     """
     Builds the configuration for Milvus.
 
@@ -55,7 +57,10 @@ def build_default_milvus_config(embedding_size: int = 1024) -> typing.Dict[str, 
                     auto_id=True,
                 ).to_dict(),
                 pymilvus.FieldSchema(
-                    name="text", dtype=pymilvus.DataType.VARCHAR, description="Extracted content", max_length=65_535
+                    name="text",
+                    dtype=pymilvus.DataType.VARCHAR,
+                    description="Extracted content",
+                    max_length=65_535,
                 ).to_dict(),
                 pymilvus.FieldSchema(
                     name="vector",
@@ -99,7 +104,9 @@ class VdbTaskSinkSchema(BaseModel):
     @classmethod
     def validate_service(cls, to_validate):  # pylint: disable=no-self-argument
         if not to_validate:
-            raise ValueError("Service must be a service name or a serialized instance of VectorDBService")
+            raise ValueError(
+                "Service must be a service name or a serialized instance of VectorDBService"
+            )
         return to_validate
 
     @field_validator("default_resource_name", mode="before")

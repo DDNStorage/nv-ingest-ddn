@@ -22,10 +22,15 @@ from mrc import SegmentObject
 from mrc.core import operators as ops
 from mrc.core.subscriber import Observer
 
-from nv_ingest.util.exception_handlers.decorators import nv_ingest_node_failure_context_manager
+from nv_ingest.util.exception_handlers.decorators import (
+    nv_ingest_node_failure_context_manager,
+)
 from nv_ingest.util.flow_control import filter_by_task
 from nv_ingest.util.multi_processing import ProcessWorkerPoolSingleton
-from nv_ingest_api.primitives.ingest_control_message import IngestControlMessage, remove_task_by_type
+from nv_ingest_api.primitives.ingest_control_message import (
+    IngestControlMessage,
+    remove_task_by_type,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +47,9 @@ def trace_message(ctrl_msg, task_desc):
         Description of the task for tracing purposes.
     """
     ts_fetched = datetime.now()
-    do_trace_tagging = (ctrl_msg.has_metadata("config::add_trace_tagging") is True) and (
-        ctrl_msg.get_metadata("config::add_trace_tagging") is True
-    )
+    do_trace_tagging = (
+        ctrl_msg.has_metadata("config::add_trace_tagging") is True
+    ) and (ctrl_msg.get_metadata("config::add_trace_tagging") is True)
 
     if do_trace_tagging:
         ts_send = ctrl_msg.get_timestamp("latency::ts_send")
@@ -168,7 +173,9 @@ class MultiProcessingBaseStage(SinglePortStage):
     ):
         super().__init__(c)
         self._document_type = document_type
-        self._filter_properties = filter_properties if filter_properties is not None else {}
+        self._filter_properties = (
+            filter_properties if filter_properties is not None else {}
+        )
         self._task = task
         self._task_desc = task_desc
         self._pe_count = pe_count
@@ -268,16 +275,22 @@ class MultiProcessingBaseStage(SinglePortStage):
                     work_package["payload"] = result
                     if extra_results:
                         for extra_result in extra_results:
-                            if isinstance(extra_result, dict) and ("trace_info" in extra_result):
+                            if isinstance(extra_result, dict) and (
+                                "trace_info" in extra_result
+                            ):
                                 work_package["trace_info"] = extra_result["trace_info"]
 
-                    work_package_response_queue.put({"type": "on_next", "value": work_package})
+                    work_package_response_queue.put(
+                        {"type": "on_next", "value": work_package}
+                    )
                 except Exception as e:
                     logger.error(f"child_receive_thread error: {e}")
                     work_package["error"] = True
                     work_package["error_message"] = str(e)
 
-                    work_package_response_queue.put({"type": "on_error", "value": work_package})
+                    work_package_response_queue.put(
+                        {"type": "on_error", "value": work_package}
+                    )
 
                 continue
 
@@ -335,7 +348,13 @@ class MultiProcessingBaseStage(SinglePortStage):
 
         child_thread = mt.Thread(
             target=MultiProcessingBaseStage.work_package_input_handler,
-            args=(work_package_input_queue, work_package_response_queue, cancellation_token, process_fn, process_pool),
+            args=(
+                work_package_input_queue,
+                work_package_response_queue,
+                cancellation_token,
+                process_fn,
+                process_pool,
+            ),
         )
 
         child_thread.start()
@@ -350,12 +369,16 @@ class MultiProcessingBaseStage(SinglePortStage):
 
             if event["type"] == "on_next":
                 sub.on_next(event["value"])
-                logger.debug(f"Work package input handler sent on_next: {event['value']}")
+                logger.debug(
+                    f"Work package input handler sent on_next: {event['value']}"
+                )
                 continue
 
             if event["type"] == "on_error":
                 sub.on_next(event["value"])
-                logger.error(f"Got error from work package handler: {event['value']['error_message']}")
+                logger.error(
+                    f"Got error from work package handler: {event['value']['error_message']}"
+                )
                 continue
 
             if event["type"] == "on_completed":
@@ -377,7 +400,9 @@ class MultiProcessingBaseStage(SinglePortStage):
         @nv_ingest_node_failure_context_manager(
             annotation_id=self.task_desc,
             raise_on_failure=False,
-            forward_func=partial(put_in_queue, pass_thru_recv_queue=self._pass_thru_recv_queue),
+            forward_func=partial(
+                put_in_queue, pass_thru_recv_queue=self._pass_thru_recv_queue
+            ),
         )
         def forward_fn(ctrl_msg: IngestControlMessage):
             # Trace the control message
@@ -407,10 +432,14 @@ class MultiProcessingBaseStage(SinglePortStage):
                 # This is the first location where we have access to both the control message and the work package,
                 # if we had any errors in the processing, raise them here.
                 if work_package.get("error", False):
-                    logger.error(f"Error in processing: {work_package['error_message']}")
+                    logger.error(
+                        f"Error in processing: {work_package['error_message']}"
+                    )
                     raise RuntimeError(work_package["error_message"])
                 ctrl_msg.payload(work_package["payload"])
-                do_trace_tagging = ctrl_msg.get_metadata("config::add_trace_tagging") is True
+                do_trace_tagging = (
+                    ctrl_msg.get_metadata("config::add_trace_tagging") is True
+                )
                 if do_trace_tagging:
                     trace_info = work_package.get("trace_info")
                     if trace_info:
@@ -428,7 +457,9 @@ class MultiProcessingBaseStage(SinglePortStage):
         """
 
         def merge_fn(ctrl_msg: IngestControlMessage):
-            do_trace_tagging = ctrl_msg.get_metadata("config::add_trace_tagging") is True
+            do_trace_tagging = (
+                ctrl_msg.get_metadata("config::add_trace_tagging") is True
+            )
             if do_trace_tagging:
                 ts_exit = datetime.now()
                 ctrl_msg.set_timestamp(f"trace::exit::{self._task_desc}", ts_exit)
@@ -494,9 +525,13 @@ class MultiProcessingBaseStage(SinglePortStage):
 
         forward_fn = self._build_forwarding_function()
 
-        @filter_by_task([(self._task, self._filter_properties)], forward_func=forward_fn)
+        @filter_by_task(
+            [(self._task, self._filter_properties)], forward_func=forward_fn
+        )
         @nv_ingest_node_failure_context_manager(
-            annotation_id=self.task_desc, raise_on_failure=False, forward_func=forward_fn
+            annotation_id=self.task_desc,
+            raise_on_failure=False,
+            forward_func=forward_fn,
         )
         def on_next(ctrl_msg: IngestControlMessage):
             """
@@ -513,13 +548,20 @@ class MultiProcessingBaseStage(SinglePortStage):
             # Process and forward the control message
 
             process_control_message(
-                ctrl_msg, self._task, self._task_desc, self._ctrl_msg_ledger, work_package_input_queue
+                ctrl_msg,
+                self._task,
+                self._task_desc,
+                self._ctrl_msg_ledger,
+                work_package_input_queue,
             )
 
         def on_error(error: BaseException):
             logger.error(f"Error in observable: {error}")
             work_package_input_queue.put(
-                {"type": "on_error", "value": {"error": True, "error_message": str(error)}}  # or format it as needed
+                {
+                    "type": "on_error",
+                    "value": {"error": True, "error_message": str(error)},
+                }  # or format it as needed
             )
 
         def on_completed():
@@ -530,7 +572,9 @@ class MultiProcessingBaseStage(SinglePortStage):
         obs.subscribe(Observer.make_observer(on_next, on_error, on_completed))  # noqa
         self._my_threads[tid].join()
 
-    def _build_single(self, builder: mrc.Builder, input_node: SegmentObject) -> SegmentObject:
+    def _build_single(
+        self, builder: mrc.Builder, input_node: SegmentObject
+    ) -> SegmentObject:
         """
         Builds the processing pipeline by creating nodes for different stages and connecting them.
 
@@ -582,11 +626,15 @@ class MultiProcessingBaseStage(SinglePortStage):
             return merge(ctrl_msg)
 
         # Create worker node
-        worker_node = builder.make_node(f"{self.name}-worker-fn", mrc.core.operators.build(self.observable_fn))  # noqa
+        worker_node = builder.make_node(
+            f"{self.name}-worker-fn", mrc.core.operators.build(self.observable_fn)
+        )  # noqa
         worker_node.launch_options.pe_count = self._pe_count
 
         # Create reconstruction node
-        reconstruct_node = builder.make_node(f"{self.name}-reconstruct", ops.map(reconstruct_fn))  # noqa
+        reconstruct_node = builder.make_node(
+            f"{self.name}-reconstruct", ops.map(reconstruct_fn)
+        )  # noqa
 
         # Create merge node
         merge_node = builder.make_node(
@@ -595,7 +643,9 @@ class MultiProcessingBaseStage(SinglePortStage):
         )
 
         # Create pass-through source node
-        pass_thru_source = builder.make_source(f"{self.name}-pass-thru-source", self._pass_thru_source_fn)
+        pass_thru_source = builder.make_source(
+            f"{self.name}-pass-thru-source", self._pass_thru_source_fn
+        )
 
         # Connect nodes
         builder.make_edge(input_node, worker_node)

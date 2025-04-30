@@ -24,7 +24,9 @@ from .task_base import Task
 logger = logging.getLogger(__name__)
 
 UNSTRUCTURED_API_KEY = os.environ.get("UNSTRUCTURED_API_KEY", None)
-UNSTRUCTURED_URL = os.environ.get("UNSTRUCTURED_URL", "https://api.unstructured.io/general/v0/general")
+UNSTRUCTURED_URL = os.environ.get(
+    "UNSTRUCTURED_URL", "https://api.unstructured.io/general/v0/general"
+)
 UNSTRUCTURED_STRATEGY = os.environ.get("UNSTRUCTURED_STRATEGY", "auto")
 UNSTRUCTURED_CONCURRENCY_LEVEL = os.environ.get("UNSTRUCTURED_CONCURRENCY_LEVEL", 10)
 
@@ -59,9 +61,13 @@ _Type_Extract_Method_PDF = Literal[
     "unstructured_io",
 ]
 
-_Type_Extract_Method_DOCX = Literal["python_docx", "haystack", "unstructured_local", "unstructured_service"]
+_Type_Extract_Method_DOCX = Literal[
+    "python_docx", "haystack", "unstructured_local", "unstructured_service"
+]
 
-_Type_Extract_Method_PPTX = Literal["python_pptx", "haystack", "unstructured_local", "unstructured_service"]
+_Type_Extract_Method_PPTX = Literal[
+    "python_pptx", "haystack", "unstructured_local", "unstructured_service"
+]
 
 _Type_Extract_Method_Image = Literal["image"]
 
@@ -112,7 +118,9 @@ class ExtractTaskSchema(BaseModel):
     @model_validator(mode="after")
     @classmethod
     def set_default_extract_method(cls, values):
-        document_type = values.document_type.lower()  # Ensure case-insensitive comparison
+        document_type = (
+            values.document_type.lower()
+        )  # Ensure case-insensitive comparison
         extract_method = values.extract_method
 
         if document_type not in _DEFAULT_EXTRACTOR_MAP:
@@ -140,7 +148,9 @@ class ExtractTaskSchema(BaseModel):
 
     @field_validator("extract_method")
     def extract_method_must_be_valid(cls, v, values, **kwargs):
-        document_type = values.data.get("document_type", "").lower()  # Ensure case-insensitive comparison
+        document_type = values.data.get(
+            "document_type", ""
+        ).lower()  # Ensure case-insensitive comparison
         valid_methods = set(_Type_Extract_Method_Map[document_type])
         if v not in valid_methods:
             raise ValueError(f"extract_method must be one of {valid_methods}")
@@ -157,7 +167,9 @@ class ExtractTaskSchema(BaseModel):
 
     @field_validator("extract_tables_method")
     def extract_tables_method_must_be_valid(cls, v, values, **kwargs):
-        document_type = values.data.get("document_type", "").lower()  # Ensure case-insensitive comparison
+        document_type = values.data.get(
+            "document_type", ""
+        ).lower()  # Ensure case-insensitive comparison
         valid_methods = set(_Type_Extract_Tables_Method_Map[document_type])
         if v not in valid_methods:
             raise ValueError(f"extract_method must be one of {valid_methods}")
@@ -212,7 +224,9 @@ class ExtractTask(Task):
         # {extract_tables: true, extract_charts: None} or {extract_tables: true, extract-charts: true} enables both
         # table and chart extraction.
         # {extract_tables: true, extract_charts: false} enables only the table extraction and disables chart extraction.
-        self._extract_charts = extract_charts if extract_charts is not None else extract_tables
+        self._extract_charts = (
+            extract_charts if extract_charts is not None else extract_tables
+        )
         self._extract_infographics = extract_infographics
         self._extract_text = extract_text
         self._text_depth = text_depth
@@ -287,9 +301,15 @@ class ExtractTask(Task):
             task_properties["params"].update(unstructured_properties)
         elif self._extract_method == "unstructured_io":
             unstructured_properties = {
-                "unstructured_api_key": os.environ.get("UNSTRUCTURED_API_KEY", UNSTRUCTURED_API_KEY),
-                "unstructured_url": os.environ.get("UNSTRUCTURED_URL", UNSTRUCTURED_URL),
-                "unstructured_strategy": os.environ.get("UNSTRUCTURED_STRATEGY", UNSTRUCTURED_STRATEGY),
+                "unstructured_api_key": os.environ.get(
+                    "UNSTRUCTURED_API_KEY", UNSTRUCTURED_API_KEY
+                ),
+                "unstructured_url": os.environ.get(
+                    "UNSTRUCTURED_URL", UNSTRUCTURED_URL
+                ),
+                "unstructured_strategy": os.environ.get(
+                    "UNSTRUCTURED_STRATEGY", UNSTRUCTURED_STRATEGY
+                ),
                 "unstructured_concurrency_level": os.environ.get(
                     "UNSTRUCTURED_CONCURRENCY_LEVEL", UNSTRUCTURED_CONCURRENCY_LEVEL
                 ),
@@ -298,7 +318,9 @@ class ExtractTask(Task):
         elif self._extract_method == "adobe":
             adobe_properties = {
                 "adobe_client_id": os.environ.get("ADOBE_CLIENT_ID", ADOBE_CLIENT_ID),
-                "adobe_client_secrect": os.environ.get("ADOBE_CLIENT_SECRET", ADOBE_CLIENT_SECRET),
+                "adobe_client_secrect": os.environ.get(
+                    "ADOBE_CLIENT_SECRET", ADOBE_CLIENT_SECRET
+                ),
             }
             task_properties["params"].update(adobe_properties)
         return {"type": "extract", "task_properties": task_properties}

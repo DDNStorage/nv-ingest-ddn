@@ -17,7 +17,9 @@ from nv_ingest_client.primitives.tasks import ExtractTask
 from nv_ingest_client.primitives.tasks.audio_extraction import AudioExtractionTask
 from nv_ingest_client.primitives.tasks.table_extraction import TableExtractionTask
 from nv_ingest_client.primitives.tasks.chart_extraction import ChartExtractionTask
-from nv_ingest_client.primitives.tasks.infographic_extraction import InfographicExtractionTask
+from nv_ingest_client.primitives.tasks.infographic_extraction import (
+    InfographicExtractionTask,
+)
 from nv_ingest_client.util.dataset import get_dataset_files
 from nv_ingest_client.util.dataset import get_dataset_statistics
 
@@ -163,7 +165,9 @@ class JobSpec:
             If the task does not have a to_dict method.
         """
         if not isinstance(task, Task):
-            raise ValueError("Task must derive from nv_ingest_client.primitives.Task class")
+            raise ValueError(
+                "Task must derive from nv_ingest_client.primitives.Task class"
+            )
 
         self._tasks.append(task)
 
@@ -193,7 +197,9 @@ class BatchJobSpec:
         A dictionary that maps document types to a list of `JobSpec` instances.
     """
 
-    def __init__(self, job_specs_or_files: Optional[Union[List[JobSpec], List[str]]] = None) -> None:
+    def __init__(
+        self, job_specs_or_files: Optional[Union[List[JobSpec], List[str]]] = None
+    ) -> None:
         """
         Initializes the BatchJobSpec instance.
 
@@ -211,7 +217,9 @@ class BatchJobSpec:
             elif isinstance(job_specs_or_files[0], str):
                 self.from_files(job_specs_or_files)
             else:
-                raise ValueError("Invalid input type for job_specs. Must be a list of JobSpec or file paths.")
+                raise ValueError(
+                    "Invalid input type for job_specs. Must be a list of JobSpec or file paths."
+                )
 
     def from_job_specs(self, job_specs: Union[JobSpec, List[JobSpec]]) -> None:
         """
@@ -328,7 +336,9 @@ class BatchJobSpec:
             If the task does not derive from the `Task` class.
         """
         if not isinstance(task, Task):
-            raise ValueError("Task must derive from nv_ingest_client.primitives.Task class")
+            raise ValueError(
+                "Task must derive from nv_ingest_client.primitives.Task class"
+            )
 
         document_type = document_type or task.to_dict().get("document_type")
 
@@ -352,7 +362,8 @@ class BatchJobSpec:
             A list of dictionaries representing the job specifications in the batch.
         """
         return {
-            file_type: [j.to_dict() for j in job_specs] for file_type, job_specs in self._file_type_to_job_spec.items()
+            file_type: [j.to_dict() for j in job_specs]
+            for file_type, job_specs in self._file_type_to_job_spec.items()
         }
 
     def __str__(self) -> str:

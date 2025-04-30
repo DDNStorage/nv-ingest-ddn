@@ -88,7 +88,9 @@ def python_docx(
 
     docx_extractor_config = kwargs.get("docx_extraction_config", {})
 
-    base_unified_metadata = row_data[metadata_col] if metadata_col in row_data.index else {}
+    base_unified_metadata = (
+        row_data[metadata_col] if metadata_col in row_data.index else {}
+    )
 
     # get base source_metadata
     base_source_metadata = base_unified_metadata.get("source_metadata", {})
@@ -116,7 +118,12 @@ def python_docx(
     # Extract data from the document using python-docx
     doc = DocxReader(docx, source_metadata, extraction_config=docx_extractor_config)
     extracted_data = doc.extract_data(
-        base_unified_metadata, text_depth, extract_text, extract_charts, extract_tables, extract_images
+        base_unified_metadata,
+        text_depth,
+        extract_text,
+        extract_charts,
+        extract_tables,
+        extract_images,
     )
 
     return extracted_data

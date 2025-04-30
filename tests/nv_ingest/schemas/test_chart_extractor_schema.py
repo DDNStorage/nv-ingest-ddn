@@ -32,7 +32,9 @@ def test_valid_config_with_http_only():
 
 def test_invalid_config_with_empty_services():
     with pytest.raises(ValidationError) as excinfo:
-        ChartExtractorConfigSchema(yolox_endpoints=(None, None), paddle_endpoints=(None, None))
+        ChartExtractorConfigSchema(
+            yolox_endpoints=(None, None), paddle_endpoints=(None, None)
+        )
     assert "Both gRPC and HTTP services cannot be empty" in str(excinfo.value)
 
 
@@ -77,7 +79,9 @@ def test_chart_extractor_schema_with_custom_values():
         yolox_endpoints=("grpc://yolox_service", "http://yolox_service"),
         paddle_endpoints=(None, "http://paddle_service"),
     )
-    config = ChartExtractorSchema(max_queue_size=10, n_workers=5, raise_on_failure=True, stage_config=stage_config)
+    config = ChartExtractorSchema(
+        max_queue_size=10, n_workers=5, raise_on_failure=True, stage_config=stage_config
+    )
     assert config.max_queue_size == 10
     assert config.n_workers == 5
     assert config.raise_on_failure is True

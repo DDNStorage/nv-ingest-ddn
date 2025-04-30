@@ -14,7 +14,9 @@ from nv_ingest.schemas.metadata_schema import TextTypeEnum
 
 def requires_key():
     api_key = os.getenv("UNSTRUCTURED_API_KEY")
-    return pytest.mark.skipif(api_key is None, reason="requires Unstructured.io api key")
+    return pytest.mark.skipif(
+        api_key is None, reason="requires Unstructured.io api key"
+    )
 
 
 @pytest.fixture
@@ -71,7 +73,8 @@ def test_unstructured_io_text_depth_page(pdf_stream, document_df, text_depth, ap
     assert extracted_data[0][0] == "text"
     assert isinstance(extracted_data[0][2], str)
     assert (
-        extracted_data[0][1]["content"] == "Here is one line of text. Here is another line of text. Here is an image."
+        extracted_data[0][1]["content"]
+        == "Here is one line of text. Here is another line of text. Here is an image."
     )
     assert extracted_data[0][1]["source_metadata"]["source_id"] == "source1"
     assert extracted_data[0][1]["source_metadata"]["source_name"] == "test.pdf"
@@ -102,7 +105,8 @@ def test_unstructured_io_text_depth_doc(pdf_stream, document_df, text_depth, api
     assert extracted_data[0][0] == "text"
     assert isinstance(extracted_data[0][2], str)
     assert (
-        extracted_data[0][1]["content"] == "Here is one line of text. Here is another line of text. Here is an image."
+        extracted_data[0][1]["content"]
+        == "Here is one line of text. Here is another line of text. Here is an image."
     )
     assert extracted_data[0][1]["source_metadata"]["source_id"] == "source1"
     assert extracted_data[0][1]["source_metadata"]["source_name"] == "test.pdf"
@@ -161,7 +165,8 @@ def test_unstructured_io_image(pdf_stream, document_df, api_key):
 
     assert extracted_data[1][0] == "text"
     assert (
-        extracted_data[1][1]["content"] == "Here is one line of text. Here is another line of text. Here is an image."
+        extracted_data[1][1]["content"]
+        == "Here is one line of text. Here is another line of text. Here is an image."
     )
     assert extracted_data[1][1]["content_metadata"]["page_number"] == 0
 
@@ -183,7 +188,10 @@ def test_unstructured_io_table(table_pdf_stream, document_df, api_key):
     assert len(extracted_data[0]) == 3
 
     assert extracted_data[0][0] == "structured"
-    assert "<table><thead><th>Year</th><th>Bill</th><th>Amy</th><th>James</th><th>" in extracted_data[0][1]["content"]
+    assert (
+        "<table><thead><th>Year</th><th>Bill</th><th>Amy</th><th>James</th><th>"
+        in extracted_data[0][1]["content"]
+    )
     assert (
         "</tr><tr><td>2005</td><td></td><td>N/A</td><td>N/A</td><td>631</td><td></td></tr><tr><td>"
         in extracted_data[0][1]["content"]

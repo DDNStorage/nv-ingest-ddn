@@ -66,5 +66,7 @@ def test_upload_images(mock_minio):
     df = msg.payload()
 
     result = upload_images(df, params)
-    uploaded_image_url = result.iloc[1]["metadata"]["image_metadata"]["uploaded_image_url"]
+    uploaded_image_url = result.iloc[1]["metadata"]["image_metadata"][
+        "uploaded_image_url"
+    ]
     assert uploaded_image_url == "http://minio:9000/nv-ingest/foo/1.png"

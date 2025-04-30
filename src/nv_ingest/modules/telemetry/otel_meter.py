@@ -21,7 +21,9 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 from nv_ingest.schemas.otel_meter_schema import OpenTelemetryMeterSchema
-from nv_ingest.util.exception_handlers.decorators import nv_ingest_node_failure_context_manager
+from nv_ingest.util.exception_handlers.decorators import (
+    nv_ingest_node_failure_context_manager,
+)
 from nv_ingest.util.message_brokers.redis.redis_client import RedisClient
 from nv_ingest.util.modules.config_validator import fetch_and_validate_module_config
 from nv_ingest.util.telemetry.global_stats import GlobalStats
@@ -56,7 +58,9 @@ def _metrics_aggregation(builder: mrc.Builder) -> None:
     -------
     None
     """
-    validated_config = fetch_and_validate_module_config(builder, OpenTelemetryMeterSchema)
+    validated_config = fetch_and_validate_module_config(
+        builder, OpenTelemetryMeterSchema
+    )
     broker_params = validated_config.broker_client.broker_params
     stats = GlobalStats.get_instance()
 
@@ -72,8 +76,12 @@ def _metrics_aggregation(builder: mrc.Builder) -> None:
 
     resource = Resource(attributes={"service.name": "nv-ingest"})
 
-    reader = PeriodicExportingMetricReader(OTLPMetricExporter(endpoint=validated_config.otel_endpoint, insecure=True))
-    metrics.set_meter_provider(MeterProvider(resource=resource, metric_readers=[reader]))
+    reader = PeriodicExportingMetricReader(
+        OTLPMetricExporter(endpoint=validated_config.otel_endpoint, insecure=True)
+    )
+    metrics.set_meter_provider(
+        MeterProvider(resource=resource, metric_readers=[reader])
+    )
 
     set_global_textmap(TraceContextTextMapPropagator())
 
@@ -85,7 +93,9 @@ def _metrics_aggregation(builder: mrc.Builder) -> None:
         "failed_jobs_total": meter.create_gauge("failed_jobs_total"),
         "source_to_sink_mean": meter.create_gauge("source_to_sink_mean"),
         "source_to_sink_median": meter.create_gauge("source_to_sink_median"),
-        "outstanding_job_responses_total": meter.create_gauge("outstanding_job_responses_total"),
+        "outstanding_job_responses_total": meter.create_gauge(
+            "outstanding_job_responses_total"
+        ),
         "response_wait_time_mean": meter.create_gauge("response_wait_time_mean"),
         "response_wait_time_median": meter.create_gauge("response_wait_time_median"),
     }
@@ -151,11 +161,15 @@ def _metrics_aggregation(builder: mrc.Builder) -> None:
 
     def update_response_stats(message):
         response_channel = message.get_metadata("response_channel")
-        response_channels_store[response_channel] = message.get_timestamp("annotation::Pushed")
+        response_channels_store[response_channel] = message.get_timestamp(
+            "annotation::Pushed"
+        )
 
         try:
             curr_response_channels = set(
-                k for k in redis_client.get_client().keys() if k.decode("utf-8").startswith("response")
+                k
+                for k in redis_client.get_client().keys()
+                if k.decode("utf-8").startswith("response")
             )
             gauges["outstanding_job_responses_total"].set(len(curr_response_channels))
 
@@ -164,7 +178,9 @@ def _metrics_aggregation(builder: mrc.Builder) -> None:
                 if key in curr_response_channels:
                     continue
                 to_remove.append(key)
-                wait_time_ms = (datetime.now() - pushed_ts).total_seconds() * 1e3  # best effort
+                wait_time_ms = (
+                    datetime.now() - pushed_ts
+                ).total_seconds() * 1e3  # best effort
                 stats.append_job_stat("response_wait_time", wait_time_ms)
                 mean = stats.get_job_stat("response_wait_time", "mean")
                 median = stats.get_job_stat("response_wait_time", "median")
@@ -176,7 +192,9 @@ def _metrics_aggregation(builder: mrc.Builder) -> None:
                 del response_channels_store[key]
         except Exception as e:
             # TODO(Devin)
-            logger.warning(f"Failed to transmit to Redis, skipping response stats update:\n{e}")
+            logger.warning(
+                f"Failed to transmit to Redis, skipping response stats update:\n{e}"
+            )
 
     @nv_ingest_node_failure_context_manager(
         annotation_id=MODULE_NAME,
@@ -201,7 +219,9 @@ def _metrics_aggregation(builder: mrc.Builder) -> None:
             traceback.print_exc()
             raise ValueError(f"Failed to perform statistics aggregation: {e}")
 
-    aggregate_node = builder.make_node("opentelemetry_meter", ops.map(aggregate_metrics))
+    aggregate_node = builder.make_node(
+        "opentelemetry_meter", ops.map(aggregate_metrics)
+    )
 
     # Register the input and output of the module
     builder.register_module_input("input", aggregate_node)

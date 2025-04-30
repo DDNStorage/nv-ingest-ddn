@@ -24,7 +24,9 @@ def mock_message():
 def test_on_data_returns_message(mock_message):
     """Test that on_data returns the same IngestControlMessage object it receives."""
     result = on_data(mock_message)
-    assert result is mock_message, "on_data should return the input IngestControlMessage object."
+    assert (
+        result is mock_message
+    ), "on_data should return the input IngestControlMessage object."
 
 
 @pytest.mark.skipif(not morpheus_import, reason="Morpheus modules are not available")

@@ -50,7 +50,12 @@ def upload_embeddings(df: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
             region=params.get("region", None),
         )
 
-        connections.connect(address="milvus:19530", uri="http://milvus:19530", host="milvus", port="19530")
+        connections.connect(
+            address="milvus:19530",
+            uri="http://milvus:19530",
+            host="milvus",
+            port="19530",
+        )
         schema = Collection(collection_name).schema
 
         bucket_found = client.bucket_exists(bucket_name)
@@ -61,11 +66,18 @@ def upload_embeddings(df: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
             logger.debug("Bucket %s already exists", bucket_name)
 
         conn = RemoteBulkWriter.ConnectParam(
-            endpoint=endpoint, access_key=access_key, secret_key=secret_key, bucket_name=bucket_name, secure=False
+            endpoint=endpoint,
+            access_key=access_key,
+            secret_key=secret_key,
+            bucket_name=bucket_name,
+            secure=False,
         )
 
         writer = RemoteBulkWriter(
-            schema=schema, remote_path=bucket_path, connect_param=conn, file_type=BulkFileType.PARQUET
+            schema=schema,
+            remote_path=bucket_path,
+            connect_param=conn,
+            file_type=BulkFileType.PARQUET,
         )
 
         for idx, row in df.iterrows():
@@ -74,7 +86,10 @@ def upload_embeddings(df: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
             metadata["embedding_metadata"]["uploaded_embedding_url"] = bucket_path
 
             doc_type = row["document_type"]
-            content_replace = doc_type in [ContentTypeEnum.IMAGE, ContentTypeEnum.STRUCTURED]
+            content_replace = doc_type in [
+                ContentTypeEnum.IMAGE,
+                ContentTypeEnum.STRUCTURED,
+            ]
             location = metadata["source_metadata"]["source_location"]
             content = metadata["content"]
 
@@ -153,10 +168,16 @@ def generate_embedding_storage_stage(
         # Note: No embedding storage config is provided here; using default schema.
         validated_config = EmbeddingStorageModuleSchema()
 
-        _wrapped_process_fn = functools.partial(_store_embeddings, validated_config=validated_config)
+        _wrapped_process_fn = functools.partial(
+            _store_embeddings, validated_config=validated_config
+        )
 
         return MultiProcessingBaseStage(
-            c=c, pe_count=pe_count, task=task, task_desc=task_desc, process_fn=_wrapped_process_fn
+            c=c,
+            pe_count=pe_count,
+            task=task,
+            task_desc=task_desc,
+            process_fn=_wrapped_process_fn,
         )
 
     except Exception as e:

@@ -160,7 +160,9 @@ class RedisClient(MessageBrokerClientBase):
 
         response = self.get_client().blpop([channel_name], timeout)
         if response is None:
-            raise TimeoutError("No response was received in the specified timeout period")
+            raise TimeoutError(
+                "No response was received in the specified timeout period"
+            )
 
         if len(response) > 1 and response[1]:
             try:
@@ -175,7 +177,9 @@ class RedisClient(MessageBrokerClientBase):
 
         return None, None, None
 
-    def fetch_message(self, channel_name: str, timeout: float = 10) -> Optional[Union[str, Dict]]:
+    def fetch_message(
+        self, channel_name: str, timeout: float = 10
+    ) -> Optional[Union[str, Dict]]:
         """
         Fetches a message from the specified queue with retries on failure. If the message is fragmented, it will
         continue fetching fragments until all parts have been collected.
@@ -207,7 +211,9 @@ class RedisClient(MessageBrokerClientBase):
         while True:
             try:
                 # Attempt to fetch a message from the Redis queue
-                message, fragment, fragment_count = self._check_response(channel_name, timeout)
+                message, fragment, fragment_count = self._check_response(
+                    channel_name, timeout
+                )
 
                 if message is not None:
                     if fragment_count == 1:
@@ -222,7 +228,9 @@ class RedisClient(MessageBrokerClientBase):
                         collected_fragments.sort(key=lambda x: x["fragment"])
 
                         # Combine fragments (assuming they are part of a larger payload)
-                        reconstructed_message = self._combine_fragments(collected_fragments)
+                        reconstructed_message = self._combine_fragments(
+                            collected_fragments
+                        )
 
                         return reconstructed_message
 
@@ -248,11 +256,17 @@ class RedisClient(MessageBrokerClientBase):
                 backoff_delay = min(2**retries, self._max_backoff)
 
                 if self.max_retries > 0 and retries <= self.max_retries:
-                    logger.error(f"Fetch attempt failed, retrying in {backoff_delay}s...")
+                    logger.error(
+                        f"Fetch attempt failed, retrying in {backoff_delay}s..."
+                    )
                     time.sleep(backoff_delay)
                 else:
-                    logger.error(f"Failed to fetch message from {channel_name} after {retries} attempts.")
-                    raise ValueError(f"Failed to fetch message from Redis queue after {retries} attempts: {err}")
+                    logger.error(
+                        f"Failed to fetch message from {channel_name} after {retries} attempts."
+                    )
+                    raise ValueError(
+                        f"Failed to fetch message from Redis queue after {retries} attempts: {err}"
+                    )
 
                 # Invalidate client to force reconnection on the next try
                 self._client = None
@@ -324,8 +338,12 @@ class RedisClient(MessageBrokerClientBase):
                 backoff_delay = min(2**retries, self._max_backoff)
 
                 if self.max_retries == 0 or retries < self.max_retries:
-                    logger.error(f"Submit attempt failed, retrying in {backoff_delay}s...")
+                    logger.error(
+                        f"Submit attempt failed, retrying in {backoff_delay}s..."
+                    )
                     time.sleep(backoff_delay)
                 else:
-                    logger.error(f"Failed to submit message to {channel_name} after {retries} attempts.")
+                    logger.error(
+                        f"Failed to submit message to {channel_name} after {retries} attempts."
+                    )
                     raise

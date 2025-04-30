@@ -73,7 +73,9 @@ def test_click_validate_file_exists_with_multiple_files(tmp_path):
 
 # Testing validate_batch_size
 def test_validate_batch_size_valid():
-    assert click_validate_batch_size(None, None, 10) == 10, "Valid batch size should be returned as is"
+    assert (
+        click_validate_batch_size(None, None, 10) == 10
+    ), "Valid batch size should be returned as is"
 
 
 def test_validate_batch_size_invalid():
@@ -111,7 +113,9 @@ def test_validate_task_with_valid_extract():
 
 def test_validate_task_with_valid_store_task():
     """Test with valid stor task options."""
-    value = ['store:{"content_type": "image", "store_method": "minio", "endpoint": "localhost:9000"}']
+    value = [
+        'store:{"content_type": "image", "store_method": "minio", "endpoint": "localhost:9000"}'
+    ]
     result = click_validate_task(None, None, value)
 
     assert "store" in result
@@ -152,7 +156,10 @@ def test_validate_task_with_incomplete_options():
     assert len(exc_info.value.args) == 1
 
 
-@patch(f"{_MODULE_UNDER_TEST}.check_schema", side_effect=ValueError("Unsupported task type"))
+@patch(
+    f"{_MODULE_UNDER_TEST}.check_schema",
+    side_effect=ValueError("Unsupported task type"),
+)
 def test_validate_task_with_invalid_task(mock_check_schema):
     """Test with unsupported task type."""
     value = ['unsupported:{"some_option": "value"}']
@@ -163,7 +170,9 @@ def test_validate_task_with_invalid_task(mock_check_schema):
 @patch(f"{_MODULE_UNDER_TEST}.check_schema")
 def test_validate_task_with_malformed_string(mock_check_schema):
     """Test with malformed task string."""
-    mock_check_schema.side_effect = json.JSONDecodeError("Expecting value", "malformed_json", 0)
+    mock_check_schema.side_effect = json.JSONDecodeError(
+        "Expecting value", "malformed_json", 0
+    )
     value = ["split{malformed_json}"]
     with pytest.raises(click.BadParameter) as exc_info:
         click_validate_task(None, None, value)
@@ -173,7 +182,9 @@ def test_validate_task_with_malformed_string(mock_check_schema):
 @patch(f"{_MODULE_UNDER_TEST}.check_schema")
 def test_validate_task_with_json_error(mock_check_schema):
     """Test handling of JSON decode error."""
-    mock_check_schema.side_effect = json.JSONDecodeError("Expecting value", "{malformed_json", 1)
+    mock_check_schema.side_effect = json.JSONDecodeError(
+        "Expecting value", "{malformed_json", 1
+    )
     value = ['split:{"split_by": "page"']
     with pytest.raises(click.BadParameter) as exc_info:
         click_validate_task(None, None, value)
@@ -205,14 +216,22 @@ def test_load_valid_dataset(dataset):
 def test_load_and_shuffle_dataset(tmp_path):
     """Test loading and shuffling a larger dataset."""
     # Create a larger dataset
-    content = {"sampled_files": [f"file{i}.txt" for i in range(100)]}  # Creating 100 unique files
-    dataset_path = create_json_file(tmp_path, content)  # Use the helper function to create the dataset file
+    content = {
+        "sampled_files": [f"file{i}.txt" for i in range(100)]
+    }  # Creating 100 unique files
+    dataset_path = create_json_file(
+        tmp_path, content
+    )  # Use the helper function to create the dataset file
 
     original_files = content["sampled_files"]
     files = pre_process_dataset(dataset_path, shuffle_dataset=True)
 
-    assert set(files) == set(original_files), "All files should be present even if shuffled"
-    assert files != original_files, "With high probability, order should be shuffled for large datasets"
+    assert set(files) == set(
+        original_files
+    ), "All files should be present even if shuffled"
+    assert (
+        files != original_files
+    ), "With high probability, order should be shuffled for large datasets"
 
 
 def test_missing_dataset_file(tmp_path):
@@ -240,7 +259,10 @@ def test_empty_file_list(tmp_path):
 
 
 def test_click_match_and_validate_files_found():
-    with patch(f"{_MODULE_UNDER_TEST}.generate_matching_files", return_value=iter(["file1.txt", "file2.txt"])):
+    with patch(
+        f"{_MODULE_UNDER_TEST}.generate_matching_files",
+        return_value=iter(["file1.txt", "file2.txt"]),
+    ):
         result = click_match_and_validate_files(None, None, ["*.txt"])
         assert result == ["file1.txt", "file2.txt"]
 

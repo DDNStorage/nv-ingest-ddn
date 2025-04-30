@@ -19,7 +19,9 @@ def dataset_content(tmp_path):
         "sampled_files": [str(tmp_path / f"file{i}.txt") for i in range(5)],
         "metadata": {
             "total_sampled_size_bytes": 5000,
-            "file_type_proportions": {"txt": {"target_proportion": 100, "achieved_size_bytes": 5000}},
+            "file_type_proportions": {
+                "txt": {"target_proportion": 100, "achieved_size_bytes": 5000}
+            },
             "sampling_method": "without_replacement",
         },
     }
@@ -55,9 +57,13 @@ def test_get_dataset_files_with_shuffle(dataset_content):
     Tests get_dataset_files returns the correct files and shuffles them.
     """
     original_files = get_dataset_files(dataset_content, shuffle=False)
-    shuffled_files = get_dataset_files(BytesIO(dataset_content.getvalue()), shuffle=True)
+    shuffled_files = get_dataset_files(
+        BytesIO(dataset_content.getvalue()), shuffle=True
+    )
     assert len(shuffled_files) == 5
-    assert shuffled_files != original_files, "Files should be shuffled and not match original order"
+    assert (
+        shuffled_files != original_files
+    ), "Files should be shuffled and not match original order"
 
 
 def test_get_dataset_statistics_invalid_json():

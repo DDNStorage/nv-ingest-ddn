@@ -34,7 +34,9 @@ class VLMModelInterface(ModelInterface):
         # Allow either a single image with "base64_image" or multiple images with "base64_images".
         if "base64_images" in data:
             if not isinstance(data["base64_images"], list):
-                raise ValueError("The 'base64_images' key must contain a list of base64-encoded strings.")
+                raise ValueError(
+                    "The 'base64_images' key must contain a list of base64-encoded strings."
+                )
         elif "base64_image" in data:
             # Convert a single image into a list.
             data["base64_images"] = [data["base64_image"]]
@@ -89,7 +91,11 @@ class VLMModelInterface(ModelInterface):
         for batch in batches:
             # Create one message per image in the batch.
             messages = [
-                {"role": "user", "content": f'{prompt} <img src="data:image/png;base64,{img}" />'} for img in batch
+                {
+                    "role": "user",
+                    "content": f'{prompt} <img src="data:image/png;base64,{img}" />',
+                }
+                for img in batch
             ]
             payload = {
                 "model": kwargs.get("model_name"),
@@ -103,7 +109,13 @@ class VLMModelInterface(ModelInterface):
             batch_data_list.append({"base64_images": batch, "prompt": prompt})
         return payloads, batch_data_list
 
-    def parse_output(self, response: Any, protocol: str, data: Optional[Dict[str, Any]] = None, **kwargs) -> Any:
+    def parse_output(
+        self,
+        response: Any,
+        protocol: str,
+        data: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> Any:
         """
         Parse the HTTP response from the VLM endpoint. Expects a response structure with a "choices" key.
 
@@ -128,9 +140,14 @@ class VLMModelInterface(ModelInterface):
         if isinstance(response, dict):
             choices = response.get("choices", [])
             if not choices:
-                raise RuntimeError("Unexpected response format: 'choices' key is missing or empty.")
+                raise RuntimeError(
+                    "Unexpected response format: 'choices' key is missing or empty."
+                )
             # Return a list of captions, one per choice.
-            return [choice.get("message", {}).get("content", "No caption returned") for choice in choices]
+            return [
+                choice.get("message", {}).get("content", "No caption returned")
+                for choice in choices
+            ]
         else:
             # If response is not a dict, return its string representation in a list.
             return [str(response)]

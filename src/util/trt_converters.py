@@ -34,31 +34,90 @@ def generate_preferred_batch_sizes(max_batch_size: int) -> str:
 
 @click.command()
 @click.option(
-    "--ckpt-path", required=True, type=click.Path(), help="Path to the PyTorch model checkpoint file (state_dict)."
+    "--ckpt-path",
+    required=True,
+    type=click.Path(),
+    help="Path to the PyTorch model checkpoint file (state_dict).",
 )
-@click.option("--device", default="cpu", type=click.Choice(["cpu", "cuda"]), help="Device to load the model on.")
-@click.option("--dynamic-batching", is_flag=True, help="Enable dynamic batching in Triton.")
-@click.option("--engine-path", required=True, type=click.Path(), help="Path to save the TensorRT engine file.")
+@click.option(
+    "--device",
+    default="cpu",
+    type=click.Choice(["cpu", "cuda"]),
+    help="Device to load the model on.",
+)
+@click.option(
+    "--dynamic-batching", is_flag=True, help="Enable dynamic batching in Triton."
+)
+@click.option(
+    "--engine-path",
+    required=True,
+    type=click.Path(),
+    help="Path to save the TensorRT engine file.",
+)
 @click.option("--generate-onnx", is_flag=True, help="Generate ONNX model.")
-@click.option("--generate-triton-config", is_flag=True, help="Generate Triton configuration.")
+@click.option(
+    "--generate-triton-config", is_flag=True, help="Generate Triton configuration."
+)
 @click.option("--generate-trt", is_flag=True, help="Generate TensorRT engine.")
 @click.option(
-    "--input-size", type=(int, int), default=(None, 128), help="Input size for the model (batch size, sequence length)."
+    "--input-size",
+    type=(int, int),
+    default=(None, 128),
+    help="Input size for the model (batch size, sequence length).",
 )
 @click.option("--max-batch-size", default=128, help="Maximum batch size for Triton.")
-@click.option("--max-queue-delay", default=100, help="Max queue delay in microseconds for Triton dynamic batching.")
-@click.option("--memory-pool-limit", default=1 << 30, help="Memory pool limit for TensorRT builder (in bytes).")
-@click.option("--model-class-name", required=True, help="Name of the model class in the script.")
-@click.option("--model-io-config", required=True, type=str, help="JSON string defining model inputs and outputs.")
+@click.option(
+    "--max-queue-delay",
+    default=100,
+    help="Max queue delay in microseconds for Triton dynamic batching.",
+)
+@click.option(
+    "--memory-pool-limit",
+    default=1 << 30,
+    help="Memory pool limit for TensorRT builder (in bytes).",
+)
+@click.option(
+    "--model-class-name", required=True, help="Name of the model class in the script."
+)
+@click.option(
+    "--model-io-config",
+    required=True,
+    type=str,
+    help="JSON string defining model inputs and outputs.",
+)
 @click.option("--model-name", required=True, help="Name of the model.")
 @click.option(
-    "--model-script-path", required=True, type=click.Path(), help="Path to the PyTorch model script (Python file)."
+    "--model-script-path",
+    required=True,
+    type=click.Path(),
+    help="Path to the PyTorch model script (Python file).",
 )
-@click.option("--onnx-path", required=True, type=click.Path(), help="Path to save the ONNX model file.")
-@click.option("--overwrite", is_flag=True, help="Overwrite existing ONNX and TensorRT models.")
-@click.option("--preferred-batch-sizes", type=str, default="", help="Comma-separated list of preferred batch sizes.")
-@click.option("--triton-inputs", type=str, help="Comma-separated list of input names to include in the Triton config.")
-@click.option("--triton-repo", required=True, type=click.Path(), help="Path to Triton model repository.")
+@click.option(
+    "--onnx-path",
+    required=True,
+    type=click.Path(),
+    help="Path to save the ONNX model file.",
+)
+@click.option(
+    "--overwrite", is_flag=True, help="Overwrite existing ONNX and TensorRT models."
+)
+@click.option(
+    "--preferred-batch-sizes",
+    type=str,
+    default="",
+    help="Comma-separated list of preferred batch sizes.",
+)
+@click.option(
+    "--triton-inputs",
+    type=str,
+    help="Comma-separated list of input names to include in the Triton config.",
+)
+@click.option(
+    "--triton-repo",
+    required=True,
+    type=click.Path(),
+    help="Path to Triton model repository.",
+)
 @click.option("--use-fp16", is_flag=True, help="Enable FP16 precision.")
 @click.option("--use-int8", is_flag=True, help="Enable INT8 precision.")
 def convert_model(
@@ -126,14 +185,25 @@ def convert_model(
                 device,
             )
         else:
-            click.echo(f"ONNX model already exists at {onnx_path}, skipping ONNX conversion.")
+            click.echo(
+                f"ONNX model already exists at {onnx_path}, skipping ONNX conversion."
+            )
 
     if generate_trt:
         if not os.path.exists(engine_path) or overwrite:
             # Convert ONNX model to TensorRT engine
-            convert_to_trt(onnx_path, engine_path, use_fp16, use_int8, memory_pool_limit, max_batch_size)
+            convert_to_trt(
+                onnx_path,
+                engine_path,
+                use_fp16,
+                use_int8,
+                memory_pool_limit,
+                max_batch_size,
+            )
         else:
-            click.echo(f"TensorRT engine already exists at {engine_path}, skipping TensorRT conversion.")
+            click.echo(
+                f"TensorRT engine already exists at {engine_path}, skipping TensorRT conversion."
+            )
 
     if generate_triton_config:
         if not os.path.exists(model_dir_onnx):
@@ -159,7 +229,9 @@ def convert_model(
                 triton_inputs_list=triton_inputs_list,
             )
         else:
-            click.echo(f"Triton config file already exists at {config_path_onnx}, skipping config creation for ONNX.")
+            click.echo(
+                f"Triton config file already exists at {config_path_onnx}, skipping config creation for ONNX."
+            )
 
         if generate_trt and (not os.path.exists(config_path_trt) or overwrite):
             # Create Triton configuration file for TensorRT
@@ -181,19 +253,28 @@ def convert_model(
             )
 
     # Move files to Triton model repository if they are not already there
-    if generate_onnx and (not os.path.exists(os.path.join(model_dir_onnx, "1", "model.onnx")) or overwrite):
-        if os.path.exists(os.path.join(model_dir_onnx, "1", "model.onnx")) and overwrite:
+    if generate_onnx and (
+        not os.path.exists(os.path.join(model_dir_onnx, "1", "model.onnx")) or overwrite
+    ):
+        if (
+            os.path.exists(os.path.join(model_dir_onnx, "1", "model.onnx"))
+            and overwrite
+        ):
             os.remove(os.path.join(model_dir_onnx, "1", "model.onnx"))
         os.rename(onnx_path, os.path.join(model_dir_onnx, "1", "model.onnx"))
     else:
         click.echo("ONNX model already present in Triton repository, skipping move.")
 
-    if generate_trt and (not os.path.exists(os.path.join(model_dir_trt, "1", "model.plan")) or overwrite):
+    if generate_trt and (
+        not os.path.exists(os.path.join(model_dir_trt, "1", "model.plan")) or overwrite
+    ):
         if os.path.exists(os.path.join(model_dir_trt, "1", "model.plan")) and overwrite:
             os.remove(os.path.join(model_dir_trt, "1", "model.plan"))
         os.rename(engine_path, os.path.join(model_dir_trt, "1", "model.plan"))
     else:
-        click.echo("TensorRT engine already present in Triton repository, skipping move.")
+        click.echo(
+            "TensorRT engine already present in Triton repository, skipping move."
+        )
 
 
 def load_pytorch_model(model_script_path, model_class_name, ckpt_path, device):
@@ -224,7 +305,16 @@ def load_pytorch_model(model_script_path, model_class_name, ckpt_path, device):
     return model
 
 
-def convert_to_onnx(model, onnx_path, input_size, input_names, input_types, output_names, output_types, device):
+def convert_to_onnx(
+    model,
+    onnx_path,
+    input_size,
+    input_names,
+    input_types,
+    output_names,
+    output_types,
+    device,
+):
     # Convert PyTorch model to ONNX format
     click.echo(f"Converting model to ONNX and saving to {onnx_path}")
 
@@ -235,7 +325,9 @@ def convert_to_onnx(model, onnx_path, input_size, input_names, input_types, outp
         if dtype == "float32":
             dummy_inputs[name] = torch.randn(batch_size, seq_length).float().to(device)
         elif dtype == "int64":
-            dummy_inputs[name] = torch.randint(0, 1000, (batch_size, seq_length)).long().to(device)
+            dummy_inputs[name] = (
+                torch.randint(0, 1000, (batch_size, seq_length)).long().to(device)
+            )
         # Add other data types as needed
 
     # Handle DataParallel case
@@ -264,7 +356,9 @@ def convert_to_onnx(model, onnx_path, input_size, input_names, input_types, outp
     )
 
 
-def convert_to_trt(onnx_path, engine_path, use_fp16, use_int8, memory_pool_limit, max_batch_size):
+def convert_to_trt(
+    onnx_path, engine_path, use_fp16, use_int8, memory_pool_limit, max_batch_size
+):
     # Convert ONNX model to TensorRT engine
     click.echo(f"Converting ONNX model to TensorRT engine and saving to {engine_path}")
 
@@ -281,7 +375,9 @@ def convert_to_trt(onnx_path, engine_path, use_fp16, use_int8, memory_pool_limit
             return
 
     config = builder.create_builder_config()
-    config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, memory_pool_limit)  # Set memory pool limit
+    config.set_memory_pool_limit(
+        trt.MemoryPoolType.WORKSPACE, memory_pool_limit
+    )  # Set memory pool limit
     config.set_flag(trt.BuilderFlag.SPARSE_WEIGHTS)
     config.set_flag(trt.BuilderFlag.TF32)
     if use_fp16:
@@ -335,7 +431,8 @@ def create_triton_config(
     ]
 
     outputs_config = [
-        {"name": out.name, "data_type": dtype_map[out.dtype], "dims": out.shape} for out in io_config.outputs
+        {"name": out.name, "data_type": dtype_map[out.dtype], "dims": out.shape}
+        for out in io_config.outputs
     ]
 
     # Generate input and output configurations

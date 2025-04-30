@@ -85,7 +85,9 @@ class InfographicExtractorConfigSchema(BaseModel):
             http_service = clean_service(http_service)
 
             if not grpc_service and not http_service:
-                raise ValueError(f"Both gRPC and HTTP services cannot be empty for {endpoint_name}.")
+                raise ValueError(
+                    f"Both gRPC and HTTP services cannot be empty for {endpoint_name}."
+                )
 
             values[endpoint_name] = (grpc_service, http_service)
 

@@ -27,7 +27,10 @@ def test_text_splitter_schema_custom_values():
     chunk_size = 500
     chunk_overlap = 10
     schema = TextSplitterSchema(
-        tokenizer=tokenizer, chunk_size=chunk_size, chunk_overlap=chunk_overlap, raise_on_failure=True
+        tokenizer=tokenizer,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        raise_on_failure=True,
     )
     assert schema.tokenizer == tokenizer
     assert schema.chunk_size == chunk_size
@@ -71,7 +74,9 @@ def test_text_splitter_schema_invalid_chunk_overlap(invalid_value):
         (50, 200, False),
     ],
 )
-def test_text_splitter_schema_chunk_overlap_validation(chunk_size, chunk_overlap, is_valid):
+def test_text_splitter_schema_chunk_overlap_validation(
+    chunk_size, chunk_overlap, is_valid
+):
     """
     Parametrized test for validating the chunk_overlap logic in TextSplitterSchema.
     """

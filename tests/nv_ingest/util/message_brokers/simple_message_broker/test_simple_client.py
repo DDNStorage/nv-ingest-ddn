@@ -3,7 +3,10 @@ import threading
 import time
 from uuid import uuid4
 
-from nv_ingest.util.message_brokers.simple_message_broker import SimpleClient, SimpleMessageBroker
+from nv_ingest.util.message_brokers.simple_message_broker import (
+    SimpleClient,
+    SimpleMessageBroker,
+)
 
 HOST = "127.0.0.1"
 PORT = 9999  # Use an available port
@@ -55,7 +58,9 @@ def test_message_ordering():
         assert response.response_code == 0
         popped_messages.append(response.response)
 
-    assert popped_messages == messages, "Messages popped are not in the same order as they were pushed."
+    assert (
+        popped_messages == messages
+    ), "Messages popped are not in the same order as they were pushed."
 
 
 @pytest.mark.usefixtures("broker_server")
@@ -135,17 +140,23 @@ def test_client_retry_logic():
     elapsed_time = time.time() - start_time
 
     # Expected total backoff delay is sum of backoff delays: 2^1 + 2^2 = 2 + 4 = 6 seconds
-    expected_delay = sum(min(2**i, client._max_backoff) for i in range(1, client._max_retries + 1))
+    expected_delay = sum(
+        min(2**i, client._max_backoff) for i in range(1, client._max_retries + 1)
+    )
 
     assert response.response_code == 1
     assert response.response_reason == PUSH_TIMEOUT_MSG
-    assert elapsed_time >= expected_delay, "Client did not wait for the expected backoff duration."
+    assert (
+        elapsed_time >= expected_delay
+    ), "Client did not wait for the expected backoff duration."
 
 
 @pytest.mark.usefixtures("broker_server")
 def test_operation_timeout():
     """Test client's behavior when an operation times out."""
-    client = SimpleClient(HOST, PORT, connection_timeout=0.001)  # Set a very short timeout
+    client = SimpleClient(
+        HOST, PORT, connection_timeout=0.001
+    )  # Set a very short timeout
     queue_name = f"test_queue_{uuid4()}"
 
     response = client.submit_message(queue_name, "Test Message", timeout=1)
@@ -322,6 +333,8 @@ def test_concurrent_push_pop(client):
 
     # Verify that all messages were pushed and popped
     pushed = [r for r in results if r.response == "Data stored."]
-    popped = [r for r in results if r.response_code == 0 and r.response.startswith("Message")]
+    popped = [
+        r for r in results if r.response_code == 0 and r.response.startswith("Message")
+    ]
     assert len(pushed) == len(messages)
     assert len(popped) == len(messages)

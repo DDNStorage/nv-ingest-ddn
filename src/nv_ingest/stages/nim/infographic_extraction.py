@@ -43,10 +43,14 @@ def _update_metadata(
     Images that do not meet the minimum size are skipped (resulting in ("", "") for that image).
     The paddle_client is expected to handle any necessary batching and concurrency.
     """
-    logger.debug(f"Running infographic extraction using protocol {paddle_client.protocol}")
+    logger.debug(
+        f"Running infographic extraction using protocol {paddle_client.protocol}"
+    )
 
     # Initialize the results list in the same order as base64_images.
-    results: List[Optional[Tuple[str, Tuple[Any, Any, Any]]]] = [("", None, None)] * len(base64_images)
+    results: List[Optional[Tuple[str, Tuple[Any, Any, Any]]]] = [
+        ("", None, None)
+    ] * len(base64_images)
 
     valid_images: List[str] = []
     valid_indices: List[int] = []
@@ -80,11 +84,17 @@ def _update_metadata(
         raise
 
     if len(paddle_results) != len(valid_images):
-        raise ValueError(f"Expected {len(valid_images)} paddle results, got {len(paddle_results)}")
+        raise ValueError(
+            f"Expected {len(valid_images)} paddle results, got {len(paddle_results)}"
+        )
 
     for idx, paddle_res in enumerate(paddle_results):
         original_index = valid_indices[idx]
-        results[original_index] = (base64_images[original_index], paddle_res[0], paddle_res[1])
+        results[original_index] = (
+            base64_images[original_index],
+            paddle_res[0],
+            paddle_res[1],
+        )
 
     return results
 
@@ -109,7 +119,10 @@ def _create_clients(
 
 
 def _extract_infographic_data(
-    df: pd.DataFrame, task_props: Dict[str, Any], validated_config: Any, trace_info: Optional[Dict] = None
+    df: pd.DataFrame,
+    task_props: Dict[str, Any],
+    validated_config: Any,
+    trace_info: Optional[Dict] = None,
 ) -> Tuple[pd.DataFrame, Dict]:
     """
     Extracts infographic data from a DataFrame in a bulk fashion rather than row-by-row,
@@ -243,8 +256,14 @@ def generate_infographic_extractor_stage(
     """
 
     validated_config = InfographicExtractorSchema(**stage_config)
-    _wrapped_process_fn = functools.partial(_extract_infographic_data, validated_config=validated_config)
+    _wrapped_process_fn = functools.partial(
+        _extract_infographic_data, validated_config=validated_config
+    )
 
     return MultiProcessingBaseStage(
-        c=c, pe_count=pe_count, task=task, task_desc=task_desc, process_fn=_wrapped_process_fn
+        c=c,
+        pe_count=pe_count,
+        task=task,
+        task_desc=task_desc,
+        process_fn=_wrapped_process_fn,
     )

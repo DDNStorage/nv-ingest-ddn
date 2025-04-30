@@ -102,35 +102,51 @@ def click_validate_task(ctx, param, value):
             options = json.loads(json_options)
 
             if task_id == "split":
-                task_options = check_schema(SplitTaskSchema, options, task_id, json_options)
+                task_options = check_schema(
+                    SplitTaskSchema, options, task_id, json_options
+                )
                 new_task_id = f"{task_id}"
                 new_task = [(new_task_id, SplitTask(**task_options.model_dump()))]
             elif task_id == "extract":
-                task_options = check_schema(ExtractTaskSchema, options, task_id, json_options)
+                task_options = check_schema(
+                    ExtractTaskSchema, options, task_id, json_options
+                )
                 new_task_id = f"{task_id}_{task_options.document_type}"
                 new_task = [(new_task_id, ExtractTask(**task_options.model_dump()))]
             elif task_id == "store":
-                task_options = check_schema(StoreTaskSchema, options, task_id, json_options)
+                task_options = check_schema(
+                    StoreTaskSchema, options, task_id, json_options
+                )
                 new_task_id = f"{task_id}"
                 new_task = [(new_task_id, StoreTask(**task_options.model_dump()))]
             elif task_id == "store_embedding":
-                task_options = check_schema(StoreEmbedTaskSchema, options, task_id, json_options)
+                task_options = check_schema(
+                    StoreEmbedTaskSchema, options, task_id, json_options
+                )
                 new_task_id = f"{task_id}"
                 new_task = [(new_task_id, StoreEmbedTask(**task_options.model_dump()))]
             elif task_id == "caption":
-                task_options = check_schema(CaptionTaskSchema, options, task_id, json_options)
+                task_options = check_schema(
+                    CaptionTaskSchema, options, task_id, json_options
+                )
                 new_task_id = f"{task_id}"
                 new_task = [(new_task_id, CaptionTask(**task_options.model_dump()))]
             elif task_id == "dedup":
-                task_options = check_schema(DedupTaskSchema, options, task_id, json_options)
+                task_options = check_schema(
+                    DedupTaskSchema, options, task_id, json_options
+                )
                 new_task_id = f"{task_id}"
                 new_task = [(new_task_id, DedupTask(**task_options.model_dump()))]
             elif task_id == "filter":
-                task_options = check_schema(FilterTaskSchema, options, task_id, json_options)
+                task_options = check_schema(
+                    FilterTaskSchema, options, task_id, json_options
+                )
                 new_task_id = f"{task_id}"
                 new_task = [(new_task_id, FilterTask(**task_options.model_dump()))]
             elif task_id == "embed":
-                task_options = check_schema(EmbedTaskSchema, options, task_id, json_options)
+                task_options = check_schema(
+                    EmbedTaskSchema, options, task_id, json_options
+                )
                 new_task_id = f"{task_id}"
                 new_task = [(new_task_id, EmbedTask(**task_options.model_dump()))]
             else:

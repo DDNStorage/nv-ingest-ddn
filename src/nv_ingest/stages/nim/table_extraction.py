@@ -24,8 +24,12 @@ from nv_ingest.util.nim.helpers import NimClient
 from nv_ingest.util.nim.helpers import create_inference_client
 from nv_ingest.util.nim.paddle import PaddleOCRModelInterface
 from nv_ingest.util.nim.yolox import YoloxTableStructureModelInterface
-from nv_ingest.util.image_processing.table_and_chart import join_yolox_table_structure_and_paddle_output
-from nv_ingest.util.image_processing.table_and_chart import convert_paddle_response_to_psuedo_markdown
+from nv_ingest.util.image_processing.table_and_chart import (
+    join_yolox_table_structure_and_paddle_output,
+)
+from nv_ingest.util.image_processing.table_and_chart import (
+    convert_paddle_response_to_psuedo_markdown,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +58,9 @@ def _update_metadata(
     logger.debug(f"Running table extraction using protocol {paddle_client.protocol}")
 
     # Initialize the results list in the same order as base64_images.
-    results: List[Optional[Tuple[str, Tuple[Any, Any, Any]]]] = [("", None, None, None)] * len(base64_images)
+    results: List[Optional[Tuple[str, Tuple[Any, Any, Any]]]] = [
+        ("", None, None, None)
+    ] * len(base64_images)
 
     valid_images: List[str] = []
     valid_indices: List[int] = []
@@ -128,16 +134,27 @@ def _update_metadata(
         if not isinstance(yolox_results, list):
             yolox_results = [None] * len(valid_arrays)
         if not isinstance(paddle_results, list):
-            paddle_results = [(None, None)] * len(valid_images)  # Default for paddle output
+            paddle_results = [(None, None)] * len(
+                valid_images
+            )  # Default for paddle output
 
     if len(yolox_results) != len(valid_arrays):
-        raise ValueError(f"Expected {len(valid_arrays)} yolox results, got {len(yolox_results)}")
+        raise ValueError(
+            f"Expected {len(valid_arrays)} yolox results, got {len(yolox_results)}"
+        )
     if len(paddle_results) != len(valid_images):
-        raise ValueError(f"Expected {len(valid_images)} paddle results, got {len(paddle_results)}")
+        raise ValueError(
+            f"Expected {len(valid_images)} paddle results, got {len(paddle_results)}"
+        )
 
     for idx, (yolox_res, paddle_res) in enumerate(zip(yolox_results, paddle_results)):
         original_index = valid_indices[idx]
-        results[original_index] = (base64_images[original_index], yolox_res, paddle_res[0], paddle_res[1])
+        results[original_index] = (
+            base64_images[original_index],
+            yolox_res,
+            paddle_res[0],
+            paddle_res[1],
+        )
 
     return results
 
@@ -152,7 +169,9 @@ def _create_clients(
     yolox_model_interface = YoloxTableStructureModelInterface()
     paddle_model_interface = PaddleOCRModelInterface()
 
-    logger.debug(f"Inference protocols: yolox={yolox_protocol}, paddle={paddle_protocol}")
+    logger.debug(
+        f"Inference protocols: yolox={yolox_protocol}, paddle={paddle_protocol}"
+    )
 
     yolox_client = create_inference_client(
         endpoints=yolox_endpoints,
@@ -172,7 +191,10 @@ def _create_clients(
 
 
 def _extract_table_data(
-    df: pd.DataFrame, task_props: Dict[str, Any], validated_config: Any, trace_info: Optional[Dict] = None
+    df: pd.DataFrame,
+    task_props: Dict[str, Any],
+    validated_config: Any,
+    trace_info: Optional[Dict] = None,
 ) -> Tuple[pd.DataFrame, Dict]:
     """
     Extracts table data from a DataFrame in a bulk fashion rather than row-by-row,
@@ -244,10 +266,14 @@ def _extract_table_data(
 
         # 3) Call our bulk _update_metadata to get all results
         table_content_format = (
-            df.at[valid_indices[0], "metadata"]["table_metadata"].get("table_content_format")
+            df.at[valid_indices[0], "metadata"]["table_metadata"].get(
+                "table_content_format"
+            )
             or TableFormatEnum.PSEUDO_MARKDOWN
         )
-        enable_yolox = True if table_content_format in (TableFormatEnum.MARKDOWN,) else False
+        enable_yolox = (
+            True if table_content_format in (TableFormatEnum.MARKDOWN,) else False
+        )
 
         bulk_results = _update_metadata(
             base64_images=base64_images,
@@ -266,7 +292,9 @@ def _extract_table_data(
             if table_content_format == TableFormatEnum.SIMPLE:
                 table_content = " ".join(text_predictions)
             elif table_content_format == TableFormatEnum.PSEUDO_MARKDOWN:
-                table_content = convert_paddle_response_to_psuedo_markdown(bounding_boxes, text_predictions)
+                table_content = convert_paddle_response_to_psuedo_markdown(
+                    bounding_boxes, text_predictions
+                )
             elif table_content_format == TableFormatEnum.MARKDOWN:
                 table_content = join_yolox_table_structure_and_paddle_output(
                     cell_predictions, bounding_boxes, text_predictions
@@ -275,7 +303,9 @@ def _extract_table_data(
                 raise ValueError(f"Unexpected table format: {table_content_format}")
 
             df.at[idx, "metadata"]["table_metadata"]["table_content"] = table_content
-            df.at[idx, "metadata"]["table_metadata"]["table_content_format"] = table_content_format
+            df.at[idx, "metadata"]["table_metadata"][
+                "table_content_format"
+            ] = table_content_format
 
         return df, {"trace_info": trace_info}
 
@@ -327,8 +357,14 @@ def generate_table_extractor_stage(
     """
 
     validated_config = TableExtractorSchema(**stage_config)
-    _wrapped_process_fn = functools.partial(_extract_table_data, validated_config=validated_config)
+    _wrapped_process_fn = functools.partial(
+        _extract_table_data, validated_config=validated_config
+    )
 
     return MultiProcessingBaseStage(
-        c=c, pe_count=pe_count, task=task, task_desc=task_desc, process_fn=_wrapped_process_fn
+        c=c,
+        pe_count=pe_count,
+        task=task,
+        task_desc=task_desc,
+        process_fn=_wrapped_process_fn,
     )

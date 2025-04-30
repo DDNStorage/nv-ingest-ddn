@@ -35,7 +35,9 @@ def test_add_duplicate_task():
     cm = IngestControlMessage()
     task = ControlMessageTask(type="Test Task", id="task1", properties={"key": "value"})
     cm.add_task(task)
-    duplicate_task = ControlMessageTask(type="Another Task", id="task1", properties={"key": "other"})
+    duplicate_task = ControlMessageTask(
+        type="Another Task", id="task1", properties={"key": "other"}
+    )
     with pytest.raises(ValueError) as exc_info:
         cm.add_task(duplicate_task)
     assert "already exists" in str(exc_info.value)

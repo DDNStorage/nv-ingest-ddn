@@ -64,7 +64,9 @@ def test_dedup_task_to_dict(
     if filter is not None:
         expected_dict["task_properties"]["params"]["filter"] = filter
 
-    assert task.to_dict() == expected_dict, "The to_dict method did not return the expected dictionary representation"
+    assert (
+        task.to_dict() == expected_dict
+    ), "The to_dict method did not return the expected dictionary representation"
 
 
 # Default Parameter Handling

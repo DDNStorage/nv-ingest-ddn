@@ -7,10 +7,16 @@ from nv_ingest.api.main import app
 
 
 @click.command()
-@click.option("--output", default="openapi.yaml", help="Path to OpenAPI output file (default: openapi.json)")
+@click.option(
+    "--output",
+    default="openapi.yaml",
+    help="Path to OpenAPI output file (default: openapi.json)",
+)
 def write_openapi_schema(output):
     if os.path.isdir(output):
-        print(f"Warning: '{output}' is a directory. Defaulting to '{output}/openapi.yaml'.")
+        print(
+            f"Warning: '{output}' is a directory. Defaulting to '{output}/openapi.yaml'."
+        )
         output = os.path.join(output, "openapi.yaml")
 
     # Determine format based on file extension

@@ -49,7 +49,10 @@ def test_update_metadata_valid_audio(mock_audio_client):
     result_metadata = _update_metadata(row, mock_audio_client, trace_info)
 
     assert "audio_metadata" in result_metadata
-    assert result_metadata["audio_metadata"]["audio_transcript"] == "Transcribed audio text"
+    assert (
+        result_metadata["audio_metadata"]["audio_transcript"]
+        == "Transcribed audio text"
+    )
 
 
 def test_update_metadata_missing_metadata():

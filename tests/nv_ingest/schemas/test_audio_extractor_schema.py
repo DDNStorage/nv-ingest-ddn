@@ -21,14 +21,18 @@ def test_audio_config_schema_valid_http():
 
 def test_audio_config_schema_valid_both_endpoints():
     """Test AudioConfigSchema with both gRPC and HTTP endpoints provided."""
-    config = AudioConfigSchema(audio_endpoints=("grpc://localhost:50051", "http://localhost:8080"))
+    config = AudioConfigSchema(
+        audio_endpoints=("grpc://localhost:50051", "http://localhost:8080")
+    )
     assert config.audio_endpoints == ("grpc://localhost:50051", "http://localhost:8080")
     assert config.audio_infer_protocol == "http"  # Defaults to HTTP when both exist
 
 
 def test_audio_config_schema_empty_endpoints():
     """Test AudioConfigSchema validation error when both gRPC and HTTP endpoints are empty."""
-    with pytest.raises(ValidationError, match="Both gRPC and HTTP services cannot be empty"):
+    with pytest.raises(
+        ValidationError, match="Both gRPC and HTTP services cannot be empty"
+    ):
         AudioConfigSchema(audio_endpoints=("", ""))
 
 
@@ -41,7 +45,11 @@ def test_audio_config_schema_whitespace_endpoints():
 
 def test_audio_config_schema_ssl_enabled():
     """Test AudioConfigSchema with SSL enabled."""
-    config = AudioConfigSchema(audio_endpoints=("grpc://localhost:50051", ""), use_ssl=True, ssl_cert="cert.pem")
+    config = AudioConfigSchema(
+        audio_endpoints=("grpc://localhost:50051", ""),
+        use_ssl=True,
+        ssl_cert="cert.pem",
+    )
     assert config.use_ssl is True
     assert config.ssl_cert == "cert.pem"
 
@@ -68,7 +76,10 @@ def test_audio_extractor_schema_with_audio_config():
     """Test AudioExtractorSchema with an embedded AudioConfigSchema."""
     audio_config = AudioConfigSchema(audio_endpoints=("grpc://localhost:50051", ""))
     extractor = AudioExtractorSchema(audio_extraction_config=audio_config)
-    assert extractor.audio_extraction_config.audio_endpoints == ("grpc://localhost:50051", None)
+    assert extractor.audio_extraction_config.audio_endpoints == (
+        "grpc://localhost:50051",
+        None,
+    )
     assert extractor.audio_extraction_config.audio_infer_protocol == "grpc"
 
 

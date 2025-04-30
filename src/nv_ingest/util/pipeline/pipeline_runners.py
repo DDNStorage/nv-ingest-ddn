@@ -27,7 +27,10 @@ from morpheus.utils.logger import configure_logging
 from nv_ingest.util.pipeline import setup_ingestion_pipeline
 from morpheus.pipeline.pipeline import Pipeline
 
-from nv_ingest.util.pipeline.stage_builders import get_default_cpu_count, validate_positive
+from nv_ingest.util.pipeline.stage_builders import (
+    get_default_cpu_count,
+    validate_positive,
+)
 from nv_ingest.util.schema.schema_validator import validate_schema
 
 logger = logging.getLogger(__name__)
@@ -42,13 +45,21 @@ class PipelineCreationSchema(BaseModel):
     """
 
     # Audio processing settings
-    audio_grpc_endpoint: str = os.getenv("AUDIO_GRPC_ENDPOINT", "grpc.nvcf.nvidia.com:443")
-    audio_function_id: str = os.getenv("AUDIO_FUNCTION_ID", "1598d209-5e27-4d3c-8079-4751568b1081")
+    audio_grpc_endpoint: str = os.getenv(
+        "AUDIO_GRPC_ENDPOINT", "grpc.nvcf.nvidia.com:443"
+    )
+    audio_function_id: str = os.getenv(
+        "AUDIO_FUNCTION_ID", "1598d209-5e27-4d3c-8079-4751568b1081"
+    )
     audio_infer_protocol: str = "grpc"
 
     # Embedding model settings
-    embedding_nim_endpoint: str = os.getenv("EMBEDDING_NIM_ENDPOINT", "https://integrate.api.nvidia.com/v1")
-    embedding_nim_model_name: str = os.getenv("EMBEDDING_NIM_MODEL_NAME", "nvidia/llama-3.2-nv-embedqa-1b-v2")
+    embedding_nim_endpoint: str = os.getenv(
+        "EMBEDDING_NIM_ENDPOINT", "https://integrate.api.nvidia.com/v1"
+    )
+    embedding_nim_model_name: str = os.getenv(
+        "EMBEDDING_NIM_MODEL_NAME", "nvidia/llama-3.2-nv-embedqa-1b-v2"
+    )
 
     # General pipeline settings
     ingest_log_level: str = os.getenv("INGEST_LOG_LEVEL", "INFO")
@@ -64,20 +75,27 @@ class PipelineCreationSchema(BaseModel):
 
     # NeMo Retriever settings
     nemoretriever_parse_http_endpoint: str = os.getenv(
-        "NEMORETRIEVER_PARSE_HTTP_ENDPOINT", "https://integrate.api.nvidia.com/v1/chat/completions"
+        "NEMORETRIEVER_PARSE_HTTP_ENDPOINT",
+        "https://integrate.api.nvidia.com/v1/chat/completions",
     )
     nemoretriever_parse_infer_protocol: str = "http"
-    nemoretriever_parse_model_name: str = os.getenv("NEMORETRIEVER_PARSE_MODEL_NAME", "nvidia/nemoretriever-parse")
+    nemoretriever_parse_model_name: str = os.getenv(
+        "NEMORETRIEVER_PARSE_MODEL_NAME", "nvidia/nemoretriever-parse"
+    )
 
     # API keys
     ngc_api_key: str = os.getenv("NGC_API_KEY", "")
     nvidia_build_api_key: str = os.getenv("NVIDIA_BUILD_API_KEY", "")
 
     # Observability settings
-    otel_exporter_otlp_endpoint: str = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317")
+    otel_exporter_otlp_endpoint: str = os.getenv(
+        "OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317"
+    )
 
     # OCR settings
-    paddle_http_endpoint: str = os.getenv("PADDLE_HTTP_ENDPOINT", "https://ai.api.nvidia.com/v1/cv/baidu/paddleocr")
+    paddle_http_endpoint: str = os.getenv(
+        "PADDLE_HTTP_ENDPOINT", "https://ai.api.nvidia.com/v1/cv/baidu/paddleocr"
+    )
     paddle_infer_protocol: str = "http"
 
     # Task queue settings
@@ -85,9 +103,12 @@ class PipelineCreationSchema(BaseModel):
 
     # Vision language model settings
     vlm_caption_endpoint: str = os.getenv(
-        "VLM_CAPTION_ENDPOINT", "https://ai.api.nvidia.com/v1/gr/meta/llama-3.2-11b-vision-instruct/chat/completions"
+        "VLM_CAPTION_ENDPOINT",
+        "https://ai.api.nvidia.com/v1/gr/meta/llama-3.2-11b-vision-instruct/chat/completions",
     )
-    vlm_caption_model_name: str = os.getenv("VLM_CAPTION_MODEL_NAME", "meta/llama-3.2-11b-vision-instruct")
+    vlm_caption_model_name: str = os.getenv(
+        "VLM_CAPTION_MODEL_NAME", "meta/llama-3.2-11b-vision-instruct"
+    )
 
     # YOLOX model endpoints for various document processing tasks
     yolox_graphic_elements_http_endpoint: str = os.getenv(
@@ -96,18 +117,22 @@ class PipelineCreationSchema(BaseModel):
     )
     yolox_graphic_elements_infer_protocol: str = "http"
     yolox_http_endpoint: str = os.getenv(
-        "YOLOX_HTTP_ENDPOINT", "https://ai.api.nvidia.com/v1/cv/nvidia/nemoretriever-page-elements-v2"
+        "YOLOX_HTTP_ENDPOINT",
+        "https://ai.api.nvidia.com/v1/cv/nvidia/nemoretriever-page-elements-v2",
     )
     yolox_infer_protocol: str = "http"
     yolox_table_structure_http_endpoint: str = os.getenv(
-        "YOLOX_TABLE_STRUCTURE_HTTP_ENDPOINT", "https://ai.api.nvidia.com/v1/cv/nvidia/nemoretriever-table-structure-v1"
+        "YOLOX_TABLE_STRUCTURE_HTTP_ENDPOINT",
+        "https://ai.api.nvidia.com/v1/cv/nvidia/nemoretriever-table-structure-v1",
     )
     yolox_table_structure_infer_protocol: str = "http"
 
     model_config = ConfigDict(extra="forbid")
 
 
-def _launch_pipeline(morpheus_pipeline_config: Any, ingest_config: Dict[str, Any]) -> float:
+def _launch_pipeline(
+    morpheus_pipeline_config: Any, ingest_config: Dict[str, Any]
+) -> float:
     """
     Launches the pipeline setup and runs it synchronously.
 
@@ -181,7 +206,9 @@ def run_pipeline(morpheus_pipeline_config: Any, ingest_config: Dict[str, Any]) -
         Any exception raised during pipeline execution will be propagated.
     """
     total_elapsed = _launch_pipeline(morpheus_pipeline_config, ingest_config)
-    logger.debug(f"Pipeline execution completed successfully in {total_elapsed:.2f} seconds.")
+    logger.debug(
+        f"Pipeline execution completed successfully in {total_elapsed:.2f} seconds."
+    )
     return total_elapsed
 
 
@@ -256,7 +283,9 @@ def run_ingest_pipeline(
             log_level = "INFO"
 
     log_level_value = log_level_mapping.get(log_level.upper(), logging.INFO)
-    logging.basicConfig(level=log_level_value, format="%(asctime)s - %(levelname)s - %(message)s")
+    logging.basicConfig(
+        level=log_level_value, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
     configure_logging(log_level=log_level_value)
 
     # Configure C++ backend if requested
@@ -379,7 +408,9 @@ def is_port_in_use(port, host="127.0.0.1"):
 
 
 def start_pipeline_subprocess(
-    config: PipelineCreationSchema, stdout: Optional[TextIO] = None, stderr: Optional[TextIO] = None
+    config: PipelineCreationSchema,
+    stdout: Optional[TextIO] = None,
+    stderr: Optional[TextIO] = None,
 ) -> "subprocess.Popen":
     """
     Launches the pipeline in a subprocess and ensures that it terminates
@@ -436,7 +467,9 @@ def start_pipeline_subprocess(
             logger.info(f"Child process will be limited to {max_cpus} cores: {cpu_set}")
         except AttributeError:
             # sched_getaffinity not available on all platforms
-            logger.warning("os.sched_getaffinity not available, falling back to cpu_count")
+            logger.warning(
+                "os.sched_getaffinity not available, falling back to cpu_count"
+            )
             try:
                 import multiprocessing
 
@@ -445,10 +478,14 @@ def start_pipeline_subprocess(
                 cpu_set = set(range(max_cpus))
                 logger.info(f"Child process will be limited to cores 0-{max_cpus-1}")
             except Exception as e:
-                logger.warning(f"Failed to determine CPU count: {e}. Will not set CPU affinity.")
+                logger.warning(
+                    f"Failed to determine CPU count: {e}. Will not set CPU affinity."
+                )
                 cpu_set = None
         except Exception as e:
-            logger.warning(f"Failed to get current CPU affinity: {e}. Will not set CPU affinity.")
+            logger.warning(
+                f"Failed to get current CPU affinity: {e}. Will not set CPU affinity."
+            )
             cpu_set = None
 
         def combined_preexec_fn():
@@ -467,7 +504,9 @@ def start_pipeline_subprocess(
                     os.sched_setaffinity(0, cpu_set)
                     logger.debug(f"Set CPU affinity for subprocess to {cpu_set}")
                 except AttributeError:
-                    logger.warning("os.sched_setaffinity not available, using taskset as fallback")
+                    logger.warning(
+                        "os.sched_setaffinity not available, using taskset as fallback"
+                    )
                     # Note: We can't use taskset here as it would need to be applied before Popen
                 except Exception as e:
                     logger.warning(f"Failed to set CPU affinity: {e}")
@@ -482,19 +521,30 @@ def start_pipeline_subprocess(
             try:
                 # Check if taskset is available on the system
                 taskset_check = subprocess.run(
-                    ["which", "taskset"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+                    ["which", "taskset"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
                 )
                 has_taskset = taskset_check.returncode == 0
 
                 if has_taskset:
                     # Create CPU mask from the specific cores in cpu_set
                     cpu_mask = ",".join(str(cpu) for cpu in sorted(cpu_set))
-                    subprocess_command = ["taskset", "-c", cpu_mask] + subprocess_command
+                    subprocess_command = [
+                        "taskset",
+                        "-c",
+                        cpu_mask,
+                    ] + subprocess_command
                     logger.info(f"Using taskset to limit to CPU cores {cpu_mask}")
                 else:
-                    logger.warning("Neither sched_setaffinity nor taskset are available. CPU affinity will not be set.")
+                    logger.warning(
+                        "Neither sched_setaffinity nor taskset are available. CPU affinity will not be set."
+                    )
             except Exception as e:
-                logger.warning(f"Failed to check for taskset: {e}. CPU affinity will not be set.")
+                logger.warning(
+                    f"Failed to check for taskset: {e}. CPU affinity will not be set."
+                )
                 has_taskset = False
 
         # Start the subprocess
@@ -514,7 +564,9 @@ def start_pipeline_subprocess(
         # Define and register signal handlers for graceful shutdown
         def signal_handler(signum, frame):
             """Handle signals to ensure clean subprocess termination."""
-            logger.info(f"Received signal {signum}. Terminating pipeline subprocess group...")
+            logger.info(
+                f"Received signal {signum}. Terminating pipeline subprocess group..."
+            )
             _terminate_subprocess(process)
             sys.exit(0)
 

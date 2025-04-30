@@ -25,9 +25,14 @@ def test_split_task_initialization():
 
 
 def test_split_task_str_representation():
-    task = SplitTask(tokenizer="intfloat/e5-large-unsupervised", chunk_size=50, chunk_overlap=5)
+    task = SplitTask(
+        tokenizer="intfloat/e5-large-unsupervised", chunk_size=50, chunk_overlap=5
+    )
     expected_str = (
-        "Split Task:\n" "  tokenizer: intfloat/e5-large-unsupervised\n" "  chunk_size: 50\n" "  chunk_overlap: 5\n"
+        "Split Task:\n"
+        "  tokenizer: intfloat/e5-large-unsupervised\n"
+        "  chunk_size: 50\n"
+        "  chunk_overlap: 5\n"
     )
     assert str(task) == expected_str
 
@@ -68,7 +73,9 @@ def test_split_task_to_dict(
     if params is not None:
         expected_dict["task_properties"]["params"] = params
 
-    assert task.to_dict() == expected_dict, "The to_dict method did not return the expected dictionary representation"
+    assert (
+        task.to_dict() == expected_dict
+    ), "The to_dict method did not return the expected dictionary representation"
 
 
 # Default Parameter Handling

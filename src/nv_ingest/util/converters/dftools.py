@@ -55,7 +55,13 @@ def pandas_to_cudf(
             df[col] = df[col].apply(lambda x: json.loads(x))
         df = pd.concat([df, df.iloc[0:1]], axis=0)
 
-        fastparquet.write("_", df, open_with=files.open, compression="UNCOMPRESSED", object_encoding="json")
+        fastparquet.write(
+            "_",
+            df,
+            open_with=files.open,
+            compression="UNCOMPRESSED",
+            object_encoding="json",
+        )
 
         with files.output["_"] as bytes_buf:
             gdf = cudf.read_parquet(bytes_buf).iloc[:-1]

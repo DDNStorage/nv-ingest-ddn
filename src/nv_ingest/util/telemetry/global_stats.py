@@ -95,7 +95,9 @@ class GlobalStats:
 
     def __init__(self):
         if GlobalStats._instance is not None:
-            raise Exception("This class is a singleton. Use `GlobalStats.get_instance()`.")
+            raise Exception(
+                "This class is a singleton. Use `GlobalStats.get_instance()`."
+            )
         GlobalStats._instance = self
 
         self.max_jobs = TELEMETRY_WINDOW_SIZE
@@ -108,7 +110,9 @@ class GlobalStats:
             "completed_jobs": 0,
             "failed_jobs": 0,
         }
-        self.job_stats = defaultdict(lambda: {"values": deque(), "mean": 0.0, "median": 0.0})
+        self.job_stats = defaultdict(
+            lambda: {"values": deque(), "mean": 0.0, "median": 0.0}
+        )
 
     def set_stat(self, stat_name, value):
         self.stats[stat_name] = value
@@ -138,7 +142,9 @@ class GlobalStats:
     def get_all_stats(self):
         return {
             "global_stats": self.stats.copy(),
-            "job_stats": {job_name: stats.copy() for job_name, stats in self.job_stats.items()},
+            "job_stats": {
+                job_name: stats.copy() for job_name, stats in self.job_stats.items()
+            },
         }
 
     def __str__(self):

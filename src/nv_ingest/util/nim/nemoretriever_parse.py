@@ -38,7 +38,9 @@ ACCEPTED_IMAGE_CLASSES = set(
         "Picture",
     ]
 )
-ACCEPTED_CLASSES = ACCEPTED_TEXT_CLASSES | ACCEPTED_TABLE_CLASSES | ACCEPTED_IMAGE_CLASSES
+ACCEPTED_CLASSES = (
+    ACCEPTED_TEXT_CLASSES | ACCEPTED_TABLE_CLASSES | ACCEPTED_IMAGE_CLASSES
+)
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +89,9 @@ class NemoRetrieverParseModelInterface(ModelInterface):
 
         return data
 
-    def format_input(self, data: Dict[str, Any], protocol: str, max_batch_size: int, **kwargs) -> Any:
+    def format_input(
+        self, data: Dict[str, Any], protocol: str, max_batch_size: int, **kwargs
+    ) -> Any:
         """
         Format input data for the specified protocol.
 
@@ -139,7 +143,13 @@ class NemoRetrieverParseModelInterface(ModelInterface):
         else:
             raise ValueError("Invalid protocol specified. Must be 'grpc' or 'http'.")
 
-    def parse_output(self, response: Any, protocol: str, data: Optional[Dict[str, Any]] = None, **kwargs) -> Any:
+    def parse_output(
+        self,
+        response: Any,
+        protocol: str,
+        data: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> Any:
         """
         Parse the output from the model's inference response.
 
@@ -188,7 +198,9 @@ class NemoRetrieverParseModelInterface(ModelInterface):
 
         return output
 
-    def _prepare_nemoretriever_parse_payload(self, base64_list: List[str]) -> Dict[str, Any]:
+    def _prepare_nemoretriever_parse_payload(
+        self, base64_list: List[str]
+    ) -> Dict[str, Any]:
         messages = []
 
         for b64_img in base64_list:
@@ -212,7 +224,9 @@ class NemoRetrieverParseModelInterface(ModelInterface):
 
         return payload
 
-    def _extract_content_from_nemoretriever_parse_response(self, json_response: Dict[str, Any]) -> Any:
+    def _extract_content_from_nemoretriever_parse_response(
+        self, json_response: Dict[str, Any]
+    ) -> Any:
         """
         Extract content from the JSON response of a Deplot HTTP API request.
 
@@ -233,7 +247,9 @@ class NemoRetrieverParseModelInterface(ModelInterface):
         """
 
         if "choices" not in json_response or not json_response["choices"]:
-            raise RuntimeError("Unexpected response format: 'choices' key is missing or empty.")
+            raise RuntimeError(
+                "Unexpected response format: 'choices' key is missing or empty."
+            )
 
         tool_call = json_response["choices"][0]["message"]["tool_calls"][0]
         return json.loads(tool_call["function"]["arguments"])

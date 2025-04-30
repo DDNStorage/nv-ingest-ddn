@@ -32,7 +32,9 @@ from tqdm import tqdm
 logger = logging.getLogger(__name__)
 
 
-def highlight_error_in_original(original_str: str, task_name: str, error_detail: Dict[str, Any]) -> str:
+def highlight_error_in_original(
+    original_str: str, task_name: str, error_detail: Dict[str, Any]
+) -> str:
     """
     Highlights the error-causing text in the original JSON string based on the error type.
 
@@ -123,7 +125,9 @@ def format_validation_error(e: ValidationError, task_id, original_str: str) -> s
     return "\n".join(error_messages)
 
 
-def check_schema(schema: Type[BaseModel], options: dict, task_id: str, original_str: str) -> BaseModel:
+def check_schema(
+    schema: Type[BaseModel], options: dict, task_id: str, original_str: str
+) -> BaseModel:
     try:
         return schema(**options)
     except ValidationError as e:
@@ -131,7 +135,9 @@ def check_schema(schema: Type[BaseModel], options: dict, task_id: str, original_
         raise ValueError(error_message) from e
 
 
-def report_stage_statistics(stage_elapsed_times: defaultdict, total_trace_elapsed: float, abs_elapsed: float) -> None:
+def report_stage_statistics(
+    stage_elapsed_times: defaultdict, total_trace_elapsed: float, abs_elapsed: float
+) -> None:
     """
     Reports the statistics for each processing stage, including average, median, total time spent,
     and their respective percentages of the total processing time.
@@ -157,7 +163,11 @@ def report_stage_statistics(stage_elapsed_times: defaultdict, total_trace_elapse
             avg_time = mean(times)
             med_time = median(times)
             total_stage_time = sum(times)
-            percent_of_total = (total_stage_time / total_trace_elapsed * 100) if total_trace_elapsed > 0 else 0
+            percent_of_total = (
+                (total_stage_time / total_trace_elapsed * 100)
+                if total_trace_elapsed > 0
+                else 0
+            )
             logger.info(
                 f"{stage}: Avg: {avg_time / 1e6:.2f} ms, Median: {med_time / 1e6:.2f} ms, "
                 f"Total Time: {total_stage_time / 1e6:.2f} ms, Total % of Trace Computation: {percent_of_total:.2f}%"
@@ -170,10 +180,14 @@ def report_stage_statistics(stage_elapsed_times: defaultdict, total_trace_elapse
             f"Unresolved time: {unresolved_time / 1e6:.2f} ms, Percent of Total Elapsed: {percent_unresolved:.2f}%"
         )
     else:
-        logger.info("No unresolved time detected. Trace times account for the entire elapsed duration.")
+        logger.info(
+            "No unresolved time detected. Trace times account for the entire elapsed duration."
+        )
 
 
-def report_overall_speed(total_pages_processed: int, start_time_ns: int, total_files: int) -> None:
+def report_overall_speed(
+    total_pages_processed: int, start_time_ns: int, total_files: int
+) -> None:
     """
     Reports the overall processing speed based on the number of pages and files processed.
 
@@ -193,7 +207,9 @@ def report_overall_speed(total_pages_processed: int, start_time_ns: int, total_f
     """
 
     total_elapsed_time_ns = time.time_ns() - start_time_ns
-    total_elapsed_time_s = total_elapsed_time_ns / 1_000_000_000  # Convert nanoseconds to seconds
+    total_elapsed_time_s = (
+        total_elapsed_time_ns / 1_000_000_000
+    )  # Convert nanoseconds to seconds
 
     throughput_pages = total_pages_processed / total_elapsed_time_s  # pages/sec
     throughput_files = total_files / total_elapsed_time_s  # files/sec
@@ -266,7 +282,9 @@ def process_response(response, stage_elapsed_times):
                 stage_elapsed_times[stage_name].append(elapsed_time)
 
 
-def organize_documents_by_type(response_data: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+def organize_documents_by_type(
+    response_data: List[Dict[str, Any]],
+) -> Dict[str, List[Dict[str, Any]]]:
     """
     Organize documents by their content type.
 
@@ -399,11 +417,19 @@ def save_response_data(response, output_directory, images_to_disk=False):
                 meta = doc.get("metadata", {})
                 image_content = meta.get("content")
                 if doc_type == "image":
-                    image_type = meta.get("image_metadata", {}).get("image_type", "png").lower()
+                    image_type = (
+                        meta.get("image_metadata", {}).get("image_type", "png").lower()
+                    )
                 else:
                     image_type = "png"
 
-                if image_content and image_type in {"png", "svg", "jpeg", "jpg", "tiff"}:
+                if image_content and image_type in {
+                    "png",
+                    "svg",
+                    "jpeg",
+                    "jpg",
+                    "tiff",
+                }:
                     try:
                         # Decode the base64 content
                         image_data = base64.b64decode(image_content)
@@ -412,7 +438,9 @@ def save_response_data(response, output_directory, images_to_disk=False):
                         # Define the output file path
                         image_ext = "jpg" if image_type == "jpeg" else image_type
                         image_filename = f"{clean_doc_name}_{i}.{image_ext}"
-                        image_output_path = os.path.join(doc_type_path, "media", image_filename)
+                        image_output_path = os.path.join(
+                            doc_type_path, "media", image_filename
+                        )
 
                         # Ensure the media directory exists
                         os.makedirs(os.path.dirname(image_output_path), exist_ok=True)
@@ -426,7 +454,9 @@ def save_response_data(response, output_directory, images_to_disk=False):
                         logger.debug(f"Saved image to {image_output_path}")
 
                     except Exception as e:
-                        logger.error(f"Failed to save image {i} for {clean_doc_name}: {e}")
+                        logger.error(
+                            f"Failed to save image {i} for {clean_doc_name}: {e}"
+                        )
 
         # Write the metadata JSON file
         with open(os.path.join(doc_type_path, output_name), "w") as f:
@@ -504,7 +534,9 @@ def generate_job_batch_for_iteration(
 
             pbar.update(missing_jobs)
 
-        job_index_map_updates = {job_index: file for job_index, file in zip(new_job_indices, batch_files)}
+        job_index_map_updates = {
+            job_index: file for job_index, file in zip(new_job_indices, batch_files)
+        }
         processed += new_job_count
         _ = client.submit_job_async(new_job_indices, "morpheus_task_queue")
         job_indices.extend(new_job_indices)
@@ -616,26 +648,43 @@ def create_and_process_jobs(
         while (processed < len(files)) or retry_job_ids:
             # Process new batch of files or retry failed job IDs
             job_ids, job_id_map_updates, processed = generate_job_batch_for_iteration(
-                client, pbar, files, tasks, processed, batch_size, retry_job_ids, fail_on_error
+                client,
+                pbar,
+                files,
+                tasks,
+                processed,
+                batch_size,
+                retry_job_ids,
+                fail_on_error,
             )
             job_id_map.update(job_id_map_updates)
             retry_job_ids = []
 
-            futures_dict = client.fetch_job_result_async(job_ids, timeout=timeout, data_only=False)
+            futures_dict = client.fetch_job_result_async(
+                job_ids, timeout=timeout, data_only=False
+            )
             for future in as_completed(futures_dict.keys()):
                 retry = False
                 job_id = futures_dict[future]
                 source_name = job_id_map[job_id]
                 try:
-                    future_response, trace_id = handle_future_result(future, futures_dict)
+                    future_response, trace_id = handle_future_result(
+                        future, futures_dict
+                    )
                     trace_ids[source_name] = trace_id
 
                     if output_directory:
-                        save_response_data(future_response, output_directory, images_to_disk=save_images_separately)
+                        save_response_data(
+                            future_response,
+                            output_directory,
+                            images_to_disk=save_images_separately,
+                        )
 
                     total_pages_processed += file_page_counts[source_name]
                     elapsed_time = (time.time_ns() - start_time_ns) / 1e9
-                    pages_per_sec = total_pages_processed / elapsed_time if elapsed_time > 0 else 0
+                    pages_per_sec = (
+                        total_pages_processed / elapsed_time if elapsed_time > 0 else 0
+                    )
                     pbar.set_postfix(pages_per_sec=f"{pages_per_sec:.2f}")
 
                     process_response(future_response, trace_times)
@@ -647,16 +696,22 @@ def create_and_process_jobs(
                     retry = True
                 except json.JSONDecodeError as e:
                     source_name = job_id_map[job_id]
-                    logger.error(f"Decoding while processing {job_id}({source_name}) {e}")
+                    logger.error(
+                        f"Decoding while processing {job_id}({source_name}) {e}"
+                    )
                     failed_jobs.append(f"{job_id}::{source_name}")
                 except RuntimeError as e:
                     source_name = job_id_map[job_id]
-                    logger.error(f"Error while processing '{job_id}' - ({source_name}):\n{e}")
+                    logger.error(
+                        f"Error while processing '{job_id}' - ({source_name}):\n{e}"
+                    )
                     failed_jobs.append(f"{job_id}::{source_name}")
                 except Exception as e:
                     traceback.print_exc()
                     source_name = job_id_map[job_id]
-                    logger.error(f"Unhandled error while processing {job_id}({source_name}) {e}")
+                    logger.error(
+                        f"Unhandled error while processing {job_id}({source_name}) {e}"
+                    )
                     failed_jobs.append(f"{job_id}::{source_name}")
                 finally:
                     # Don't update progress bar if we're going to retry the job

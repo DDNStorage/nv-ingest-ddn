@@ -11,7 +11,11 @@ from pydantic import ValidationError
 
 def test_valid_schema_initialization():
     """Test valid initialization of CaptionTaskSchema with all fields."""
-    schema = CaptionTaskSchema(api_key="test_key", endpoint_url="http://example.com", prompt="Generate a caption")
+    schema = CaptionTaskSchema(
+        api_key="test_key",
+        endpoint_url="http://example.com",
+        prompt="Generate a caption",
+    )
     assert schema.api_key == "test_key"
     assert schema.endpoint_url == "http://example.com"
     assert schema.prompt == "Generate a caption"
@@ -46,7 +50,11 @@ def test_schema_invalid_extra_field():
 
 def test_caption_task_initialization():
     """Test initializing CaptionTask with all fields."""
-    task = CaptionTask(api_key="test_key", endpoint_url="http://example.com", prompt="Generate a caption")
+    task = CaptionTask(
+        api_key="test_key",
+        endpoint_url="http://example.com",
+        prompt="Generate a caption",
+    )
     assert task._api_key == "test_key"
     assert task._endpoint_url == "http://example.com"
     assert task._prompt == "Generate a caption"
@@ -70,7 +78,11 @@ def test_caption_task_empty_initialization():
 
 def test_caption_task_str_representation_all_fields():
     """Test string representation of CaptionTask with all fields."""
-    task = CaptionTask(api_key="test_key", endpoint_url="http://example.com", prompt="Generate a caption")
+    task = CaptionTask(
+        api_key="test_key",
+        endpoint_url="http://example.com",
+        prompt="Generate a caption",
+    )
     task_str = str(task)
     assert "Image Caption Task:" in task_str
     assert "api_key: [redacted]" in task_str
@@ -90,7 +102,11 @@ def test_caption_task_str_representation_partial_fields():
 
 def test_caption_task_to_dict_all_fields():
     """Test to_dict method of CaptionTask with all fields."""
-    task = CaptionTask(api_key="test_key", endpoint_url="http://example.com", prompt="Generate a caption")
+    task = CaptionTask(
+        api_key="test_key",
+        endpoint_url="http://example.com",
+        prompt="Generate a caption",
+    )
     task_dict = task.to_dict()
     assert task_dict == {
         "type": "caption",

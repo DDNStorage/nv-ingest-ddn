@@ -20,7 +20,9 @@ class IngestServiceMeta(ABC):
         """Abstract method for fetching job from ingestion service based on job_id"""
 
     @abstractmethod
-    async def set_processing_cache(self, job_id: str, jobs_data: List[ProcessingJob]) -> None:
+    async def set_processing_cache(
+        self, job_id: str, jobs_data: List[ProcessingJob]
+    ) -> None:
         """Abstract method for setting processing cache"""
 
     @abstractmethod

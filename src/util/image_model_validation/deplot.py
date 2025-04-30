@@ -19,7 +19,9 @@ logger = logging.getLogger(__name__)
 
 @click.command()
 @click.argument("image_path", type=click.Path(exists=True))
-@click.option("--display", is_flag=True, help="Display the image before sending it for inference.")
+@click.option(
+    "--display", is_flag=True, help="Display the image before sending it for inference."
+)
 def main(image_path, display):
     # Configuration
     url = "localhost:8004"

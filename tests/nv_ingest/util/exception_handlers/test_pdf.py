@@ -29,7 +29,9 @@ def mock_logger():
 def test_pdfium_exception_handler(mock_logger):
     result = sample_func()
     assert result == [], "The function should return an empty list on exception."
-    mock_logger.warning.assert_called_once_with("pdfium Error:sample_func error:Sample error")
+    mock_logger.warning.assert_called_once_with(
+        "pdfium Error:sample_func error:Sample error"
+    )
 
 
 def test_create_exception_tag_with_source_id():

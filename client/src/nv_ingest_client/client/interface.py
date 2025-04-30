@@ -206,7 +206,9 @@ class Ingestor:
 
         return self
 
-    def ingest(self, show_progress: bool = False, return_failures=False, **kwargs: Any) -> List[Dict[str, Any]]:
+    def ingest(
+        self, show_progress: bool = False, return_failures=False, **kwargs: Any
+    ) -> List[Dict[str, Any]]:
         """
         Synchronously submits jobs to the NvIngestClient and fetches the results.
 
@@ -226,14 +228,18 @@ class Ingestor:
         self._job_ids = self._client.add_job(self._job_specs)
 
         submit_kwargs = filter_function_kwargs(self._client.submit_job, **kwargs)
-        self._job_states = self._client.submit_job(self._job_ids, self._job_queue_id, **submit_kwargs)
+        self._job_states = self._client.submit_job(
+            self._job_ids, self._job_queue_id, **submit_kwargs
+        )
 
         # Pop the show_progress flag from kwargs; default to False if not provided.
         fetch_kwargs = filter_function_kwargs(self._client.fetch_job_result, **kwargs)
 
         # If progress display is enabled, create a tqdm progress bar and set a callback to update it.
         if show_progress:
-            pbar = tqdm(total=len(self._job_ids), desc="Processing Documents: ", unit="doc")
+            pbar = tqdm(
+                total=len(self._job_ids), desc="Processing Documents: ", unit="doc"
+            )
 
             def progress_callback(result: Dict, job_id: str) -> None:
                 _, _ = result, job_id
@@ -246,7 +252,9 @@ class Ingestor:
                 self._job_ids, return_failures=return_failures, **fetch_kwargs
             )
         else:
-            result = self._client.fetch_job_result(self._job_ids, return_failures=return_failures, **fetch_kwargs)
+            result = self._client.fetch_job_result(
+                self._job_ids, return_failures=return_failures, **fetch_kwargs
+            )
 
         if show_progress and pbar:
             pbar.close()
@@ -279,8 +287,13 @@ class Ingestor:
 
         self._job_ids = self._client.add_job(self._job_specs)
 
-        future_to_job_id = self._client.submit_job_async(self._job_ids, self._job_queue_id, **kwargs)
-        self._job_states = {job_id: self._client._get_and_check_job_state(job_id) for job_id in self._job_ids}
+        future_to_job_id = self._client.submit_job_async(
+            self._job_ids, self._job_queue_id, **kwargs
+        )
+        self._job_states = {
+            job_id: self._client._get_and_check_job_state(job_id)
+            for job_id in self._job_ids
+        }
 
         combined_future = Future()
         submitted_futures = set(future_to_job_id.keys())
@@ -321,7 +334,9 @@ class Ingestor:
         If no tasks are specified in `_job_specs`, this method invokes `all_tasks()` to add
         a default set of tasks to the job specification.
         """
-        if (not self._job_specs.tasks) or all(not tasks for tasks in self._job_specs.tasks.values()):
+        if (not self._job_specs.tasks) or all(
+            not tasks for tasks in self._job_specs.tasks.values()
+        ):
             self.all_tasks()
 
     def all_tasks(self) -> "Ingestor":
@@ -617,6 +632,8 @@ class Ingestor:
         int
             Number of jobs that are neither completed, failed, nor cancelled.
         """
-        terminal_jobs = self.completed_jobs() + self.failed_jobs() + self.cancelled_jobs()
+        terminal_jobs = (
+            self.completed_jobs() + self.failed_jobs() + self.cancelled_jobs()
+        )
 
         return len(self._job_states) - terminal_jobs

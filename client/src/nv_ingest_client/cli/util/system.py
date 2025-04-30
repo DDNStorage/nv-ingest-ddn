@@ -87,11 +87,15 @@ def ensure_directory_with_permissions(directory_path: str):
         if not os.path.exists(directory_path):
             parent_directory = os.path.dirname(directory_path)
             if not has_permissions(parent_directory, write=True):
-                raise OSError(f"Parent directory {parent_directory} does not have write permissions")
+                raise OSError(
+                    f"Parent directory {parent_directory} does not have write permissions"
+                )
 
             os.makedirs(directory_path)
 
         if not has_permissions(directory_path, read=True, write=True):
-            raise OSError(f"Directory {directory_path} does not have read/write permissions")
+            raise OSError(
+                f"Directory {directory_path} does not have read/write permissions"
+            )
     except OSError as err:
         raise OSError(f"Error checking or creating directory: {err}")

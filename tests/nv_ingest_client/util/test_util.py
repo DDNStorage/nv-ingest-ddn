@@ -96,12 +96,19 @@ def test_cient_config_schema():
         (["*.txt"], ["test1.txt", "test2.txt"], ["test1.txt", "test2.txt"]),
         (["*.txt"], [], []),
         (["*.md"], ["README.md"], ["README.md"]),
-        (["docs/*.md"], ["docs/README.md", "docs/CHANGES.md"], ["docs/README.md", "docs/CHANGES.md"]),
+        (
+            ["docs/*.md"],
+            ["docs/README.md", "docs/CHANGES.md"],
+            ["docs/README.md", "docs/CHANGES.md"],
+        ),
     ],
 )
 def test_generate_matching_files(patterns, mock_files, expected):
     with patch(
-        "glob.glob", side_effect=lambda pattern, recursive: [f for f in mock_files if f.startswith(pattern[:-5])]
+        "glob.glob",
+        side_effect=lambda pattern, recursive: [
+            f for f in mock_files if f.startswith(pattern[:-5])
+        ],
     ), patch("os.path.isfile", return_value=True):
         assert list(generate_matching_files(patterns)) == expected
 
@@ -123,7 +130,11 @@ def test_filter_function_kwargs_with_matching_kwargs():
 
     kwargs = {"a": 1, "b": 2, "c": 3, "d": 4}
     result = filter_function_kwargs(sample_func, **kwargs)
-    assert result == {"a": 1, "b": 2, "c": 3}, "Should only include kwargs matching the function parameters"
+    assert result == {
+        "a": 1,
+        "b": 2,
+        "c": 3,
+    }, "Should only include kwargs matching the function parameters"
 
 
 def test_filter_function_kwargs_with_no_matching_kwargs():
@@ -132,7 +143,9 @@ def test_filter_function_kwargs_with_no_matching_kwargs():
 
     kwargs = {"x": 10, "y": 20}
     result = filter_function_kwargs(sample_func, **kwargs)
-    assert result == {}, "Should return an empty dictionary when there are no matching kwargs"
+    assert (
+        result == {}
+    ), "Should return an empty dictionary when there are no matching kwargs"
 
 
 def test_filter_function_kwargs_with_partial_matching_kwargs():
@@ -141,7 +154,9 @@ def test_filter_function_kwargs_with_partial_matching_kwargs():
 
     kwargs = {"a": 1, "x": 99, "y": 42}
     result = filter_function_kwargs(sample_func, **kwargs)
-    assert result == {"a": 1}, "Should include only kwargs that match the function's parameters"
+    assert result == {
+        "a": 1
+    }, "Should include only kwargs that match the function's parameters"
 
 
 def test_filter_function_kwargs_with_no_kwargs():
@@ -161,7 +176,10 @@ def test_filter_function_kwargs_with_extra_kwargs_ignored():
 
     kwargs = {"a": 10, "b": 20, "extra": "ignored"}
     result = filter_function_kwargs(sample_func, **kwargs)
-    assert result == {"a": 10, "b": 20}, "Should ignore extra kwargs not in the function parameters"
+    assert result == {
+        "a": 10,
+        "b": 20,
+    }, "Should ignore extra kwargs not in the function parameters"
 
 
 def test_filter_function_kwargs_all_args_matching():
@@ -172,4 +190,6 @@ def test_filter_function_kwargs_all_args_matching():
 
     kwargs = {"a": 5, "b": 10, "c": 15}
     result = filter_function_kwargs(sample_func, **kwargs)
-    assert result == kwargs, "Should return all kwargs when they match all function parameters"
+    assert (
+        result == kwargs
+    ), "Should return all kwargs when they match all function parameters"

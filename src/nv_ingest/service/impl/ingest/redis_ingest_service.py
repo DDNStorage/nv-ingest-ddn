@@ -33,8 +33,12 @@ class RedisIngestService(IngestServiceMeta):
         if RedisIngestService.__shared_instance is None:
             redis_host = os.getenv("MESSAGE_CLIENT_HOST", "localhost")
             redis_port = os.getenv("MESSAGE_CLIENT_PORT", "6379")
-            redis_task_queue = os.getenv("REDIS_MORPHEUS_TASK_QUEUE", "morpheus_task_queue")
-            RedisIngestService.__shared_instance = RedisIngestService(redis_host, redis_port, redis_task_queue)
+            redis_task_queue = os.getenv(
+                "REDIS_MORPHEUS_TASK_QUEUE", "morpheus_task_queue"
+            )
+            RedisIngestService.__shared_instance = RedisIngestService(
+                redis_host, redis_port, redis_task_queue
+            )
 
         return RedisIngestService.__shared_instance
 
@@ -46,7 +50,9 @@ class RedisIngestService(IngestServiceMeta):
         self._bulk_vdb_cache_prefix = "vdb_bulk_upload_cache:"
 
         self._ingest_client = RedisClient(
-            host=self._redis_hostname, port=self._redis_port, max_pool_size=self._concurrency_level
+            host=self._redis_hostname,
+            port=self._redis_port,
+            max_pool_size=self._concurrency_level,
         )
 
     async def submit_job(self, job_spec: MessageWrapper, trace_id: str) -> str:
@@ -72,7 +78,9 @@ class RedisIngestService(IngestServiceMeta):
 
             job_spec["tasks"] = updated_tasks
 
-            self._ingest_client.submit_message(self._redis_task_queue, json.dumps(job_spec))
+            self._ingest_client.submit_message(
+                self._redis_task_queue, json.dumps(job_spec)
+            )
 
             return trace_id
 
@@ -92,11 +100,15 @@ class RedisIngestService(IngestServiceMeta):
 
         return message
 
-    async def set_processing_cache(self, job_id: str, jobs_data: List[ProcessingJob]) -> None:
+    async def set_processing_cache(
+        self, job_id: str, jobs_data: List[ProcessingJob]
+    ) -> None:
         """Store processing jobs data using simple key-value"""
         cache_key = f"{self._cache_prefix}{job_id}"
         try:
-            self._ingest_client.get_client().set(cache_key, json.dumps([job.dict() for job in jobs_data]), ex=3600)
+            self._ingest_client.get_client().set(
+                cache_key, json.dumps([job.dict() for job in jobs_data]), ex=3600
+            )
         except Exception as err:
             logger.error(f"Error setting cache for {cache_key}: {err}")
             raise

@@ -60,7 +60,9 @@ def _update_metadata(row: pd.Series, audio_client: Any, trace_info: Dict) -> Dic
     content_metadata = metadata.get("content_metadata", {})
 
     # Only modify if content type is audio
-    if (content_metadata.get("type") != ContentTypeEnum.AUDIO) or (base64_audio in (None, "")):
+    if (content_metadata.get("type") != ContentTypeEnum.AUDIO) or (
+        base64_audio in (None, "")
+    ):
         return metadata
 
     # Modify audio metadata with the result from the inference model
@@ -74,10 +76,14 @@ def _update_metadata(row: pd.Series, audio_client: Any, trace_info: Dict) -> Dic
 
         row["document_type"] = ContentTypeEnum.AUDIO
         audio_metadata = {"audio_transcript": audio_result or ""}
-        metadata["audio_metadata"] = validate_schema(audio_metadata, AudioMetadataSchema).model_dump()
+        metadata["audio_metadata"] = validate_schema(
+            audio_metadata, AudioMetadataSchema
+        ).model_dump()
         row["metadata"] = validate_schema(metadata, MetadataSchema).model_dump()
     except Exception as e:
-        logger.error(f"Unhandled error calling audio inference model: {e}", exc_info=True)
+        logger.error(
+            f"Unhandled error calling audio inference model: {e}", exc_info=True
+        )
         traceback.print_exc()
         raise
 
@@ -85,7 +91,10 @@ def _update_metadata(row: pd.Series, audio_client: Any, trace_info: Dict) -> Dic
 
 
 def _transcribe_audio(
-    df: pd.DataFrame, task_props: Dict[str, Any], validated_config: Any, trace_info: Optional[Dict] = None
+    df: pd.DataFrame,
+    task_props: Dict[str, Any],
+    validated_config: Any,
+    trace_info: Optional[Dict] = None,
 ) -> Tuple[pd.DataFrame, Dict]:
     """
     Extracts audio data from a DataFrame.
@@ -120,7 +129,9 @@ def _transcribe_audio(
 
     grpc_endpoint = task_props.get("grpc_endpoint") or stage_config.audio_endpoints[0]
     http_endpoint = task_props.get("http_endpoint") or stage_config.audio_endpoints[1]
-    infer_protocol = task_props.get("infer_protocol") or stage_config.audio_infer_protocol
+    infer_protocol = (
+        task_props.get("infer_protocol") or stage_config.audio_infer_protocol
+    )
     auth_token = task_props.get("auth_token") or stage_config.auth_token
     function_id = task_props.get("function_id") or stage_config.function_id
     use_ssl = task_props.get("use_ssl") or stage_config.use_ssl
@@ -141,7 +152,9 @@ def _transcribe_audio(
 
     try:
         # Apply the _update_metadata function to each row in the DataFrame
-        df["metadata"] = df.apply(_update_metadata, axis=1, args=(parakeet_client, trace_info))
+        df["metadata"] = df.apply(
+            _update_metadata, axis=1, args=(parakeet_client, trace_info)
+        )
 
         return df, trace_info
 
@@ -190,7 +203,9 @@ def generate_audio_extractor_stage(
     """
 
     validated_config = AudioExtractorSchema(**stage_config)
-    _wrapped_process_fn = functools.partial(_transcribe_audio, validated_config=validated_config)
+    _wrapped_process_fn = functools.partial(
+        _transcribe_audio, validated_config=validated_config
+    )
 
     return MultiProcessingBaseStage(
         c=c,

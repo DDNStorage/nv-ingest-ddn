@@ -84,7 +84,13 @@ class EmbeddingModelInterface(ModelInterface):
             batch_data_list.append({"prompts": batch})
         return payloads, batch_data_list
 
-    def parse_output(self, response: Any, protocol: str, data: Optional[Dict[str, Any]] = None, **kwargs) -> Any:
+    def parse_output(
+        self,
+        response: Any,
+        protocol: str,
+        data: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> Any:
         """
         Parse the HTTP response from the embedding endpoint. Expects a response structure with a "data" key.
 
@@ -109,7 +115,9 @@ class EmbeddingModelInterface(ModelInterface):
         if isinstance(response, dict):
             embeddings = response.get("data")
             if not embeddings:
-                raise RuntimeError("Unexpected response format: 'data' key is missing or empty.")
+                raise RuntimeError(
+                    "Unexpected response format: 'data' key is missing or empty."
+                )
             # Each item in embeddings is expected to have an 'embedding' field.
             return [item.get("embedding", None) for item in embeddings]
         else:

@@ -58,7 +58,9 @@ class PaddleOCRModelInterface(ModelInterface):
         if "base64_images" in data:
             base64_list = data["base64_images"]
             if not isinstance(base64_list, list):
-                raise ValueError("The 'base64_images' key must contain a list of base64-encoded strings.")
+                raise ValueError(
+                    "The 'base64_images' key must contain a list of base64-encoded strings."
+                )
 
             image_arrays: List[np.ndarray] = []
             for b64 in base64_list:
@@ -77,7 +79,9 @@ class PaddleOCRModelInterface(ModelInterface):
 
         return data
 
-    def format_input(self, data: Dict[str, Any], protocol: str, max_batch_size: int, **kwargs) -> Any:
+    def format_input(
+        self, data: Dict[str, Any], protocol: str, max_batch_size: int, **kwargs
+    ) -> Any:
         """
         Format input data for the specified protocol ("grpc" or "http"), supporting batched data.
 
@@ -117,7 +121,9 @@ class PaddleOCRModelInterface(ModelInterface):
             return [lst[i : i + chunk_size] for i in range(0, len(lst), chunk_size)]
 
         if "image_arrays" not in data or "image_dims" not in data:
-            raise KeyError("Expected 'image_arrays' and 'image_dims' in data. Call prepare_data_for_inference first.")
+            raise KeyError(
+                "Expected 'image_arrays' and 'image_dims' in data. Call prepare_data_for_inference first."
+            )
 
         images = data["image_arrays"]
         dims = data["image_dims"]
@@ -141,7 +147,9 @@ class PaddleOCRModelInterface(ModelInterface):
             ):
                 batched_input = np.concatenate(proc_chunk, axis=0)
                 batches.append(batched_input)
-                batch_data_list.append({"image_arrays": orig_chunk, "image_dims": dims_chunk})
+                batch_data_list.append(
+                    {"image_arrays": orig_chunk, "image_dims": dims_chunk}
+                )
             return batches, batch_data_list
 
         elif protocol == "http":
@@ -168,14 +176,22 @@ class PaddleOCRModelInterface(ModelInterface):
             ):
                 payload = {"input": input_chunk}
                 batches.append(payload)
-                batch_data_list.append({"image_arrays": orig_chunk, "image_dims": dims_chunk})
+                batch_data_list.append(
+                    {"image_arrays": orig_chunk, "image_dims": dims_chunk}
+                )
 
             return batches, batch_data_list
 
         else:
             raise ValueError("Invalid protocol specified. Must be 'grpc' or 'http'.")
 
-    def parse_output(self, response: Any, protocol: str, data: Optional[Dict[str, Any]] = None, **kwargs: Any) -> Any:
+    def parse_output(
+        self,
+        response: Any,
+        protocol: str,
+        data: Optional[Dict[str, Any]] = None,
+        **kwargs: Any,
+    ) -> Any:
         """
         Parse the model's inference response for the given protocol. The parsing
         may handle batched outputs for multiple images.
@@ -282,7 +298,9 @@ class PaddleOCRModelInterface(ModelInterface):
             If the `table_content_format` is unrecognized.
         """
         if "data" not in json_response or not json_response["data"]:
-            raise RuntimeError("Unexpected response format: 'data' key is missing or empty.")
+            raise RuntimeError(
+                "Unexpected response format: 'data' key is missing or empty."
+            )
 
         results: List[str] = []
         for item_idx, item in enumerate(json_response["data"]):
@@ -291,7 +309,9 @@ class PaddleOCRModelInterface(ModelInterface):
             bounding_boxes = []
             for td in text_detections:
                 text_predictions.append(td["text_prediction"]["text"])
-                bounding_boxes.append([[pt["x"], pt["y"]] for pt in td["bounding_box"]["points"]])
+                bounding_boxes.append(
+                    [[pt["x"], pt["y"]] for pt in td["bounding_box"]["points"]]
+                )
 
             results.append([bounding_boxes, text_predictions])
 
@@ -333,13 +353,17 @@ class PaddleOCRModelInterface(ModelInterface):
             or if the `table_content_format` is unrecognized.
         """
         if not isinstance(response, np.ndarray):
-            raise ValueError("Unexpected response format: response is not a NumPy array.")
+            raise ValueError(
+                "Unexpected response format: response is not a NumPy array."
+            )
 
         # If we have shape (3,), convert to (3, 1)
         if response.ndim == 1 and response.shape == (3,):
             response = response.reshape(3, 1)
         elif response.ndim != 2 or response.shape[0] != 3:
-            raise ValueError(f"Unexpected response shape: {response.shape}. Expecting (3,) or (3, n).")
+            raise ValueError(
+                f"Unexpected response shape: {response.shape}. Expecting (3,) or (3, n)."
+            )
 
         batch_size = response.shape[1]
         results: List[Tuple[str, str]] = []
@@ -417,7 +441,9 @@ class PaddleOCRModelInterface(ModelInterface):
             raise ValueError("No image_dims provided.")
         else:
             if img_index >= len(dims):
-                logger.warning("Image index out of range for stored dimensions. Using first image dims by default.")
+                logger.warning(
+                    "Image index out of range for stored dimensions. Using first image dims by default."
+                )
                 img_index = 0
 
         max_width = dims[img_index]["new_width"]

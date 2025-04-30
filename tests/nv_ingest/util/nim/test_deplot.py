@@ -38,7 +38,9 @@ def test_prepare_data_for_inference_valid(model_interface):
     result = model_interface.prepare_data_for_inference(data)
 
     # Check that we now have "image_arrays"
-    assert "image_arrays" in result, "Expected 'image_arrays' key after inference preparation"
+    assert (
+        "image_arrays" in result
+    ), "Expected 'image_arrays' key after inference preparation"
     assert len(result["image_arrays"]) == 1, "Expected exactly one image array"
 
     # Extract the first array and verify shape/type
@@ -70,7 +72,9 @@ def test_format_input_grpc(model_interface):
     base64_img = create_base64_image()
     prepared = model_interface.prepare_data_for_inference({"base64_image": base64_img})
     # format_input returns a tuple: (formatted_batches, formatted_batch_data)
-    batches, batch_data = model_interface.format_input(prepared, "grpc", max_batch_size=1)
+    batches, batch_data = model_interface.format_input(
+        prepared, "grpc", max_batch_size=1
+    )
 
     formatted = batches[0]
     # Check the formatted batch
@@ -145,7 +149,9 @@ def test_format_input_http_defaults(model_interface):
     """
     base64_img = create_base64_image()
     prepared = model_interface.prepare_data_for_inference({"base64_image": base64_img})
-    batches, batch_data = model_interface.format_input(prepared, "http", max_batch_size=1)
+    batches, batch_data = model_interface.format_input(
+        prepared, "http", max_batch_size=1
+    )
     formatted = batches[0]
 
     # Check that default values are set
@@ -168,7 +174,9 @@ def test_format_input_http_defaults(model_interface):
 def test_format_input_invalid_protocol(model_interface):
     base64_img = create_base64_image()
     prepared = model_interface.prepare_data_for_inference({"base64_image": base64_img})
-    with pytest.raises(ValueError, match="Invalid protocol specified. Must be 'grpc' or 'http'."):
+    with pytest.raises(
+        ValueError, match="Invalid protocol specified. Must be 'grpc' or 'http'."
+    ):
         model_interface.format_input(prepared, "invalid", max_batch_size=1)
 
 
@@ -214,18 +222,29 @@ def test_parse_output_http_valid(model_interface):
 
 def test_parse_output_http_multiple_choices(model_interface):
     # Should return the content of the first choice only
-    response = {"choices": [{"message": {"content": "First choice"}}, {"message": {"content": "Second choice"}}]}
+    response = {
+        "choices": [
+            {"message": {"content": "First choice"}},
+            {"message": {"content": "Second choice"}},
+        ]
+    }
     output = model_interface.parse_output(response, "http")
     assert output == "First choice"
 
 
 def test_parse_output_http_missing_choices(model_interface):
     response = {}
-    with pytest.raises(RuntimeError, match="Unexpected response format: 'choices' key is missing or empty."):
+    with pytest.raises(
+        RuntimeError,
+        match="Unexpected response format: 'choices' key is missing or empty.",
+    ):
         model_interface.parse_output(response, "http")
 
 
 def test_parse_output_http_empty_choices(model_interface):
     response = {"choices": []}
-    with pytest.raises(RuntimeError, match="Unexpected response format: 'choices' key is missing or empty."):
+    with pytest.raises(
+        RuntimeError,
+        match="Unexpected response format: 'choices' key is missing or empty.",
+    ):
         model_interface.parse_output(response, "http")

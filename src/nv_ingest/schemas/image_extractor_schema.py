@@ -81,14 +81,18 @@ class ImageConfigSchema(BaseModel):
             http_service = clean_service(http_service)
 
             if not grpc_service and not http_service:
-                raise ValueError(f"Both gRPC and HTTP services cannot be empty for {endpoint_name}.")
+                raise ValueError(
+                    f"Both gRPC and HTTP services cannot be empty for {endpoint_name}."
+                )
 
             values[endpoint_name] = (grpc_service, http_service)
 
             protocol_name = f"{model_name}_infer_protocol"
             protocol_value = values.get(protocol_name)
             if not protocol_value:
-                protocol_value = "http" if http_service else "grpc" if grpc_service else ""
+                protocol_value = (
+                    "http" if http_service else "grpc" if grpc_service else ""
+                )
             protocol_value = protocol_value.lower()
             values[protocol_name] = protocol_value
 

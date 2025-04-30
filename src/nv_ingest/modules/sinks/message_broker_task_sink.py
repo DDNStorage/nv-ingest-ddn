@@ -59,7 +59,9 @@ def extract_data_frame(message: IngestControlMessage) -> Tuple[Any, Dict[str, An
         return None, None
 
 
-def split_large_dict(json_data: List[Dict[str, Any]], size_limit: int) -> List[List[Dict[str, Any]]]:
+def split_large_dict(
+    json_data: List[Dict[str, Any]], size_limit: int
+) -> List[List[Dict[str, Any]]]:
     """
     Splits a large list of dictionaries into smaller fragments, each less than the specified size limit (in bytes).
 
@@ -100,7 +102,9 @@ def split_large_dict(json_data: List[Dict[str, Any]], size_limit: int) -> List[L
     return fragments
 
 
-def create_json_payload(message: IngestControlMessage, df_json: Dict[str, Any]) -> List[Dict[str, Any]]:
+def create_json_payload(
+    message: IngestControlMessage, df_json: Dict[str, Any]
+) -> List[Dict[str, Any]]:
     """
     Creates JSON payloads based on message status and data. If the size of df_json exceeds 256 MB, splits it into
     multiple fragments, each less than 256 MB. Adds optional trace and annotation data to the first fragment.
@@ -125,7 +129,9 @@ def create_json_payload(message: IngestControlMessage, df_json: Dict[str, Any]) 
     # Process each fragment and add necessary metadata
     for i, fragment_data in enumerate(data_fragments):
         ret_val_json = {
-            "status": "success" if not message.get_metadata("cm_failed", False) else "failed",
+            "status": (
+                "success" if not message.get_metadata("cm_failed", False) else "failed"
+            ),
             "description": (
                 "Successfully processed the message."
                 if not message.get_metadata("cm_failed", False)
@@ -140,9 +146,13 @@ def create_json_payload(message: IngestControlMessage, df_json: Dict[str, Any]) 
         if i == 0 and message.get_metadata("add_trace_tagging", True):
             # Use the snapshot of trace timestamps directly
             trace_snapshot = message.filter_timestamp("trace::")
-            ret_val_json["trace"] = {key: ts.timestamp() * 1e9 for key, ts in trace_snapshot.items()}
+            ret_val_json["trace"] = {
+                key: ts.timestamp() * 1e9 for key, ts in trace_snapshot.items()
+            }
             ret_val_json["annotations"] = {
-                key: message.get_metadata(key) for key in message.list_metadata() if key.startswith("annotation::")
+                key: message.get_metadata(key)
+                for key in message.list_metadata()
+                if key.startswith("annotation::")
             }
 
         ret_val_json_list.append(ret_val_json)
@@ -152,7 +162,10 @@ def create_json_payload(message: IngestControlMessage, df_json: Dict[str, Any]) 
 
 
 def push_to_broker(
-    broker_client: MessageBrokerClientBase, response_channel: str, json_payloads: List[str], retry_count: int = 2
+    broker_client: MessageBrokerClientBase,
+    response_channel: str,
+    json_payloads: List[str],
+    retry_count: int = 2,
 ) -> None:
     """
     Attempts to push a JSON payload to a message broker channel, retrying on failure up to a specified number of
@@ -184,14 +197,18 @@ def push_to_broker(
         size_limit = 2**28  # 256 MB
 
         if payload_size > size_limit:
-            raise ValueError(f"Payload size {payload_size} bytes exceeds limit of {size_limit / 1e6} MB.")
+            raise ValueError(
+                f"Payload size {payload_size} bytes exceeds limit of {size_limit / 1e6} MB."
+            )
 
     for attempt in range(retry_count):
         try:
             for json_payload in json_payloads:
                 broker_client.submit_message(response_channel, json_payload)
 
-            logger.debug(f"Message broker sink forwarded message to broker channel '{response_channel}'.")
+            logger.debug(
+                f"Message broker sink forwarded message to broker channel '{response_channel}'."
+            )
 
             return
         except ValueError as e:
@@ -261,7 +278,9 @@ def handle_failure(
     broker_client.submit_message(response_channel, json.dumps(fail_msg))
 
 
-def process_and_forward(message: IngestControlMessage, broker_client: MessageBrokerClientBase) -> IngestControlMessage:
+def process_and_forward(
+    message: IngestControlMessage, broker_client: MessageBrokerClientBase
+) -> IngestControlMessage:
     """
     Processes a message by extracting data, creating a JSON payload, and attempting to push it to the message broker.
 
@@ -299,13 +318,17 @@ def process_and_forward(message: IngestControlMessage, broker_client: MessageBro
         push_to_broker(broker_client, response_channel, json_payloads)
     except ValueError as e:
         mdf_size = len(mdf) if not mdf.empty else 0
-        handle_failure(broker_client, response_channel, json_result_fragments, e, mdf_size)
+        handle_failure(
+            broker_client, response_channel, json_result_fragments, e, mdf_size
+        )
     except Exception as e:
         traceback.print_exc()
         logger.error(f"Critical error processing message: {e}")
 
         mdf_size = len(mdf) if not mdf.empty else 0
-        handle_failure(broker_client, response_channel, json_result_fragments, e, mdf_size)
+        handle_failure(
+            broker_client, response_channel, json_result_fragments, e, mdf_size
+        )
 
     return message
 
@@ -332,7 +355,9 @@ def _message_broker_task_sink(builder: mrc.Builder) -> None:
     efficiently with robust error handling and connection management to the message broker.
     """
 
-    validated_config = fetch_and_validate_module_config(builder, MessageBrokerTaskSinkSchema)
+    validated_config = fetch_and_validate_module_config(
+        builder, MessageBrokerTaskSinkSchema
+    )
     # Determine the client type and create the appropriate client
     client_type = validated_config.broker_client.client_type.lower()
     broker_params = validated_config.broker_client.broker_params
@@ -375,7 +400,9 @@ def _message_broker_task_sink(builder: mrc.Builder) -> None:
         """
         return process_and_forward(message, client)
 
-    process_node = builder.make_node("process_and_forward", ops.map(_process_and_forward))
+    process_node = builder.make_node(
+        "process_and_forward", ops.map(_process_and_forward)
+    )
     process_node.launch_options.engines_per_pe = validated_config.progress_engines
 
     # Register the final output of the module

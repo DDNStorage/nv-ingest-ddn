@@ -45,7 +45,9 @@ def test_invalid_config_empty_endpoints():
             yolox_endpoints=("grpc://yolox_service", "http://yolox_service"),
             paddle_endpoints=(None, None),
         )
-    assert "Both gRPC and HTTP services cannot be empty for paddle_endpoints" in str(exc_info.value)
+    assert "Both gRPC and HTTP services cannot be empty for paddle_endpoints" in str(
+        exc_info.value
+    )
 
 
 def test_invalid_extra_fields():
@@ -97,7 +99,12 @@ def test_table_extractor_schema_with_custom_values():
         yolox_endpoints=("grpc://yolox_service", "http://yolox_service"),
         paddle_endpoints=("grpc://paddle_service", "http://paddle_service"),
     )
-    config = TableExtractorSchema(max_queue_size=15, n_workers=12, raise_on_failure=True, stage_config=stage_config)
+    config = TableExtractorSchema(
+        max_queue_size=15,
+        n_workers=12,
+        raise_on_failure=True,
+        stage_config=stage_config,
+    )
     assert config.max_queue_size == 15
     assert config.n_workers == 12
     assert config.raise_on_failure is True

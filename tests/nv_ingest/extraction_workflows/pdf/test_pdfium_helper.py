@@ -67,12 +67,15 @@ def test_pdfium_extractor_basic(pdf_stream_test_pdf, document_df):
     assert extracted_data[0][0].value == "text"
     assert isinstance(extracted_data[0][2], str)
     assert (
-        extracted_data[0][1]["content"] == "Here is one line of text. Here is another line of text. Here is an image."
+        extracted_data[0][1]["content"]
+        == "Here is one line of text. Here is another line of text. Here is an image."
     )
     assert extracted_data[0][1]["source_metadata"]["source_id"] == "source1"
 
 
-@pytest.mark.xfail(reason="PDFium does not support span line and block level extraction")
+@pytest.mark.xfail(
+    reason="PDFium does not support span line and block level extraction"
+)
 @pytest.mark.parametrize(
     "text_depth",
     ["span", TextTypeEnum.SPAN, "line", TextTypeEnum.LINE, "block", TextTypeEnum.BLOCK],
@@ -95,10 +98,14 @@ def test_pdfium_extractor_text_depth_line(pdf_stream_test_pdf, document_df, text
     assert extracted_data[0][1]["content"] == "Here is one line of text."
     assert extracted_data[1][1]["content"] == "Here is another line of text."
     assert extracted_data[2][1]["content"] == "Here is an image."
-    assert all(x[1]["source_metadata"]["source_id"] == "source1" for x in extracted_data)
+    assert all(
+        x[1]["source_metadata"]["source_id"] == "source1" for x in extracted_data
+    )
 
 
-@pytest.mark.xfail(reason="PDFium does not support span line and block level extraction")
+@pytest.mark.xfail(
+    reason="PDFium does not support span line and block level extraction"
+)
 @pytest.mark.parametrize(
     "text_depth",
     ["page", TextTypeEnum.PAGE, "document", TextTypeEnum.DOCUMENT],
@@ -119,7 +126,8 @@ def test_pdfium_extractor_text_depth_page(pdf_stream_test_pdf, document_df, text
     assert extracted_data[0][0].value == "text"
     assert isinstance(extracted_data[0][2], str)
     assert (
-        extracted_data[0][1]["content"] == "Here is one line of text. Here is another line of text. Here is an image."
+        extracted_data[0][1]["content"]
+        == "Here is one line of text. Here is another line of text. Here is an image."
     )
     assert extracted_data[0][1]["source_metadata"]["source_id"] == "source1"
 
@@ -142,7 +150,8 @@ def test_pdfium_extractor_extract_image(pdf_stream_test_pdf, document_df):
     assert extracted_data[0][1]["content"][:10] == "iVBORw0KGg"  # PNG format header
     assert extracted_data[1][0].value == "text"
     assert (
-        extracted_data[1][1]["content"] == "Here is one line of text. Here is another line of text. Here is an image."
+        extracted_data[1][1]["content"]
+        == "Here is one line of text. Here is another line of text. Here is an image."
     )
 
 
@@ -150,9 +159,13 @@ def test_pdfium_extractor_extract_image(pdf_stream_test_pdf, document_df):
 def read_markdown_table(table_str: str) -> pd.DataFrame:
     """Read markdown table from string and return pandas DataFrame."""
     # Ref: https://stackoverflow.com/a/76184953/
-    cleaned_table_str = re.sub(r"(?<=\|)( *[\S ]*? *)(?=\|)", lambda match: match.group(0).strip(), table_str)
+    cleaned_table_str = re.sub(
+        r"(?<=\|)( *[\S ]*? *)(?=\|)", lambda match: match.group(0).strip(), table_str
+    )
     df = (
-        pd.read_table(StringIO(cleaned_table_str), sep="|", header=0, skipinitialspace=True)
+        pd.read_table(
+            StringIO(cleaned_table_str), sep="|", header=0, skipinitialspace=True
+        )
         .dropna(axis=1, how="all")
         .iloc[1:]
     )
@@ -161,7 +174,9 @@ def read_markdown_table(table_str: str) -> pd.DataFrame:
 
 
 @pytest.mark.xfail(reason="PDFium conversion required")
-def test_pdfium_extractor_table_extraction_on_pdf_with_no_tables(pdf_stream_test_pdf, document_df):
+def test_pdfium_extractor_table_extraction_on_pdf_with_no_tables(
+    pdf_stream_test_pdf, document_df
+):
     extracted_data = pdfium_extractor(
         pdf_stream_test_pdf,
         extract_text=False,
@@ -176,7 +191,9 @@ def test_pdfium_extractor_table_extraction_on_pdf_with_no_tables(pdf_stream_test
 
 
 @pytest.mark.xfail(reason="PDFium conversion required")
-def test_pdfium_extractor_table_extraction_on_pdf_with_tables(pdf_stream_embedded_tables_pdf, document_df):
+def test_pdfium_extractor_table_extraction_on_pdf_with_tables(
+    pdf_stream_embedded_tables_pdf, document_df
+):
     """
     Test to ensure pdfium's table extraction is able to extract easy-to-read tables from a PDF.
     """
@@ -193,18 +210,41 @@ def test_pdfium_extractor_table_extraction_on_pdf_with_tables(pdf_stream_embedde
     assert len(extracted_data) == 8
     assert all(len(x) == 3 for x in extracted_data)
     assert all(x[0].value == "structured" for x in extracted_data)
-    assert [x[1]["content_metadata"]["page_number"] for x in extracted_data] == [0, 0, 0, 1, 1, 1, 1, 1]
+    assert [x[1]["content_metadata"]["page_number"] for x in extracted_data] == [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+    ]
 
     tables_markdown_format = [x[1]["content"] for x in extracted_data]
-    dfs = [read_markdown_table(table_markdown_format) for table_markdown_format in tables_markdown_format]
+    dfs = [
+        read_markdown_table(table_markdown_format)
+        for table_markdown_format in tables_markdown_format
+    ]
 
     # Computation table
     assert list(dfs[0].columns) == ["Depen- dency", "Minimum Ver- sion", "Notes"]
-    assert any(["Alternative execution engine for rolling operations" in row for row in dfs[0]["Notes"].values])
+    assert any(
+        [
+            "Alternative execution engine for rolling operations" in row
+            for row in dfs[0]["Notes"].values
+        ]
+    )
 
     # Excel files table
     assert list(dfs[1].columns) == ["Dependency", "Minimum Version", "Notes"]
-    assert dfs[1]["Dependency"].to_list() == ["xlrd", "xlwt", "xlsxwriter", "openpyxl", "pyxlsb"]
+    assert dfs[1]["Dependency"].to_list() == [
+        "xlrd",
+        "xlwt",
+        "xlsxwriter",
+        "openpyxl",
+        "pyxlsb",
+    ]
 
     # HTML table
     assert list(dfs[2].columns) == ["Dependency", "Minimum Version", "Notes"]
@@ -220,7 +260,14 @@ def test_pdfium_extractor_table_extraction_on_pdf_with_tables(pdf_stream_embedde
 
     # Other data sources table
     assert list(dfs[5].columns) == ["Dependency", "Minimum Version", "Notes"]
-    assert dfs[5]["Dependency"].to_list() == ["PyTables", "blosc", "zlib", "fastparquet", "pyarrow", "pyreadstat"]
+    assert dfs[5]["Dependency"].to_list() == [
+        "PyTables",
+        "blosc",
+        "zlib",
+        "fastparquet",
+        "pyarrow",
+        "pyreadstat",
+    ]
 
     # Warning table
     assert list(dfs[6].columns) == ["System", "Conda", "PyPI"]

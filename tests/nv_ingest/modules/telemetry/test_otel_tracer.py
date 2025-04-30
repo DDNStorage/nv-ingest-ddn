@@ -34,7 +34,9 @@ def test_extract_annotated_task_results_invalid_metadata():
 
     # Simulate setting non-annotation metadata and valid annotation metadata
     msg.set_metadata("random::metadata", {"random_key": "value"})  # Should be ignored
-    msg.set_metadata("annotation::task1", {"task_id": "task1", "task_result": "success"})
+    msg.set_metadata(
+        "annotation::task1", {"task_id": "task1", "task_result": "success"}
+    )
 
     expected_output = {"task1": "success"}
 
@@ -47,8 +49,12 @@ def test_extract_annotated_task_results_missing_fields():
     msg = ControlMessage()
 
     # Simulate setting metadata with missing task_id and task_result
-    msg.set_metadata("annotation::task1", {"task_result": "success"})  # Missing task_id (should be skipped)
-    msg.set_metadata("annotation::task2", {"task_id": "task2"})  # Missing task_result (should be skipped)
+    msg.set_metadata(
+        "annotation::task1", {"task_result": "success"}
+    )  # Missing task_id (should be skipped)
+    msg.set_metadata(
+        "annotation::task2", {"task_id": "task2"}
+    )  # Missing task_result (should be skipped)
 
     expected_output = {}
 

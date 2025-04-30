@@ -27,18 +27,25 @@ from pymilvus import utility
 import cudf
 
 from nv_ingest.schemas.vdb_task_sink_schema import VdbTaskSinkSchema
-from nv_ingest.util.exception_handlers.decorators import nv_ingest_node_failure_context_manager
+from nv_ingest.util.exception_handlers.decorators import (
+    nv_ingest_node_failure_context_manager,
+)
 from nv_ingest.util.flow_control import filter_by_task
 from nv_ingest.util.modules.config_validator import fetch_and_validate_module_config
 from nv_ingest.util.tracing import traceable
-from nv_ingest_api.primitives.ingest_control_message import IngestControlMessage, remove_task_by_type
+from nv_ingest_api.primitives.ingest_control_message import (
+    IngestControlMessage,
+    remove_task_by_type,
+)
 
 logger = logging.getLogger(__name__)
 
 MODULE_NAME = "vdb_task_sink"
 MODULE_NAMESPACE = "nv_ingest"
 
-VDBTaskSinkLoaderFactory = ModuleLoaderFactory(MODULE_NAME, MODULE_NAMESPACE, VdbTaskSinkSchema)
+VDBTaskSinkLoaderFactory = ModuleLoaderFactory(
+    MODULE_NAME, MODULE_NAMESPACE, VdbTaskSinkSchema
+)
 
 _DEFAULT_ENDPOINT = os.environ.get("MINIO_INTERNAL_ADDRESS", "minio:9000")
 _DEFAULT_BUCKET_NAME = os.environ.get("MINIO_BUCKET", "nv-ingest")
@@ -68,7 +75,10 @@ def _bulk_ingest(
     if not bucket_found:
         raise ValueError(f"Could not find bucket {bucket_name}")
     batch_files = [
-        [f"{file.object_name}"] for file in client.list_objects(bucket_name, prefix=bulk_ingest_path, recursive=True)
+        [f"{file.object_name}"]
+        for file in client.list_objects(
+            bucket_name, prefix=bulk_ingest_path, recursive=True
+        )
     ]
 
     uri_parsed = urlparse(milvus_uri)
@@ -84,8 +94,13 @@ def _bulk_ingest(
         time.sleep(1)
         for id in task_ids:
             state = utility.get_bulk_insert_state(task_id=id)
-            if state.state == BulkInsertState.ImportFailed or state.state == BulkInsertState.ImportFailedAndCleaned:
-                logger.error(f"The task {state.task_id} failed, reason: {state.failed_reason}")
+            if (
+                state.state == BulkInsertState.ImportFailed
+                or state.state == BulkInsertState.ImportFailedAndCleaned
+            ):
+                logger.error(
+                    f"The task {state.task_id} failed, reason: {state.failed_reason}"
+                )
                 task_ids.remove(id)
             elif state.state == BulkInsertState.ImportCompleted:
                 logger.debug(f"The task {state.task_id} completed")
@@ -129,7 +144,11 @@ def preprocess_vdb_resources(service, recreate: bool, resource_schemas: dict):
 
 
 def _create_vdb_service(
-    service: str, is_service_serialized: bool, service_kwargs: dict, recreate: bool, resource_schemas: dict
+    service: str,
+    is_service_serialized: bool,
+    service_kwargs: dict,
+    recreate: bool,
+    resource_schemas: dict,
 ):
     """
     A function to used to instantiate a `VectorDBService` if a running VDB is available and a connection can be
@@ -163,7 +182,9 @@ def _create_vdb_service(
         service: VectorDBService = (
             pickle.loads(bytes(service, "latin1"))
             if is_service_serialized
-            else VectorDBServiceFactory.create_instance(service_name=service, **service_kwargs)
+            else VectorDBServiceFactory.create_instance(
+                service_name=service, **service_kwargs
+            )
         )
         preprocess_vdb_resources(service, recreate, resource_schemas)
 
@@ -245,7 +266,11 @@ def _vdb_task_sink(builder: mrc.Builder):
         service, is_service_serialized, service_kwargs, recreate, resource_schemas
     )
 
-    accumulator_dict = {default_resource_name: AccumulationStats(msg_count=0, last_insert_time=time.time(), data=[])}
+    accumulator_dict = {
+        default_resource_name: AccumulationStats(
+            msg_count=0, last_insert_time=time.time(), data=[]
+        )
+    }
 
     def on_completed():
         final_df_references = []
@@ -258,7 +283,9 @@ def _vdb_task_sink(builder: mrc.Builder):
                     service.insert_dataframe(name=key, df=merged_df)
                     final_df_references.append(accum_stats.data)
             except Exception as e:
-                logger.error("Unable to upload dataframe entries to vector database: %s", e)
+                logger.error(
+                    "Unable to upload dataframe entries to vector database: %s", e
+                )
         # Close vector database service connection
         if isinstance(service, VectorDBService):
             service.close()
@@ -270,7 +297,11 @@ def _vdb_task_sink(builder: mrc.Builder):
         mdf = ctrl_msg.payload()
 
         if filter_errors:
-            info_msg_mask = mdf["metadata"].struct.field("info_message_metadata").struct.field("filter")
+            info_msg_mask = (
+                mdf["metadata"]
+                .struct.field("info_message_metadata")
+                .struct.field("filter")
+            )
             mdf = mdf.loc[~info_msg_mask].copy()
 
         mdf["embedding"] = mdf["metadata"].struct.field("embedding")
@@ -316,7 +347,11 @@ def _vdb_task_sink(builder: mrc.Builder):
                 delta_t = curr_time - start_time
                 if delta_t >= retry_interval:
                     service, service_status = _create_vdb_service(
-                        service, is_service_serialized, service_kwargs, recreate, resource_schemas
+                        service,
+                        is_service_serialized,
+                        service_kwargs,
+                        recreate,
+                        resource_schemas,
                     )
                     start_time = curr_time
 
@@ -325,7 +360,13 @@ def _vdb_task_sink(builder: mrc.Builder):
                 raise ValueError("Not connected to vector database")
 
             if bulk_ingest:
-                _bulk_ingest(service_kwargs["uri"], default_resource_name, bucket_name, bulk_ingest_path, extra_params)
+                _bulk_ingest(
+                    service_kwargs["uri"],
+                    default_resource_name,
+                    bucket_name,
+                    bulk_ingest_path,
+                    extra_params,
+                )
             else:
                 df, msg_resource_target = extract_df(ctrl_msg, filter_errors)
                 if df is not None and not df.empty:
@@ -339,11 +380,18 @@ def _vdb_task_sink(builder: mrc.Builder):
                     if not msg_resource_target:
                         msg_resource_target = default_resource_name
                         if not service.has_store_object(msg_resource_target):
-                            logger.error("Resource not exists in the vector database: %s", msg_resource_target)
-                            raise ValueError(f"Resource not exists in the vector database: {msg_resource_target}")
+                            logger.error(
+                                "Resource not exists in the vector database: %s",
+                                msg_resource_target,
+                            )
+                            raise ValueError(
+                                f"Resource not exists in the vector database: {msg_resource_target}"
+                            )
 
                     if msg_resource_target in accumulator_dict:
-                        accumulator: AccumulationStats = accumulator_dict[msg_resource_target]
+                        accumulator: AccumulationStats = accumulator_dict[
+                            msg_resource_target
+                        ]
                         accumulator.msg_count += df_size
                         accumulator.data.append(df)
                     else:
@@ -354,13 +402,16 @@ def _vdb_task_sink(builder: mrc.Builder):
                     for key, accum_stats in accumulator_dict.items():
                         if accum_stats.msg_count >= batch_size or (
                             accum_stats.last_insert_time != -1
-                            and (current_time - accum_stats.last_insert_time) >= write_time_interval
+                            and (current_time - accum_stats.last_insert_time)
+                            >= write_time_interval
                         ):
                             if accum_stats.data:
                                 merged_df = cudf.concat(accum_stats.data)
 
                                 # pylint: disable=not-a-mapping
-                                service.insert_dataframe(name=key, df=merged_df, **resource_kwargs)
+                                service.insert_dataframe(
+                                    name=key, df=merged_df, **resource_kwargs
+                                )
                                 # Reset accumulator stats
                                 accum_stats.data.clear()
                                 accum_stats.last_insert_time = current_time
@@ -378,7 +429,11 @@ def _vdb_task_sink(builder: mrc.Builder):
                                     },
                                 )
                         else:
-                            logger.debug("Accumulated %d rows for collection: %s", accum_stats.msg_count, key)
+                            logger.debug(
+                                "Accumulated %d rows for collection: %s",
+                                accum_stats.msg_count,
+                                key,
+                            )
                             if isinstance(ctrl_msg, IngestControlMessage):
                                 ctrl_msg.set_metadata(
                                     "insert_response",
@@ -397,7 +452,10 @@ def _vdb_task_sink(builder: mrc.Builder):
         return ctrl_msg
 
     node = builder.make_node(
-        WRITE_TO_VECTOR_DB, ops.map(on_data), ops.filter(lambda val: val is not None), ops.on_completed(on_completed)
+        WRITE_TO_VECTOR_DB,
+        ops.map(on_data),
+        ops.filter(lambda val: val is not None),
+        ops.on_completed(on_completed),
     )
     node.launch_options.engines_per_pe = validated_config.progress_engines
 

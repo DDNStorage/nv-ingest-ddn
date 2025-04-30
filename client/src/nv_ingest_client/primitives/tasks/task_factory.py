@@ -73,7 +73,9 @@ def task_factory(task_type: Union[TaskType, str], **kwargs) -> Task:
         else:
             raise ValueError(f"Invalid task type string: '{task_type}'")
     elif not isinstance(task_type, TaskType):
-        raise ValueError("task_type must be a TaskType enum member or a valid task type string")
+        raise ValueError(
+            "task_type must be a TaskType enum member or a valid task type string"
+        )
 
     task_class: Type[Task] = _TASK_MAP[task_type]
 
@@ -85,13 +87,16 @@ def task_factory(task_type: Union[TaskType, str], **kwargs) -> Task:
     valid_kwargs = {
         name
         for name, param in params.items()
-        if param.kind in [param.KEYWORD_ONLY, param.POSITIONAL_OR_KEYWORD] and name != "self"
+        if param.kind in [param.KEYWORD_ONLY, param.POSITIONAL_OR_KEYWORD]
+        and name != "self"
     }
 
     # Check if provided kwargs match the task's constructor parameters
     for kwarg in kwargs:
         if kwarg not in valid_kwargs:
-            raise ValueError(f"Unexpected keyword argument '{kwarg}' for task type '{task_type.name}'")
+            raise ValueError(
+                f"Unexpected keyword argument '{kwarg}' for task type '{task_type.name}'"
+            )
 
     # Create and return the task instance with the provided kwargs
     return task_class(**kwargs)

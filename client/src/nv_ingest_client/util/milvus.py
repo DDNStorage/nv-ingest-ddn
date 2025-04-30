@@ -35,7 +35,9 @@ logger = logging.getLogger(__name__)
 def create_nvingest_meta_schema():
     schema = MilvusClient.create_schema(auto_id=True, enable_dynamic_field=True)
     # collection name, timestamp, index_types - dimensions, embedding_model, fields
-    schema.add_field(field_name="pk", datatype=DataType.INT64, is_primary=True, auto_id=True)
+    schema.add_field(
+        field_name="pk", datatype=DataType.INT64, is_primary=True, auto_id=True
+    )
     schema.add_field(
         field_name="collection_name",
         datatype=DataType.VARCHAR,
@@ -44,7 +46,9 @@ def create_nvingest_meta_schema():
         # enable_match=True
     )
     schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=2)
-    schema.add_field(field_name="timestamp", datatype=DataType.VARCHAR, max_length=65535)
+    schema.add_field(
+        field_name="timestamp", datatype=DataType.VARCHAR, max_length=65535
+    )
     schema.add_field(field_name="indexes", datatype=DataType.JSON)
     schema.add_field(field_name="models", datatype=DataType.JSON)
     schema.add_field(field_name="user_fields", datatype=DataType.JSON)
@@ -52,7 +56,10 @@ def create_nvingest_meta_schema():
 
 
 def create_meta_collection(
-    schema: CollectionSchema, milvus_uri: str = "http://localhost:19530", collection_name: str = "meta", recreate=False
+    schema: CollectionSchema,
+    milvus_uri: str = "http://localhost:19530",
+    collection_name: str = "meta",
+    recreate=False,
 ):
     client = MilvusClient(milvus_uri)
     if client.has_collection(collection_name) and not recreate:
@@ -66,7 +73,9 @@ def create_meta_collection(
         index_type="FLAT",
         metric_type="L2",
     )
-    create_collection(client, collection_name, schema, index_params=index_params, recreate=recreate)
+    create_collection(
+        client, collection_name, schema, index_params=index_params, recreate=recreate
+    )
 
 
 def write_meta_collection(
@@ -86,9 +95,14 @@ def write_meta_collection(
         "collection_name": collection_name,
         "vector": [0.0] * 2,
         "timestamp": str(creation_timestamp or datetime.datetime.now()),
-        "indexes": {"dense_index": dense_index, "dense_dimension": dense_dim, "sparse_index": sparse_index},
+        "indexes": {
+            "dense_index": dense_index,
+            "dense_dimension": dense_dim,
+            "sparse_index": sparse_index,
+        },
         "models": {
-            "embedding_model": embedding_model or client_config.embedding_nim_model_name,
+            "embedding_model": embedding_model
+            or client_config.embedding_nim_model_name,
             "embedding_dim": dense_dim,
             "sparse_model": sparse_model,
         },
@@ -141,7 +155,13 @@ def grab_meta_collection_info(
     client = MilvusClient(milvus_uri)
     results = client.query_iterator(
         collection_name=meta_collection_name,
-        output_fields=["collection_name", "timestamp", "indexes", "models", "user_fields"],
+        output_fields=[
+            "collection_name",
+            "timestamp",
+            "indexes",
+            "models",
+            "user_fields",
+        ],
     )
     query_res = []
     res = results.next()
@@ -241,10 +261,14 @@ class MilvusOperator:
                 create_nvingest_collection(coll_name, **create_params)
                 write_to_nvingest_collection(records, coll_name, **sub_write_params)
         else:
-            raise ValueError(f"Unsupported type for collection_name detected: {type(collection_name)}")
+            raise ValueError(
+                f"Unsupported type for collection_name detected: {type(collection_name)}"
+            )
 
 
-def create_nvingest_schema(dense_dim: int = 1024, sparse: bool = False, local_index: bool = False) -> CollectionSchema:
+def create_nvingest_schema(
+    dense_dim: int = 1024, sparse: bool = False, local_index: bool = False
+) -> CollectionSchema:
     """
     Creates a schema for the nv-ingest produced data. This is currently setup to follow
     the default expected schema fields in nv-ingest. You can see more about the declared fields
@@ -267,7 +291,9 @@ def create_nvingest_schema(dense_dim: int = 1024, sparse: bool = False, local_in
         and extra fields (sparse), if specified by the user.
     """
     schema = MilvusClient.create_schema(auto_id=True, enable_dynamic_field=True)
-    schema.add_field(field_name="pk", datatype=DataType.INT64, is_primary=True, auto_id=True)
+    schema.add_field(
+        field_name="pk", datatype=DataType.INT64, is_primary=True, auto_id=True
+    )
     schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=dense_dim)
     schema.add_field(field_name="source", datatype=DataType.JSON)
     schema.add_field(field_name="content_metadata", datatype=DataType.JSON)
@@ -298,7 +324,10 @@ def create_nvingest_schema(dense_dim: int = 1024, sparse: bool = False, local_in
 
 
 def create_nvingest_index_params(
-    sparse: bool = False, gpu_index: bool = True, gpu_search: bool = True, local_index: bool = True
+    sparse: bool = False,
+    gpu_index: bool = True,
+    gpu_search: bool = True,
+    local_index: bool = True,
 ) -> IndexParams:
     """
     Creates index params necessary to create an index for a collection. At a minimum,
@@ -358,7 +387,9 @@ def create_nvingest_index_params(
             index_name="sparse_index",
             index_type="SPARSE_INVERTED_INDEX",  # Index type for sparse vectors
             metric_type="IP",  # Currently, only IP (Inner Product) is supported for sparse vectors
-            params={"drop_ratio_build": 0.2},  # The ratio of small vector values to be dropped during indexing
+            params={
+                "drop_ratio_build": 0.2
+            },  # The ratio of small vector values to be dropped during indexing
         )
     elif sparse:
         index_params.add_index(
@@ -398,7 +429,9 @@ def create_collection(
     if recreate and client.has_collection(collection_name):
         client.drop_collection(collection_name)
     if not client.has_collection(collection_name):
-        client.create_collection(collection_name=collection_name, schema=schema, index_params=index_params)
+        client.create_collection(
+            collection_name=collection_name, schema=schema, index_params=index_params
+        )
 
 
 def create_nvingest_collection(
@@ -451,9 +484,14 @@ def create_nvingest_collection(
             local_index = True
 
     client = MilvusClient(milvus_uri)
-    schema = create_nvingest_schema(dense_dim=dense_dim, sparse=sparse, local_index=local_index)
+    schema = create_nvingest_schema(
+        dense_dim=dense_dim, sparse=sparse, local_index=local_index
+    )
     index_params = create_nvingest_index_params(
-        sparse=sparse, gpu_index=gpu_index, gpu_search=gpu_search, local_index=local_index
+        sparse=sparse,
+        gpu_index=gpu_index,
+        gpu_search=gpu_search,
+        local_index=local_index,
     )
     create_collection(client, collection_name, schema, index_params, recreate=recreate)
     d_idx = None
@@ -475,7 +513,9 @@ def create_nvingest_collection(
 
 
 def _format_sparse_embedding(sparse_vector: csr_array):
-    sparse_embedding = {int(k[1]): float(v) for k, v in sparse_vector.todok()._dict.items()}
+    sparse_embedding = {
+        int(k[1]): float(v) for k, v in sparse_vector.todok()._dict.items()
+    }
     return sparse_embedding if len(sparse_embedding) > 0 else {int(0): float(0)}
 
 
@@ -511,11 +551,20 @@ def _pull_text(
         text = element["metadata"]["content"]
     elif element["document_type"] == "structured":
         text = element["metadata"]["table_metadata"]["table_content"]
-        if element["metadata"]["content_metadata"]["subtype"] == "chart" and not enable_charts:
+        if (
+            element["metadata"]["content_metadata"]["subtype"] == "chart"
+            and not enable_charts
+        ):
             text = None
-        elif element["metadata"]["content_metadata"]["subtype"] == "table" and not enable_tables:
+        elif (
+            element["metadata"]["content_metadata"]["subtype"] == "table"
+            and not enable_tables
+        ):
             text = None
-        elif element["metadata"]["content_metadata"]["subtype"] == "infographic" and not enable_infographics:
+        elif (
+            element["metadata"]["content_metadata"]["subtype"] == "infographic"
+            and not enable_infographics
+        ):
             text = None
     elif element["document_type"] == "image" and enable_images:
         text = element["metadata"]["image_metadata"]["caption"]
@@ -527,35 +576,58 @@ def _pull_text(
         pg_num = element["metadata"]["content_metadata"].get("page_number")
         doc_type = element["document_type"]
         if not verify_emb:
-            logger.info(f"failed to find embedding for entity: {source_name} page: {pg_num} type: {doc_type}")
+            logger.info(
+                f"failed to find embedding for entity: {source_name} page: {pg_num} type: {doc_type}"
+            )
         if not text:
-            logger.info(f"failed to find text for entity: {source_name} page: {pg_num} type: {doc_type}")
+            logger.info(
+                f"failed to find text for entity: {source_name} page: {pg_num} type: {doc_type}"
+            )
         # if we do find text but no embedding remove anyway
         text = None
     return text
 
 
 def _insert_location_into_content_metadata(
-    element, enable_charts: bool, enable_tables: bool, enable_images: bool, enable_infographic: bool
+    element,
+    enable_charts: bool,
+    enable_tables: bool,
+    enable_images: bool,
+    enable_infographic: bool,
 ):
     location = max_dimensions = None
     if element["document_type"] == "structured":
         location = element["metadata"]["table_metadata"]["table_location"]
-        max_dimensions = element["metadata"]["table_metadata"]["table_location_max_dimensions"]
-        if element["metadata"]["content_metadata"]["subtype"] == "chart" and not enable_charts:
+        max_dimensions = element["metadata"]["table_metadata"][
+            "table_location_max_dimensions"
+        ]
+        if (
+            element["metadata"]["content_metadata"]["subtype"] == "chart"
+            and not enable_charts
+        ):
             location = max_dimensions = None
-        elif element["metadata"]["content_metadata"]["subtype"] == "table" and not enable_tables:
+        elif (
+            element["metadata"]["content_metadata"]["subtype"] == "table"
+            and not enable_tables
+        ):
             location = max_dimensions = None
-        elif element["metadata"]["content_metadata"]["subtype"] == "infographic" and not enable_infographic:
+        elif (
+            element["metadata"]["content_metadata"]["subtype"] == "infographic"
+            and not enable_infographic
+        ):
             location = max_dimensions = None
     elif element["document_type"] == "image" and enable_images:
         location = element["metadata"]["image_metadata"]["image_location"]
-        max_dimensions = element["metadata"]["image_metadata"]["image_location_max_dimensions"]
+        max_dimensions = element["metadata"]["image_metadata"][
+            "image_location_max_dimensions"
+        ]
     if (not location) and (element["document_type"] != "text"):
         source_name = element["metadata"]["source_metadata"]["source_name"]
         pg_num = element["metadata"]["content_metadata"].get("page_number")
         doc_type = element["document_type"]
-        logger.info(f"failed to find location for entity: {source_name} page: {pg_num} type: {doc_type}")
+        logger.info(
+            f"failed to find location for entity: {source_name} page: {pg_num} type: {doc_type}"
+        )
         location = max_dimensions = None
     element["metadata"]["content_metadata"]["location"] = location
     element["metadata"]["content_metadata"]["max_dimensions"] = max_dimensions
@@ -572,7 +644,7 @@ def write_records_minio(
     enable_infographics: bool = True,
     enable_audio: bool = True,
     record_func=_record_dict,
-    max_text_length: int = 10000
+    max_text_length: int = 10000,
 ) -> RemoteBulkWriter:
     """
     Writes the supplied records to milvus using the supplied writer.
@@ -615,18 +687,34 @@ def write_records_minio(
     for result in records:
         for element in result:
             text = _pull_text(
-                element, enable_text, enable_charts, enable_tables, enable_images, enable_infographics, enable_audio
+                element,
+                enable_text,
+                enable_charts,
+                enable_tables,
+                enable_images,
+                enable_infographics,
+                enable_audio,
             )
             _insert_location_into_content_metadata(
-                element, enable_charts, enable_tables, enable_images, enable_infographics
+                element,
+                enable_charts,
+                enable_tables,
+                enable_images,
+                enable_infographics,
             )
             if text:
                 if len(text) > max_text_length:
-                    logger.warning(f"Truncating text from {len(text)} to {max_text_length} characters")
+                    logger.warning(
+                        f"Truncating text from {len(text)} to {max_text_length} characters"
+                    )
                     text = text[:max_text_length]
 
                 if sparse_model is not None:
-                    writer.append_row(record_func(text, element, sparse_model.encode_documents([text])))
+                    writer.append_row(
+                        record_func(
+                            text, element, sparse_model.encode_documents([text])
+                        )
+                    )
                 else:
                     writer.append_row(record_func(text, element))
 
@@ -635,7 +723,11 @@ def write_records_minio(
     return writer
 
 
-def bulk_insert_milvus(collection_name: str, writer: RemoteBulkWriter, milvus_uri: str = "http://localhost:19530"):
+def bulk_insert_milvus(
+    collection_name: str,
+    writer: RemoteBulkWriter,
+    milvus_uri: str = "http://localhost:19530",
+):
     """
     This function initialize the bulk ingest of all minio uploaded records, and checks for
     milvus task completion. Once the function is complete all records have been uploaded
@@ -655,7 +747,9 @@ def bulk_insert_milvus(collection_name: str, writer: RemoteBulkWriter, milvus_ur
 
     connections.connect(uri=milvus_uri)
     t_bulk_start = time.time()
-    task_id = utility.do_bulk_insert(collection_name=collection_name, files=writer.batch_files[0])
+    task_id = utility.do_bulk_insert(
+        collection_name=collection_name, files=writer.batch_files[0]
+    )
     state = "Pending"
     while state != "Completed":
         task = utility.get_bulk_insert_state(task_id=task_id)
@@ -712,7 +806,13 @@ def create_bm25_model(
     for result in records:
         for element in result:
             text = _pull_text(
-                element, enable_text, enable_charts, enable_tables, enable_images, enable_infographics, enable_audio
+                element,
+                enable_text,
+                enable_charts,
+                enable_tables,
+                enable_images,
+                enable_infographics,
+                enable_audio,
             )
             if text:
                 all_text.append(text)
@@ -773,14 +873,28 @@ def stream_insert_milvus(
     for result in records:
         for element in result:
             text = _pull_text(
-                element, enable_text, enable_charts, enable_tables, enable_images, enable_infographics, enable_audio
+                element,
+                enable_text,
+                enable_charts,
+                enable_tables,
+                enable_images,
+                enable_infographics,
+                enable_audio,
             )
             _insert_location_into_content_metadata(
-                element, enable_charts, enable_tables, enable_images, enable_infographics
+                element,
+                enable_charts,
+                enable_tables,
+                enable_images,
+                enable_infographics,
             )
             if text:
                 if sparse_model is not None:
-                    data.append(record_func(text, element, sparse_model.encode_documents([text])))
+                    data.append(
+                        record_func(
+                            text, element, sparse_model.encode_documents([text])
+                        )
+                    )
                 else:
                     data.append(record_func(text, element))
     client.insert(collection_name=collection_name, data=data)
@@ -804,7 +918,7 @@ def write_to_nvingest_collection(
     secret_key: str = "minioadmin",
     bucket_name: str = "a-bucket",
     threshold: int = 10,
-    use_boto3 = False
+    use_boto3=False,
 ):
     """
     This function takes the input records and creates a corpus,
@@ -885,34 +999,41 @@ def write_to_nvingest_collection(
             enable_tables=enable_tables,
             enable_images=enable_images,
             enable_infographics=enable_infographics,
-        ) 
-    
+        )
+
     else:
 
         if use_boto3:
-            ##HARDCODED FOR MULTIPART 
-            use_presigned =True
+            ##HARDCODED FOR MULTIPART
+            use_presigned = True
             upload_method = "PRESIGNED URL" if use_presigned else "STANDARD BOTO3"
             print(f"USING BOTO3 FOR BULK INSERT WITH {upload_method} METHOD")
             if use_presigned:
 
-                print("-=***!Currently hardcoded for multipart only, change here client/src/nv_ingest_client/util/milvus.py line 889 to reverse!***=-" )
+                print(
+                    "-=***!Currently hardcoded for multipart only, change here client/src/nv_ingest_client/util/milvus.py line 889 to reverse!***=-"
+                )
 
-            
-            
             endpoint_url = minio_endpoint
-            if not endpoint_url.startswith(('http://', 'https://')):
+            if not endpoint_url.startswith(("http://", "https://")):
                 endpoint_url = f"https://{endpoint_url}"
 
-            conn = Boto3BulkWriter.S3ConnectParam(bucket_name=bucket_name,
-                                                  endpoint_url=endpoint_url,
-                                                  access_key=access_key,
-                                                  secret_key=secret_key,
-                                                  region_name=None,
-                                                  verify=False,
-                                                  use_presigned=use_presigned)
-        
-            text_writer = Boto3BulkWriter(schema=schema, remote_path="", connect_param=conn, file_type=BulkFileType.PARQUET)
+            conn = Boto3BulkWriter.S3ConnectParam(
+                bucket_name=bucket_name,
+                endpoint_url=endpoint_url,
+                access_key=access_key,
+                secret_key=secret_key,
+                region_name=None,
+                verify=False,
+                use_presigned=use_presigned,
+            )
+
+            text_writer = Boto3BulkWriter(
+                schema=schema,
+                remote_path="",
+                connect_param=conn,
+                file_type=BulkFileType.PARQUET,
+            )
         else:
 
             conn = RemoteBulkWriter.S3ConnectParam(
@@ -923,14 +1044,25 @@ def write_to_nvingest_collection(
                 secure=False,
             )
             text_writer = RemoteBulkWriter(
-                schema=schema, remote_path="/", connect_param=conn, file_type=BulkFileType.PARQUET
+                schema=schema,
+                remote_path="/",
+                connect_param=conn,
+                file_type=BulkFileType.PARQUET,
             )
-        writer = write_records_minio(records,text_writer,bm25_ef,enable_text=enable_text,enable_charts=enable_charts,enable_tables=enable_tables,enable_images=enable_images,enable_infographics=enable_infographics)
+        writer = write_records_minio(
+            records,
+            text_writer,
+            bm25_ef,
+            enable_text=enable_text,
+            enable_charts=enable_charts,
+            enable_tables=enable_tables,
+            enable_images=enable_images,
+            enable_infographics=enable_infographics,
+        )
         bulk_insert_milvus(collection_name, writer, milvus_uri)
         # this sleep is required, to ensure atleast this amount of time
         # passes before running a search against the collection.\
         time.sleep(20)
-
 
 
 def dense_retrieval(
@@ -1032,7 +1164,9 @@ def hybrid_retrieval(
     for query in queries:
         dense_embeddings.append(dense_model.get_query_embedding(query))
         if sparse_model:
-            sparse_embeddings.append(_format_sparse_embedding(sparse_model.encode_queries([query])))
+            sparse_embeddings.append(
+                _format_sparse_embedding(sparse_model.encode_queries([query]))
+            )
         else:
             sparse_embeddings.append(query)
 
@@ -1064,7 +1198,11 @@ def hybrid_retrieval(
     sparse_req = AnnSearchRequest(**search_param_2)
 
     results = client.hybrid_search(
-        collection_name, [sparse_req, dense_req], RRFRanker(), limit=top_k, output_fields=output_fields
+        collection_name,
+        [sparse_req, dense_req],
+        RRFRanker(),
+        limit=top_k,
+        output_fields=output_fields,
     )
     return results
 
@@ -1143,10 +1281,16 @@ def nvingest_retrieval(
     client_config = ClientConfigSchema()
     nvidia_api_key = client_config.nvidia_build_api_key
     # required for NVIDIAEmbedding call if the endpoint is Nvidia build api.
-    embedding_endpoint = embedding_endpoint if embedding_endpoint else client_config.embedding_nim_endpoint
+    embedding_endpoint = (
+        embedding_endpoint
+        if embedding_endpoint
+        else client_config.embedding_nim_endpoint
+    )
     model_name = model_name if model_name else client_config.embedding_nim_model_name
     local_index = False
-    embed_model = NVIDIAEmbedding(base_url=embedding_endpoint, model=model_name, nvidia_api_key=nvidia_api_key)
+    embed_model = NVIDIAEmbedding(
+        base_url=embedding_endpoint, model=model_name, nvidia_api_key=nvidia_api_key
+    )
     client = MilvusClient(milvus_uri)
     nv_ranker_top_k = top_k
     if nv_ranker:
@@ -1170,7 +1314,14 @@ def nvingest_retrieval(
             local_index=local_index,
         )
     else:
-        results = dense_retrieval(queries, collection_name, client, embed_model, top_k, output_fields=output_fields)
+        results = dense_retrieval(
+            queries,
+            collection_name,
+            client,
+            embed_model,
+            top_k,
+            output_fields=output_fields,
+        )
     if nv_ranker:
         rerank_results = []
         for query, candidates in zip(queries, results):
@@ -1190,7 +1341,9 @@ def nvingest_retrieval(
     return results
 
 
-def remove_records(source_name: str, collection_name: str, milvus_uri: str = "http://localhost:19530"):
+def remove_records(
+    source_name: str, collection_name: str, milvus_uri: str = "http://localhost:19530"
+):
     """
     This function allows a user to remove chunks associated with an ingested file.
     Supply the full path of the file you would like to remove and this function will
@@ -1259,9 +1412,13 @@ def nv_rerank(
     """
     client_config = ClientConfigSchema()
     # reranker = NVIDIARerank(base_url=reranker_endpoint, nvidia_api_key=nvidia_api_key, top_n=top_k)
-    reranker_endpoint = reranker_endpoint if reranker_endpoint else client_config.nv_ranker_nim_endpoint
+    reranker_endpoint = (
+        reranker_endpoint if reranker_endpoint else client_config.nv_ranker_nim_endpoint
+    )
     model_name = model_name if model_name else client_config.nv_ranker_nim_model_name
-    nvidia_api_key = nvidia_api_key if nvidia_api_key else client_config.nvidia_build_api_key
+    nvidia_api_key = (
+        nvidia_api_key if nvidia_api_key else client_config.nvidia_build_api_key
+    )
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     if nvidia_api_key:
         headers["Authorization"] = f"Bearer {nvidia_api_key}"
@@ -1270,10 +1427,17 @@ def nv_rerank(
     for idx, candidate in enumerate(candidates):
         map_candidates[idx] = candidate
         texts.append({"text": candidate["entity"]["text"]})
-    payload = {"model": model_name, "query": {"text": query}, "passages": texts, "truncate": truncate}
+    payload = {
+        "model": model_name,
+        "query": {"text": query},
+        "passages": texts,
+        "truncate": truncate,
+    }
     response = requests.post(f"{reranker_endpoint}", headers=headers, json=payload)
     if response.status_code != 200:
-        raise ValueError(f"Failed retrieving ranking results: {response.status_code} - {response.text}")
+        raise ValueError(
+            f"Failed retrieving ranking results: {response.status_code} - {response.text}"
+        )
     rank_results = []
     for rank_vals in response.json()["rankings"]:
         idx = rank_vals["index"]
