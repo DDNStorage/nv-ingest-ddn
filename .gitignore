@@ -224,3 +224,4 @@ conda/output_conda_channel
 
 # Ignore generate docs site
 docs/site
+examples/draft_pipeline/embeddings

@@ -85,7 +85,7 @@ class EmbeddingIndexer:
                     auto_id=False,
                 )
                 schema.add_field(
-                    field_name="embedding",
+                    field_name="vector",
                     datatype=DataType.FLOAT_VECTOR,
                     dim=self.embedding_dim
                 )
@@ -259,7 +259,7 @@ class EmbeddingIndexer:
             
             index_params = self.client.prepare_index_params()
             index_params.add_index(
-                field_name="embedding",
+                field_name="vector",
                 metric_type="L2",
                 index_type="HNSW",
                 index_name="embedding_index",

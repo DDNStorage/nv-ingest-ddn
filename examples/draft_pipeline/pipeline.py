@@ -15,6 +15,8 @@ import argparse
 import json
 import os
 import sys
+import time
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -102,6 +104,47 @@ def cmd_embed(args):
 def cmd_index(args):
     """Handle indexing command"""
     logger = setup_logging("indexing")
+    ###############################################################################
+    #                                  DIEGO'S CODE
+    ###############################################################################
+
+    if args.mode == "gcs":
+        try:
+            result = subprocess.run(
+                ["bash", "../../../rag-nim-milvus/run_docker_compose/run_docker_multimodal_gcs.sh"],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("✅ Output:\n", result.stdout)
+        except subprocess.CalledProcessError as e:
+            print("❌ Error:\n", e.stderr)
+        print("⏳ Waiting for containers to initialize (30 seconds)...")
+        for i in range(30, 0, -1):
+            print(f"⏱️ {i}s remaining...", end='\r')
+            time.sleep(1)
+        print("\n✅ Docker Containers for GCS is Up and Running.")
+    
+    if args.mode == "infinia":
+        try:
+            result = subprocess.run(
+                ["bash", "../../../rag-nim-milvus/run_docker_compose/run_docker_multimodal_infinia.sh"],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("✅ Output:\n", result.stdout)
+        except subprocess.CalledProcessError as e:
+            print("❌ Error:\n", e.stderr)
+        print("⏳ Waiting for containers to initialize (30 seconds)...")
+        for i in range(30, 0, -1):
+            print(f"⏱️ {i}s remaining...", end='\r')
+            time.sleep(1)
+        print("\n✅ Docker Containers for Infinia is Up and Running.")
+    ###############################################################################
+
     
     print_banner("EMBEDDING INDEXING")
     print(f"Embeddings directory: {args.embeddings}")
@@ -276,6 +319,7 @@ Examples:
     index_parser = subparsers.add_parser('index', help='Index embeddings into Milvus')
     index_parser.add_argument('--embeddings', '-e', required=True, help='Directory containing embeddings')
     index_parser.add_argument('--collection', '-c', required=True, help='Milvus collection name')
+    index_parser.add_argument('--mode', '-m', required=True, help='infinia OR gcs')
     index_parser.add_argument('--batch-size', '-b', type=int, default=1000, help='Batch size for indexing')
     index_parser.add_argument('--recreate', action='store_true', help='Recreate collection if exists')
     index_parser.add_argument('--milvus-host', default='localhost', help='Milvus host')
