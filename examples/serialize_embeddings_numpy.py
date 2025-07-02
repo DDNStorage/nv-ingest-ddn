@@ -13,6 +13,16 @@ from pathlib import Path
 from nv_ingest_client.client import Ingestor
 from nv_ingest_client.primitives import JobSpec
 
+# Print nv_ingest_client version
+try:
+    import nv_ingest_client
+    if hasattr(nv_ingest_client, '__version__'):
+        print(f"Using nv_ingest_client version: {nv_ingest_client.__version__}")
+    else:
+        print("nv_ingest_client version not available in __version__ attribute")
+except Exception as e:
+    print(f"Could not determine nv_ingest_client version: {e}")
+
 def get_file_size_mb(filepath):
     size_bytes = os.path.getsize(filepath)
     return round(size_bytes / (1024 * 1024), 6)  # Size in MB
@@ -279,10 +289,28 @@ def batch_serialize_embeddings(documents, config, output_dir, batch_size=1000):
 
 
 if __name__ == "__main__":
+    # Print version info at the start of the script
+    try:
+        import nv_ingest_client
+        print("\n=== NV-Ingest Client Information ===")
+        if hasattr(nv_ingest_client, '__version__'):
+            print(f"Version: {nv_ingest_client.__version__}")
+        else:
+            # Try alternative methods to get version
+            import pkg_resources
+            try:
+                version = pkg_resources.get_distribution('nv-ingest-client').version
+                print(f"Version (from pkg_resources): {version}")
+            except:
+                print("Version information not available")
+        print("===================================\n")
+    except Exception as e:
+        print(f"Error getting version: {e}")
+    
     # Configuration
     config = {
         "host": "localhost",
-        "port": 8082
+        "port": 7670  # Corrected port - NV-Ingest actually runs on 7670
     }
     
     # Example documents

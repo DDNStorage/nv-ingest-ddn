@@ -1,0 +1,24 @@
+# Embedding Pipeline Requirements
+
+# Core dependencies
+numpy>=1.21.0
+pymilvus>=2.3.0
+tqdm>=4.65.0
+
+# NV-Ingest client
+nv-ingest-client==25.6.2
+
+# Library mode dependencies (for --library-mode flag)
+# These enable optimized batch processing
+nv-ingest==25.6.2 
+nv-ingest-api==25.6.2
+
+
+# Optional dependencies for enhanced functionality
+h5py>=3.8.0  # For HDF5 support
+pandas>=1.5.0  # For data manipulation
+pyarrow>=11.0.0  # For Parquet support
+
+# Logging and utilities
+python-json-logger>=2.0.0
+
