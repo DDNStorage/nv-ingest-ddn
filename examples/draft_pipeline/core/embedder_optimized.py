@@ -43,7 +43,9 @@ class OptimizedEmbeddingGenerator:
         nv_ingest_host: str = "localhost",
         nv_ingest_port: int = 7670,
         use_library_mode: bool = True,
-        batch_size: int = 10
+        batch_size: int = 10,
+        max_retries: int = 3,
+        checkpoint_interval: int = 100
     ):
         self.output_base_dir = Path(output_base_dir)
         self.experiment_name = experiment_name or datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -51,6 +53,8 @@ class OptimizedEmbeddingGenerator:
         self.nv_ingest_port = nv_ingest_port
         self.use_library_mode = use_library_mode and NV_INGEST_LIBRARY_MODE
         self.batch_size = batch_size
+        self.max_retries = max_retries
+        self.checkpoint_interval = checkpoint_interval
         
         # Initialize pipeline if using library mode
         self.pipeline_started = False
@@ -85,7 +89,7 @@ class OptimizedEmbeddingGenerator:
         # Create optimized client
         self.client = NvIngestClient(
             message_client_allocator=SimpleClient,
-            message_client_port=7671,  # Library mode uses different port
+            message_client_port=7671,
             message_client_hostname="localhost"
         )
         
@@ -132,6 +136,15 @@ class OptimizedEmbeddingGenerator:
         
         total_embeddings = 0
         all_metadata = []
+        
+        # Load checkpoint if exists
+        checkpoint_file = self.output_dir / "checkpoint.json"
+        processed_files = set()
+        if checkpoint_file.exists():
+            with open(checkpoint_file, 'r') as f:
+                checkpoint = json.load(f)
+                processed_files = set(checkpoint.get("processed_files", []))
+                logger.info(f"Resuming from checkpoint: {len(processed_files)} files already processed")
         
         # Process files in batches for better performance
         for batch_start in range(0, len(pdf_files), self.batch_size):

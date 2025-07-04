@@ -24,8 +24,7 @@ from pathlib import Path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from core.embedder import EmbeddingGenerator
-from core.embedder_optimized import OptimizedEmbeddingGenerator
-from core.indexer import EmbeddingIndexer
+from core.indexer_hybrid import HybridEmbeddingIndexer
 from core.searcher import EmbeddingSearcher
 from core.utils import setup_logging, print_banner
 
@@ -42,9 +41,8 @@ def cmd_embed(args):
     print(f"Input directory: {args.input}")
     print(f"Experiment name: {args.experiment}")
     print(f"Output directory: {args.output}")
-    print(f"Library mode: {args.library_mode}")
-    if args.library_mode:
-        print(f"Batch size: {args.batch_size}")
+    print(f"Batch size: {args.batch_size}")
+    print(f"Checkpoints: {'enabled' if args.enable_checkpoints else 'disabled'}")
     
     # Find PDF files
     input_path = Path(args.input)
@@ -59,23 +57,15 @@ def cmd_embed(args):
     
     print(f"Found {len(pdf_files)} PDF files")
     
-    # Generate embeddings
-    if args.library_mode:
-        generator = OptimizedEmbeddingGenerator(
-            output_base_dir=args.output,
-            experiment_name=args.experiment,
-            nv_ingest_host=args.nv_ingest_host,
-            nv_ingest_port=args.nv_ingest_port,
-            use_library_mode=True,
-            batch_size=args.batch_size
-        )
-    else:
-        generator = EmbeddingGenerator(
-            output_base_dir=args.output,
-            experiment_name=args.experiment,
-            nv_ingest_host=args.nv_ingest_host,
-            nv_ingest_port=args.nv_ingest_port
-        )
+    # Generate embeddings with optimized approach
+    generator = EmbeddingGenerator(
+        output_base_dir=args.output,
+        experiment_name=args.experiment,
+        nv_ingest_host=args.nv_ingest_host,
+        nv_ingest_port=args.nv_ingest_port,
+        batch_size=args.batch_size,
+        enable_checkpoints=args.enable_checkpoints
+    )
     
     try:
         metrics = generator.generate_embeddings(pdf_files)
@@ -86,8 +76,16 @@ def cmd_embed(args):
         print("="*60)
         print(f"Total PDFs processed: {metrics['total_documents']}")
         print(f"Total embeddings generated: {metrics['total_embeddings']}")
+        print(f"Failed documents: {metrics.get('failed_documents', 0)}")
         print(f"Total time: {metrics['total_time']:.2f}s")
+        if metrics['total_embeddings'] > 0:
+            print(f"Average rate: {metrics.get('overall_embeddings_per_second', 0):.2f} embeddings/second")
+            print(f"Documents per minute: {metrics.get('documents_per_minute', 0):.1f}")
         print(f"Output directory: {metrics['output_dir']}")
+        
+        if metrics.get('resumed_from_checkpoint'):
+            print("(Resumed from checkpoint)")
+        
         print("="*60)
         
         return 0
@@ -95,62 +93,20 @@ def cmd_embed(args):
     except Exception as e:
         logger.error(f"Embedding generation failed: {e}")
         return 1
-    finally:
-        # Clean up resources for optimized generator
-        if args.library_mode and hasattr(generator, 'close'):
-            generator.close()
 
 
 def cmd_index(args):
     """Handle indexing command"""
     logger = setup_logging("indexing")
-    ###############################################################################
-    #                                  DIEGO'S CODE
-    ###############################################################################
-
-    if args.mode == "gcs":
-        try:
-            result = subprocess.run(
-                ["bash", "../../../rag-nim-milvus/run_docker_compose/run_docker_multimodal_gcs.sh"],
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
-            print("✅ Output:\n", result.stdout)
-        except subprocess.CalledProcessError as e:
-            print("❌ Error:\n", e.stderr)
-        print("⏳ Waiting for containers to initialize (30 seconds)...")
-        for i in range(30, 0, -1):
-            print(f"⏱️ {i}s remaining...", end='\r')
-            time.sleep(1)
-        print("\n✅ Docker Containers for GCS is Up and Running.")
-    
-    if args.mode == "infinia":
-        try:
-            result = subprocess.run(
-                ["bash", "../../../rag-nim-milvus/run_docker_compose/run_docker_multimodal_infinia.sh"],
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
-            print("✅ Output:\n", result.stdout)
-        except subprocess.CalledProcessError as e:
-            print("❌ Error:\n", e.stderr)
-        print("⏳ Waiting for containers to initialize (30 seconds)...")
-        for i in range(30, 0, -1):
-            print(f"⏱️ {i}s remaining...", end='\r')
-            time.sleep(1)
-        print("\n✅ Docker Containers for Infinia is Up and Running.")
-    ###############################################################################
-
     
     print_banner("EMBEDDING INDEXING")
+    print(f"Storage backend: {args.mode.upper()}")
     print(f"Embeddings directory: {args.embeddings}")
     print(f"Collection name: {args.collection}")
+    print(f"Index type: {args.index_type.upper()}")
     print(f"Batch size: {args.batch_size}")
     print(f"Recreate collection: {args.recreate}")
+    print(f"Enable search: {args.enable_search}")
     
     # Verify embeddings directory
     embeddings_path = Path(args.embeddings)
@@ -158,35 +114,53 @@ def cmd_index(args):
         logger.error(f"Embeddings directory does not exist: {args.embeddings}")
         return 1
     
-    # Create indexer
-    indexer = EmbeddingIndexer(
+    # Create hybrid indexer with GPU/CPU support and optimized bulk approach
+    indexer = HybridEmbeddingIndexer(
         collection_name=args.collection,
         milvus_host=args.milvus_host,
         milvus_port=args.milvus_port,
         batch_size=args.batch_size,
-        recreate_collection=args.recreate
+        recreate_collection=args.recreate,
+        index_type=args.index_type,
+        storage_mode=args.mode,  # 'infinia' or 'gcs'
+        enable_search=args.enable_search  # Include metadata fields for search
     )
     
     try:
         metrics = indexer.index_embeddings(args.embeddings)
         
         # Print summary
-        print("\n" + "="*60)
-        print("INDEXING COMPLETE")
-        print("="*60)
+        print("\n" + "="*70)
+        print("INDEXING COMPLETE - PERFORMANCE SUMMARY")
+        print("="*70)
         print(f"Collection: {args.collection}")
-        print(f"Total embeddings: {metrics['total_embeddings']}")
-        print(f"Successfully indexed: {metrics['processed_embeddings']}")
-        print(f"Failed: {metrics['failed_embeddings']}")
-        print(f"Success rate: {metrics['success_rate']:.2f}%")
-        print(f"\nPerformance:")
-        print(f"  Total time: {metrics['total_time']:.2f}s")
-        print(f"  Loading time: {metrics['loading_time']:.2f}s")
-        print(f"  Ingestion time: {metrics['ingestion_time']:.2f}s")
-        print(f"  Index creation time: {metrics['index_creation_time']:.2f}s")
-        print(f"  Throughput: {metrics['embeddings_per_second']:.2f} embeddings/s")
+        print(f"Storage backend: {args.mode.upper()}")
+        print(f"Index type: {metrics.get('index_type', 'cpu').upper()} ({'GPU_CAGRA' if metrics.get('index_type', 'cpu') == 'gpu' else 'HNSW'})")
+        print("-"*70)
+        print("DATA METRICS:")
+        print(f"  Total embeddings: {metrics['total_embeddings']:,}")
+        print(f"  Successfully indexed: {metrics['processed_embeddings']:,}")
+        print(f"  Failed: {metrics.get('failed_embeddings', 0):,}")
+        print(f"  Success rate: {metrics['success_rate']:.2f}%")
+        if 'num_segments' in metrics:
+            print(f"  Number of segments: {metrics['num_segments']}")
+        print(f"  Collection size: {metrics.get('collection_entities', 0):,} entities")
+        print("-"*70)
+        print("PERFORMANCE METRICS:")
+        print(f"  Total time: {metrics['total_time']:.2f}s ({metrics['total_time']/60:.1f} minutes)")
+        print(f"  Loading time: {metrics['loading_time']:.2f}s ({metrics['loading_time']/metrics['total_time']*100:.1f}%)")
+        if 'aggregation_time' in metrics:
+            print(f"  Aggregation time: {metrics['aggregation_time']:.2f}s ({metrics['aggregation_time']/metrics['total_time']*100:.1f}%)")
+        if 'upload_time' in metrics:
+            print(f"  Upload time: {metrics['upload_time']:.2f}s ({metrics['upload_time']/metrics['total_time']*100:.1f}%)")
+        print(f"  Ingestion time: {metrics['ingestion_time']:.2f}s ({metrics['ingestion_time']/metrics['total_time']*100:.1f}%)")
+        print(f"  Index creation time: {metrics['index_creation_time']:.2f}s ({metrics['index_creation_time']/metrics['total_time']*100:.1f}%)")
+        print("-"*70)
+        print("THROUGHPUT:")
+        print(f"  Embeddings per second: {metrics['embeddings_per_second']:.0f}")
         print(f"  Data rate: {metrics['mb_per_second']:.2f} MB/s")
-        print("="*60)
+        print(f"  Average time per embedding: {metrics['total_time']/metrics['processed_embeddings']*1000:.2f}ms")
+        print("="*70)
         
         # Save metrics
         metrics_file = embeddings_path / f"indexing_metrics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
@@ -294,7 +268,7 @@ Examples:
   python pipeline.py embed --input /path/to/pdfs --experiment exp1
   
   # Index embeddings into Milvus
-  python pipeline.py index --embeddings ./embeddings/exp1_20240101_120000 --collection my_docs
+  python pipeline.py index --embeddings ./embeddings/exp1_20240101_120000 --collection my_docs --mode gcs
   
   # Search in indexed collection
   python pipeline.py search --collection my_docs --query "machine learning"
@@ -310,10 +284,12 @@ Examples:
     embed_parser.add_argument('--output', '-o', default='./embeddings', help='Output base directory')
     embed_parser.add_argument('--nv-ingest-host', default='localhost', help='NV-Ingest host')
     embed_parser.add_argument('--nv-ingest-port', type=int, default=7670, help='NV-Ingest port')
-    embed_parser.add_argument('--library-mode', action='store_true', 
-                             help='Use optimized library mode for better performance (requires additional dependencies)')
     embed_parser.add_argument('--batch-size', type=int, default=10, 
-                             help='Batch size for processing files in library mode')
+                         help='Batch size for processing files (auto-adjusts based on dataset size)')
+    embed_parser.add_argument('--enable-checkpoints', action='store_true', default=True,
+                         help='Enable checkpoint system for resume capability (default: enabled)')
+    embed_parser.add_argument('--disable-checkpoints', dest='enable_checkpoints', action='store_false',
+                         help='Disable checkpoint system')
     
     # Index command
     index_parser = subparsers.add_parser('index', help='Index embeddings into Milvus')
@@ -324,6 +300,10 @@ Examples:
     index_parser.add_argument('--recreate', action='store_true', help='Recreate collection if exists')
     index_parser.add_argument('--milvus-host', default='localhost', help='Milvus host')
     index_parser.add_argument('--milvus-port', type=int, default=19530, help='Milvus port')
+    index_parser.add_argument('--index-type', choices=['cpu', 'gpu'], default='cpu', 
+                             help='Index type: cpu (HNSW) or gpu (GPU_CAGRA)')
+    index_parser.add_argument('--enable-search', action='store_true', 
+                             help='Enable search capabilities by including text and metadata fields (slower indexing)')
     
     # Search command
     search_parser = subparsers.add_parser('search', help='Search in indexed collection')
