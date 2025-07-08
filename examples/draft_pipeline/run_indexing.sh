@@ -100,9 +100,23 @@ else
     exit 1
 fi
 
-# Count embeddings for information
-EMBEDDING_COUNT=$(find "$EMBEDDINGS_DIR" -name "*.npy" | wc -l)
-echo "  Total embeddings: $EMBEDDING_COUNT"
+# Count embeddings from metadata for accuracy
+if [ -f "$EMBEDDINGS_DIR/embeddings_metadata.json" ]; then
+    METADATA_COUNT=$(python -c "import json; f=open('$EMBEDDINGS_DIR/embeddings_metadata.json'); m=json.load(f); print(len(m)); f.close()" 2>/dev/null || echo "0")
+    FILE_COUNT=$(find "$EMBEDDINGS_DIR" -name "*.npy" | wc -l)
+    echo "  Embeddings in metadata: $METADATA_COUNT"
+    echo "  .npy files found: $FILE_COUNT"
+    
+    # Warn if there's a discrepancy
+    if [ "$METADATA_COUNT" -ne "$FILE_COUNT" ]; then
+        echo "  ⚠️  WARNING: File count mismatch! Metadata entries don't match .npy files"
+        echo "     This may indicate incomplete processing or orphaned files"
+    fi
+else
+    echo "  ❌ ERROR: No metadata file found!"
+    FILE_COUNT=$(find "$EMBEDDINGS_DIR" -name "*.npy" | wc -l)
+    echo "  .npy files found: $FILE_COUNT"
+fi
 echo "============================================"
 
 # Run indexing with optimized bulk approach

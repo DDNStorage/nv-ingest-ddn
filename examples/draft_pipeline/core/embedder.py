@@ -45,19 +45,74 @@ class EmbeddingGenerator:
         self.batch_size = batch_size
         self.enable_checkpoints = enable_checkpoints
         
-        # Create output directory
-        self.output_dir = ensure_directory(
-            self.output_base_dir / f"{self.experiment_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        )
+        # Check for existing experiment directory with checkpoint
+        existing_dir = self._find_resumable_experiment()
+        
+        if existing_dir:
+            self.output_dir = existing_dir
+            logger.info(f"Resuming existing experiment: {self.output_dir}")
+        else:
+            # Create new output directory
+            self.output_dir = ensure_directory(
+                self.output_base_dir / f"{self.experiment_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            )
+            logger.info(f"Creating new experiment: {self.output_dir}")
         
         # Initialize checkpoint data
         self.checkpoint_file = self.output_dir / "checkpoint.json"
+        self.metadata_file = self.output_dir / "embeddings_metadata.json"
         self.processed_files = set()
         self.failed_files = set()
+        self.existing_metadata = []
+        
+        # Load existing metadata if resuming
+        if self.metadata_file.exists():
+            try:
+                with open(self.metadata_file, 'r') as f:
+                    self.existing_metadata = json.load(f)
+                logger.info(f"Loaded {len(self.existing_metadata)} existing metadata entries")
+            except Exception as e:
+                logger.warning(f"Failed to load existing metadata: {e}")
+                self.existing_metadata = []
         
         logger.info(f"Output directory: {self.output_dir}")
         logger.info(f"Batch size: {self.batch_size}")
         logger.info(f"Checkpoints: {'enabled' if enable_checkpoints else 'disabled'}")
+    
+    def _find_resumable_experiment(self) -> Optional[Path]:
+        """Find existing experiment directory with checkpoint for the given experiment name"""
+        if not self.enable_checkpoints:
+            return None
+            
+        # Look for directories matching the experiment name pattern
+        pattern = f"{self.experiment_name}_*"
+        matching_dirs = []
+        
+        try:
+            for path in self.output_base_dir.glob(pattern):
+                if path.is_dir():
+                    checkpoint_path = path / "checkpoint.json"
+                    if checkpoint_path.exists():
+                        # Verify it's a valid checkpoint
+                        try:
+                            with open(checkpoint_path, 'r') as f:
+                                checkpoint_data = json.load(f)
+                                if "processed" in checkpoint_data:
+                                    matching_dirs.append(path)
+                                    logger.info(f"Found resumable experiment: {path.name}")
+                        except Exception as e:
+                            logger.debug(f"Invalid checkpoint in {path}: {e}")
+            
+            if matching_dirs:
+                # Sort by directory name (which includes timestamp) and get the most recent
+                most_recent = sorted(matching_dirs)[-1]
+                logger.info(f"Selected most recent resumable experiment: {most_recent.name}")
+                return most_recent
+                
+        except Exception as e:
+            logger.error(f"Error searching for resumable experiments: {e}")
+            
+        return None
     
     def generate_embeddings(self, pdf_files: List[Path]) -> Dict:
         """Generate embeddings for PDF files with optimized processing"""
@@ -90,8 +145,19 @@ class EmbeddingGenerator:
             )
             
             # Process files in optimized batches
-            total_embeddings = 0
-            embeddings_metadata = []
+            total_embeddings = len(self.existing_metadata)  # Start with existing count
+            embeddings_metadata = list(self.existing_metadata)  # Start with existing metadata
+            
+            # Initialize chunk counters that persist across batches
+            doc_chunk_counters = defaultdict(int)
+            
+            # Load existing chunk counts from metadata to handle resume correctly
+            for meta in self.existing_metadata:
+                source_file = meta.get('source_file', '')
+                chunk_idx = meta.get('chunk_index', -1)
+                if source_file and chunk_idx >= 0:
+                    # Update counter to be at least one more than the highest existing chunk
+                    doc_chunk_counters[source_file] = max(doc_chunk_counters[source_file], chunk_idx + 1)
             
             # Calculate optimal batch size based on dataset
             optimal_batch_size = self._calculate_optimal_batch_size(len(remaining_files))
@@ -110,10 +176,13 @@ class EmbeddingGenerator:
                 
                 # Process batch with retry logic
                 batch_results = self._process_batch_with_retry(
-                    ingestor, batch, batch_num, embeddings_metadata
+                    ingestor, batch, batch_num, embeddings_metadata, doc_chunk_counters
                 )
                 
                 total_embeddings += batch_results['embeddings_count']
+                
+                # Save metadata incrementally after each batch
+                self._save_metadata(embeddings_metadata)
                 
                 # Update checkpoint after each successful batch
                 if self.enable_checkpoints:
@@ -137,6 +206,9 @@ class EmbeddingGenerator:
             metrics["failed_documents"] = len(self.failed_files)
             metrics["end_time"] = time.time()
             metrics["total_time"] = metrics["end_time"] - metrics["start_time"]
+            
+            # Count total embeddings from final metadata
+            metrics["total_embeddings"] = len(embeddings_metadata)
             
             # Add document-level metrics
             for pdf_path in pdf_files:
@@ -200,6 +272,7 @@ class EmbeddingGenerator:
         batch: List[Path], 
         batch_num: int,
         embeddings_metadata: List[Dict],
+        doc_chunk_counters: Dict[str, int],
         max_retries: int = 3
     ) -> Dict:
         """Process a batch with retry logic and correct result parsing"""
@@ -230,7 +303,6 @@ class EmbeddingGenerator:
                 
                 # Process results with correct structure
                 doc_embeddings_count = defaultdict(int)
-                doc_chunk_counters = defaultdict(int)
                 
                 # Use tqdm for batch progress
                 with tqdm(desc=f"Batch {batch_num} embeddings", leave=False) as pbar:
@@ -250,6 +322,11 @@ class EmbeddingGenerator:
                                         doc_name = Path(source_file).stem
                                         filename = f"{doc_name}_chunk_{chunk_index:04d}.npy"
                                         filepath = self.output_dir / filename
+                                        
+                                        # Check if file already exists
+                                        if filepath.exists():
+                                            logger.warning(f"File already exists, skipping: {filename}")
+                                            continue
                                         
                                         # Save embedding (already validated and normalized in extraction methods)
                                         embedding_array = embedding_data['embedding']
@@ -279,14 +356,20 @@ class EmbeddingGenerator:
                                         embeddings_count += 1
                                         pbar.update(1)
                 
-                # Mark files as processed
+                # Mark files as processed only if they have valid embeddings
                 for pdf_path in batch:
                     pdf_str = str(pdf_path)
-                    self.processed_files.add(pdf_str)
-                    if doc_embeddings_count.get(pdf_str, 0) > 0:
-                        logger.info(f"  ✓ {pdf_path.name}: {doc_embeddings_count[pdf_str]} embeddings")
+                    embedding_count = doc_embeddings_count.get(pdf_str, 0)
+                    
+                    if embedding_count > 0:
+                        # Only mark as processed if we got valid embeddings
+                        self.processed_files.add(pdf_str)
+                        logger.info(f"  ✓ {pdf_path.name}: {embedding_count} embeddings")
                     else:
-                        logger.warning(f"  ⚠ {pdf_path.name}: No embeddings generated")
+                        # Don't mark as processed - will be retried on next run
+                        logger.warning(f"  ⚠ {pdf_path.name}: No valid embeddings generated (skipping)")
+                        # Optionally add to failed files if you want to track them
+                        # self.failed_files.add(pdf_str)
                 
                 # Success - break retry loop
                 break
@@ -315,16 +398,6 @@ class EmbeddingGenerator:
     def _extract_embedding_from_nv_result(self, result_dict: Dict) -> Optional[Dict]:
         """Extract embedding data from NV-Ingest result format"""
         try:
-            # Based on your sample, the structure is:
-            # {
-            #   'document_type': 'text',
-            #   'metadata': {
-            #     'content': '...',
-            #     'content_url': '',
-            #     'embedding': [...],
-            #     'source_metadata': {...}  # might be present
-            #   }
-            # }
             
             if 'metadata' not in result_dict:
                 return None
@@ -580,6 +653,14 @@ class EmbeddingGenerator:
                 return all_files
         
         return all_files
+    
+    def _save_metadata(self, metadata: List[Dict]):
+        """Save metadata incrementally"""
+        try:
+            with open(self.metadata_file, 'w') as f:
+                json.dump(metadata, f, indent=2)
+        except Exception as e:
+            logger.error(f"Failed to save metadata: {e}")
     
     def _save_checkpoint(self):
         """Save checkpoint data"""

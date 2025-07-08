@@ -166,7 +166,7 @@ class HybridEmbeddingIndexer:
             raise
     
     def load_embeddings(self, embeddings_dir: str) -> Tuple[List[np.ndarray], List[Dict]]:
-        """Load embeddings from directory"""
+        """Load embeddings from directory with validation"""
         start_time = time.time()
         embeddings_path = Path(embeddings_dir)
         
@@ -178,7 +178,30 @@ class HybridEmbeddingIndexer:
         with open(metadata_file, 'r') as f:
             metadata = json.load(f)
         
-        logger.info(f"Found {len(metadata)} embeddings to load")
+        # Count actual .npy files for validation
+        npy_files = list(embeddings_path.glob("*.npy"))
+        
+        logger.info(f"Found {len(metadata)} embeddings in metadata")
+        logger.info(f"Found {len(npy_files)} .npy files in directory")
+        
+        # Validate consistency
+        if len(metadata) != len(npy_files):
+            logger.warning(f"⚠️  File count mismatch: {len(metadata)} metadata entries vs {len(npy_files)} .npy files")
+            
+            # Check for orphaned files
+            metadata_files = {m.get("filename") for m in metadata if m.get("filename")}
+            actual_files = {f.name for f in npy_files}
+            
+            orphaned = actual_files - metadata_files
+            missing = metadata_files - actual_files
+            
+            if orphaned:
+                logger.warning(f"Found {len(orphaned)} orphaned .npy files without metadata")
+                logger.debug(f"Orphaned files: {sorted(list(orphaned))[:10]}...")  # Show first 10
+                
+            if missing:
+                logger.warning(f"Found {len(missing)} metadata entries without corresponding files")
+                logger.debug(f"Missing files: {sorted(list(missing))[:10]}...")
         
         # Load embeddings with progress bar
         embeddings = []
@@ -338,8 +361,24 @@ class HybridEmbeddingIndexer:
         
         try:
             if self.index_type == "gpu":
-                logger.info("Creating GPU_CAGRA index...")
-                logger.info("Index parameters: intermediate_graph_degree=128, graph_degree=64")
+                # Adaptive GPU_CAGRA parameters based on dataset size
+                num_embeddings = self.metrics["total_embeddings"]
+                
+                if num_embeddings < 10000:
+                    # Small datasets
+                    intermediate_graph_degree = 32
+                    graph_degree = 16
+                elif num_embeddings < 100000:
+                    # Medium datasets
+                    intermediate_graph_degree = 64
+                    graph_degree = 32
+                else:
+                    # Large datasets
+                    intermediate_graph_degree = 128
+                    graph_degree = 64
+                
+                logger.info(f"Creating GPU_CAGRA index for {num_embeddings} embeddings...")
+                logger.info(f"Adaptive index parameters: intermediate_graph_degree={intermediate_graph_degree}, graph_degree={graph_degree}")
                 
                 index_params = self.client.prepare_index_params()
                 index_params.add_index(
@@ -348,8 +387,8 @@ class HybridEmbeddingIndexer:
                     index_type="GPU_CAGRA",
                     index_name="embedding_index",
                     params={
-                        "intermediate_graph_degree": 128,
-                        "graph_degree": 64,
+                        "intermediate_graph_degree": intermediate_graph_degree,
+                        "graph_degree": graph_degree,
                         "build_algo": "NN_DESCENT"
                     }
                 )
