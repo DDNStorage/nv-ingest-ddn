@@ -13,7 +13,7 @@ STORAGE_MODE="${4:-gcs}"  # Default to GCS for testing
 
 # Performance tuning parameters
 export MAX_SEGMENT_ROWS="${MAX_SEGMENT_ROWS:-240000}"  # ~1GB segments
-export NUM_UPLOAD_WORKERS="${NUM_UPLOAD_WORKERS:-8}"
+export NUM_UPLOAD_WORKERS="${NUM_UPLOAD_WORKERS:-20}"
 
 # Validate input
 if [ -z "$EMBEDDINGS_DIR" ] || [ ! -d "$EMBEDDINGS_DIR" ]; then

@@ -160,10 +160,14 @@ class EmbeddingGenerator:
                     doc_chunk_counters[source_file] = max(doc_chunk_counters[source_file], chunk_idx + 1)
             
             # Calculate optimal batch size based on dataset
-            optimal_batch_size = self._calculate_optimal_batch_size(len(remaining_files))
-            if optimal_batch_size != self.batch_size:
-                logger.info(f"Adjusted batch size from {self.batch_size} to {optimal_batch_size}")
-                self.batch_size = optimal_batch_size
+            # Only auto-adjust if batch_size is default (10) or less than 10
+            if self.batch_size <= 10:
+                optimal_batch_size = self._calculate_optimal_batch_size(len(remaining_files))
+                if optimal_batch_size != self.batch_size:
+                    logger.info(f"Auto-adjusted batch size from {self.batch_size} to {optimal_batch_size}")
+                    self.batch_size = optimal_batch_size
+            else:
+                logger.info(f"Using user-specified batch size: {self.batch_size}")
             
             # Process in batches
             total_batches = (len(remaining_files) + self.batch_size - 1) // self.batch_size
@@ -285,27 +289,32 @@ class EmbeddingGenerator:
                 batch_paths_str = [str(pdf_path) for pdf_path in batch]
                 
                 logger.debug(f"Processing batch {batch_num} with {len(batch_paths_str)} files")
-                
-                # Process batch
                 results = (
                     ingestor
                     .files(batch_paths_str)
                     .extract(
                         extract_text=True,
-                        extract_tables=False,
-                        extract_charts=False,
-                        extract_images=False,
+                        extract_tables=True,
+                        extract_charts=True,
+                        extract_images=True,
                         text_depth="page"
-                    )
+                    ).split(
+                        tokenizer="meta-llama/Llama-3.2-1B",
+                        chunk_size=500,
+                        chunk_overlap=15)
                     .embed()
-                    .ingest()
+                    .ingest(show_progress=True)
                 )
                 
                 # Process results with correct structure
                 doc_embeddings_count = defaultdict(int)
-                
+                # import sys
+                # use_tqdm = sys.stderr.isatty()
+                # pbar = tqdm(desc=f"Batch {batch_num} embeddings", leave=False) if use_tqdm else None
+                # logger.debug(f"Results structure: type={type(results)}, len={len(results) if hasattr(results, '__len__') else 'N/A'}")
+
                 # Use tqdm for batch progress
-                with tqdm(desc=f"Batch {batch_num} embeddings", leave=False) as pbar:
+                with tqdm(desc=f"Batch {batch_num} embeddings", leave=False) as pbar:        
                     # Results is a list of lists, where each inner list contains result dicts
                     logger.debug(f"Results structure: type={type(results)}, len={len(results) if hasattr(results, '__len__') else 'N/A'}")
                     for idx, result_group in enumerate(results):
@@ -355,7 +364,7 @@ class EmbeddingGenerator:
                                         doc_chunk_counters[source_file] += 1
                                         embeddings_count += 1
                                         pbar.update(1)
-                
+
                 # Mark files as processed only if they have valid embeddings
                 for pdf_path in batch:
                     pdf_str = str(pdf_path)
