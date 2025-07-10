@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
@@ -234,6 +235,67 @@ class HybridEmbeddingIndexer:
         
         return embeddings, valid_metadata
     
+    def load_embeddings_partitioned(self, embeddings_dir: str) -> Tuple[Optional[List[np.ndarray]], Optional[List[Dict]], List[Dict]]:
+        """Load embeddings from partitioned directory format with parallel loading.
+        
+        Returns:
+            Tuple of (embeddings, metadata, partition_info)
+            For partitioned format, embeddings and metadata are None as data is pre-aggregated
+        """
+        start_time = time.time()
+        embeddings_path = Path(embeddings_dir)
+        
+        # Load master metadata
+        metadata_file = embeddings_path / "embeddings_metadata.json"
+        if not metadata_file.exists():
+            raise FileNotFoundError(f"Metadata file not found: {metadata_file}")
+        
+        with open(metadata_file, 'r') as f:
+            master_metadata = json.load(f)
+        
+        # Check format version
+        format_version = master_metadata.get("format_version", "1.0")
+        storage_format = master_metadata.get("storage_format", "individual_files")
+        
+        if format_version != "2.0" or storage_format != "partitioned_aggregated":
+            logger.info("Not a partitioned format, falling back to standard loading")
+            embeddings, metadata = self.load_embeddings(embeddings_dir)
+            return embeddings, metadata, []
+        
+        logger.info(f"Loading partitioned embeddings (format {format_version})")
+        logger.info(f"Total vectors: {master_metadata['num_vectors']:,}")
+        logger.info(f"Number of partitions: {master_metadata['num_partitions']}")
+        
+        # Validate partition directories
+        partition_info = master_metadata.get("partitions", [])
+        valid_partitions = []
+        
+        for p_info in partition_info:
+            partition_dir = embeddings_path / p_info["partition_dir"]
+            if partition_dir.exists():
+                # Check required files
+                embeddings_file = partition_dir / "embeddings.npy"
+                ids_file = partition_dir / "ids.npy"
+                metadata_file = partition_dir / "metadata.json"
+                
+                if all(f.exists() for f in [embeddings_file, ids_file, metadata_file]):
+                    valid_partitions.append(p_info)
+                else:
+                    logger.warning(f"Partition {p_info['partition_id']} missing required files")
+            else:
+                logger.warning(f"Partition directory not found: {partition_dir}")
+        
+        self.metrics["loading_time"] = time.time() - start_time
+        self.metrics["total_embeddings"] = master_metadata['num_vectors']
+        self.metrics["num_partitions"] = len(valid_partitions)
+        
+        logger.info(f"Found {len(valid_partitions)} valid partitions")
+        logger.info(f"Partition validation completed in {format_time(self.metrics['loading_time'])}")
+        
+        # Return None for embeddings/metadata as they're pre-partitioned
+        # Return partition info for direct processing
+        return None, None, valid_partitions
+    
     def aggregate_and_upload_segments(self, embeddings: List[np.ndarray], metadata: List[Dict]) -> List[Dict]:
         """Aggregate embeddings into segments and upload to storage"""
         # Step 1: Group embeddings into segments
@@ -280,6 +342,286 @@ class HybridEmbeddingIndexer:
         # Clean up temporary files
         for segment_id, _ in segments_to_upload:
             aggregator.cleanup_temp_files(segment_id)
+        
+        return upload_results
+    
+    def upload_partitions_direct(self, embeddings_dir: str, partition_info: List[Dict]) -> List[Dict]:
+        """Upload pre-partitioned data directly to storage without aggregation.
+        
+        Args:
+            embeddings_dir: Base directory containing partitions
+            partition_info: List of partition information dictionaries
+            
+        Returns:
+            List of upload results
+        """
+        embeddings_path = Path(embeddings_dir)
+        logger.info(f"Uploading {len(partition_info)} pre-partitioned segments to {self.storage_mode} storage...")
+        
+        upload_start = time.time()
+        
+        # Prepare upload tasks for pre-partitioned data
+        segments_to_upload = []
+        
+        for p_info in partition_info:
+            partition_dir = embeddings_path / p_info["partition_dir"]
+            segment_id = f"partition_{p_info['partition_id']:04d}"
+            
+            # Map partition files to Milvus expected format
+            file_mapping = {
+                "id": str(partition_dir / "ids.npy"),
+                "vector": str(partition_dir / "embeddings.npy")  # Milvus expects 'vector' not 'embeddings'
+            }
+            
+            # Add metadata fields if search is enabled
+            if self.enable_search:
+                metadata_file = partition_dir / "metadata.json"
+                if metadata_file.exists():
+                    # We'll need to convert metadata to column format
+                    # For now, mark it for processing
+                    file_mapping["_metadata"] = str(metadata_file)
+            
+            segments_to_upload.append((segment_id, file_mapping))
+        
+        # Upload partitions in parallel
+        upload_manager = ParallelUploadManager(self.storage_client, self.num_upload_workers)
+        upload_results = []
+        
+        with tqdm(total=len(segments_to_upload), desc="Uploading partitions") as pbar:
+            upload_batch_results = upload_manager.upload_all_segments(segments_to_upload, self.collection_name)
+            
+            for result in upload_batch_results:
+                # Add partition info to results
+                partition_id = int(result['segment_id'].split('_')[-1])
+                matching_partition = next((p for p in partition_info if p['partition_id'] == partition_id), None)
+                
+                if matching_partition:
+                    result['num_embeddings'] = matching_partition['num_embeddings']
+                
+                upload_results.append(result)
+                pbar.update(1)
+        
+        self.metrics["upload_time"] = time.time() - upload_start
+        self.metrics["num_segments"] = len(upload_results)
+        
+        logger.info(f"Uploaded {len(upload_results)} partitions in {format_time(self.metrics['upload_time'])}")
+        
+        return upload_results
+    
+    def calculate_partition_groupings(self, partition_info: List[Dict], target_segment_mb: int = 1024) -> List[List[Dict]]:
+        """Calculate optimal groupings of partitions to achieve target segment size.
+        
+        Args:
+            partition_info: List of partition information dictionaries
+            target_segment_mb: Target segment size in MB (default: 1024 MB = 1GB)
+            
+        Returns:
+            List of partition groups, where each group forms one segment
+        """
+        # Convert target to bytes for comparison
+        target_segment_bytes = target_segment_mb * 1024 * 1024
+        min_segment_bytes = int(target_segment_bytes * 0.5)  # Allow 50% minimum
+        max_segment_bytes = int(target_segment_bytes * 1.5)  # Allow 150% maximum
+        
+        logger.info(f"Calculating partition groupings for {len(partition_info)} partitions")
+        logger.info(f"Target segment size: {target_segment_mb} MB ({format_size(target_segment_bytes)})")
+        logger.info(f"Acceptable range: {format_size(min_segment_bytes)} - {format_size(max_segment_bytes)}")
+        
+        # Sort partitions by size for better grouping
+        sorted_partitions = sorted(partition_info, key=lambda p: p.get('total_size_bytes', 0))
+        
+        groups = []
+        current_group = []
+        current_size = 0
+        
+        for partition in sorted_partitions:
+            partition_size = partition.get('total_size_bytes', 0)
+            
+            # If single partition is already large enough, make it its own segment
+            if partition_size >= min_segment_bytes:
+                # Finish current group if it exists
+                if current_group:
+                    groups.append(current_group)
+                    logger.debug(f"Created segment group with {len(current_group)} partitions, size: {format_size(current_size)}")
+                
+                # Add large partition as its own group
+                groups.append([partition])
+                logger.debug(f"Created single-partition segment, size: {format_size(partition_size)}")
+                
+                # Reset current group
+                current_group = []
+                current_size = 0
+            
+            # If adding this partition keeps us under max, add it
+            elif current_size + partition_size <= max_segment_bytes:
+                current_group.append(partition)
+                current_size += partition_size
+                
+                # If we've reached optimal size, finish this group
+                if current_size >= min_segment_bytes:
+                    groups.append(current_group)
+                    logger.debug(f"Created segment group with {len(current_group)} partitions, size: {format_size(current_size)}")
+                    current_group = []
+                    current_size = 0
+            
+            # Otherwise, finish current group and start new one
+            else:
+                if current_group:
+                    groups.append(current_group)
+                    logger.debug(f"Created segment group with {len(current_group)} partitions, size: {format_size(current_size)}")
+                
+                current_group = [partition]
+                current_size = partition_size
+        
+        # Don't forget the last group
+        if current_group:
+            groups.append(current_group)
+            logger.debug(f"Created final segment group with {len(current_group)} partitions, size: {format_size(current_size)}")
+        
+        # Log summary
+        logger.info(f"Created {len(groups)} segment groups from {len(partition_info)} partitions")
+        for i, group in enumerate(groups):
+            group_size = sum(p.get('total_size_bytes', 0) for p in group)
+            logger.info(f"  Segment {i}: {len(group)} partitions, {format_size(group_size)}")
+        
+        return groups
+    
+    def load_and_merge_partitions(self, embeddings_dir: str, partition_group: List[Dict], 
+                                  segment_id: str) -> Dict[str, str]:
+        """Load and merge multiple partitions into a single segment.
+        
+        Args:
+            embeddings_dir: Base directory containing partitions
+            partition_group: List of partition info dicts to merge
+            segment_id: Unique identifier for the output segment
+            
+        Returns:
+            Dictionary mapping field names to temporary file paths
+        """
+        embeddings_path = Path(embeddings_dir)
+        segment_dir = Path(self.temp_dir) / segment_id
+        segment_dir.mkdir(parents=True, exist_ok=True)
+        
+        logger.info(f"Merging {len(partition_group)} partitions into segment {segment_id}")
+        
+        # Collect all data from partitions
+        all_ids = []
+        all_embeddings = []
+        total_vectors = 0
+        
+        for partition in partition_group:
+            partition_dir = embeddings_path / partition["partition_dir"]
+            
+            # Load partition data
+            ids_path = partition_dir / "ids.npy"
+            embeddings_path_file = partition_dir / "embeddings.npy"
+            
+            if ids_path.exists() and embeddings_path_file.exists():
+                ids = np.load(ids_path)
+                embeddings = np.load(embeddings_path_file)
+                
+                all_ids.append(ids)
+                all_embeddings.append(embeddings)
+                total_vectors += len(ids)
+                
+                logger.debug(f"Loaded partition {partition['partition_id']}: {len(ids)} vectors")
+            else:
+                logger.warning(f"Skipping partition {partition['partition_id']}: missing files")
+        
+        if not all_ids:
+            raise ValueError(f"No valid partitions found for segment {segment_id}")
+        
+        # Concatenate all arrays
+        merged_ids = np.concatenate(all_ids)
+        merged_embeddings = np.concatenate(all_embeddings)
+        
+        # Save merged data
+        id_path = segment_dir / "id.npy"
+        vector_path = segment_dir / "vector.npy"
+        
+        np.save(id_path, merged_ids)
+        np.save(vector_path, merged_embeddings)
+        
+        # Calculate segment size
+        segment_size_bytes = id_path.stat().st_size + vector_path.stat().st_size
+        
+        logger.info(f"Created segment {segment_id}: {total_vectors} vectors, {format_size(segment_size_bytes)}")
+        
+        # Return file paths
+        file_paths = {
+            "id": str(id_path),
+            "vector": str(vector_path)
+        }
+        
+        return file_paths
+    
+    def aggregate_partitions_to_segments(self, embeddings_dir: str, partition_info: List[Dict]) -> List[Dict]:
+        """Aggregate partitions into optimal-sized segments for bulk insert.
+        
+        Args:
+            embeddings_dir: Base directory containing partitions
+            partition_info: List of partition information dictionaries
+            
+        Returns:
+            List of upload results for aggregated segments
+        """
+        # Set up temporary directory for aggregated segments
+        self.temp_dir = Path("/tmp/milvus_segments_aggregated")
+        self.temp_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Calculate optimal partition groupings
+        partition_groups = self.calculate_partition_groupings(partition_info)
+        
+        # Process each group
+        upload_results = []
+        segments_to_upload = []
+        
+        logger.info(f"Aggregating {len(partition_info)} partitions into {len(partition_groups)} segments")
+        
+        with tqdm(total=len(partition_groups), desc="Aggregating segments") as pbar:
+            for group_idx, partition_group in enumerate(partition_groups):
+                segment_id = f"segment_{group_idx:04d}"
+                
+                try:
+                    # Load and merge partitions for this segment
+                    file_paths = self.load_and_merge_partitions(
+                        embeddings_dir, partition_group, segment_id
+                    )
+                    
+                    segments_to_upload.append((segment_id, file_paths))
+                    
+                except Exception as e:
+                    logger.error(f"Failed to aggregate segment {segment_id}: {e}")
+                    continue
+                
+                pbar.update(1)
+        
+        # Upload aggregated segments
+        logger.info(f"Uploading {len(segments_to_upload)} aggregated segments to {self.storage_mode} storage")
+        upload_start = time.time()
+        
+        upload_manager = ParallelUploadManager(self.storage_client, self.num_upload_workers)
+        upload_results = upload_manager.upload_all_segments(segments_to_upload, self.collection_name)
+        
+        # Add segment info to results
+        for i, result in enumerate(upload_results):
+            if result['status'] == 'success' and i < len(partition_groups):
+                # Calculate total embeddings in this segment
+                group = partition_groups[i]
+                num_embeddings = sum(p['num_embeddings'] for p in group)
+                result['num_embeddings'] = num_embeddings
+        
+        self.metrics["upload_time"] = time.time() - upload_start
+        self.metrics["num_segments"] = len(upload_results)
+        
+        logger.info(f"Uploaded {len(upload_results)} segments in {format_time(self.metrics['upload_time'])}")
+        
+        # Clean up temporary files
+        for segment_id, _ in segments_to_upload:
+            segment_dir = self.temp_dir / segment_id
+            if segment_dir.exists():
+                import shutil
+                shutil.rmtree(segment_dir)
         
         return upload_results
     
@@ -505,18 +847,37 @@ class HybridEmbeddingIndexer:
             self.connect()
             self.setup_collection()
             
-            # Load embeddings
-            embeddings, metadata = self.load_embeddings(embeddings_dir)
+            # Try partitioned loading first
+            embeddings, metadata, partition_info = self.load_embeddings_partitioned(embeddings_dir)
             
-            # Calculate total data size
-            total_size = sum(emb.nbytes for emb in embeddings)
-            logger.info(f"Total data size: {format_size(total_size)}")
-            
-            # Step 1: Aggregate and upload segments
-            upload_results = self.aggregate_and_upload_segments(embeddings, metadata)
-            
-            # Step 2: Perform bulk insert
-            self.bulk_insert_segments(upload_results)
+            if partition_info:
+                # Partitioned format - use aggregation for optimal segment sizes
+                logger.info("Using partitioned data pipeline with smart aggregation")
+                
+                # Calculate total data size from partition info
+                total_size = sum(p['total_size_bytes'] for p in partition_info)
+                logger.info(f"Total data size: {format_size(total_size)}")
+                
+                # Step 1: Aggregate partitions into optimal segments and upload
+                self.metrics["aggregation_start"] = time.time()
+                upload_results = self.aggregate_partitions_to_segments(embeddings_dir, partition_info)
+                self.metrics["aggregation_time"] = time.time() - self.metrics["aggregation_start"]
+                
+                # Step 2: Perform bulk insert
+                self.bulk_insert_segments(upload_results)
+            else:
+                # Legacy format - use original pipeline
+                logger.info("Using legacy individual file pipeline")
+                
+                # Calculate total data size
+                total_size = sum(emb.nbytes for emb in embeddings)
+                logger.info(f"Total data size: {format_size(total_size)}")
+                
+                # Step 1: Aggregate and upload segments
+                upload_results = self.aggregate_and_upload_segments(embeddings, metadata)
+                
+                # Step 2: Perform bulk insert
+                self.bulk_insert_segments(upload_results)
             
             # Step 3: Create index AFTER data ingestion (following the optimized approach)
             self.create_index()

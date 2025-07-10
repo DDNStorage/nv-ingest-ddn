@@ -45,6 +45,17 @@ if [ "$STORAGE_MODE" = "gcs" ]; then
     fi
 fi
 
+# Infinia-specific configuration
+if [ "$STORAGE_MODE" = "infinia" ]; then
+    echo "Setting up Infinia storage credentials..."
+    export MY_STORAGE_ENDPOINT="https://10.168.15.234:8111"
+    export MY_ACCESS_KEY_ID="D8BKP21LB091U1YFUX9Z"
+    export MY_SECRET_ACCESS_KEY="81VqVHbeDz5tITocnPBeM1KltMCr1YaMzv3XbBTc"
+    export MY_BUCKET_NAME="milvus-db"
+    echo "  Endpoint: $MY_STORAGE_ENDPOINT"
+    echo "  Bucket: $MY_BUCKET_NAME"
+fi
+
 echo "============================================"
 echo "OPTIMIZED BULK INDEXING"
 echo "============================================"
@@ -102,15 +113,35 @@ fi
 
 # Count embeddings from metadata for accuracy
 if [ -f "$EMBEDDINGS_DIR/embeddings_metadata.json" ]; then
-    METADATA_COUNT=$(python -c "import json; f=open('$EMBEDDINGS_DIR/embeddings_metadata.json'); m=json.load(f); print(len(m)); f.close()" 2>/dev/null || echo "0")
-    FILE_COUNT=$(find "$EMBEDDINGS_DIR" -name "*.npy" | wc -l)
-    echo "  Embeddings in metadata: $METADATA_COUNT"
-    echo "  .npy files found: $FILE_COUNT"
+    # Check if it's partitioned format
+    FORMAT_VERSION=$(python -c "import json; f=open('$EMBEDDINGS_DIR/embeddings_metadata.json'); m=json.load(f); print(m.get('format_version', '1.0')); f.close()" 2>/dev/null || echo "1.0")
     
-    # Warn if there's a discrepancy
-    if [ "$METADATA_COUNT" -ne "$FILE_COUNT" ]; then
-        echo "  ⚠️  WARNING: File count mismatch! Metadata entries don't match .npy files"
-        echo "     This may indicate incomplete processing or orphaned files"
+    if [ "$FORMAT_VERSION" = "2.0" ]; then
+        # Partitioned format
+        echo "  Format: Partitioned (v2.0) - Optimized for fast loading"
+        METADATA_COUNT=$(python -c "import json; f=open('$EMBEDDINGS_DIR/embeddings_metadata.json'); m=json.load(f); print(m.get('num_vectors', 0)); f.close()" 2>/dev/null || echo "0")
+        PARTITION_COUNT=$(python -c "import json; f=open('$EMBEDDINGS_DIR/embeddings_metadata.json'); m=json.load(f); print(m.get('num_partitions', 0)); f.close()" 2>/dev/null || echo "0")
+        echo "  Total embeddings: $METADATA_COUNT"
+        echo "  Number of partitions: $PARTITION_COUNT"
+        
+        # Count partition directories
+        PARTITION_DIR_COUNT=$(find "$EMBEDDINGS_DIR" -type d -name "partition_*" | wc -l)
+        if [ "$PARTITION_COUNT" -ne "$PARTITION_DIR_COUNT" ]; then
+            echo "  ⚠️  WARNING: Expected $PARTITION_COUNT partitions but found $PARTITION_DIR_COUNT directories"
+        fi
+    else
+        # Legacy format
+        echo "  Format: Legacy (v1.0) - Individual files per embedding"
+        METADATA_COUNT=$(python -c "import json; f=open('$EMBEDDINGS_DIR/embeddings_metadata.json'); m=json.load(f); print(len(m)); f.close()" 2>/dev/null || echo "0")
+        FILE_COUNT=$(find "$EMBEDDINGS_DIR" -name "*.npy" | wc -l)
+        echo "  Embeddings in metadata: $METADATA_COUNT"
+        echo "  .npy files found: $FILE_COUNT"
+        
+        # Warn if there's a discrepancy
+        if [ "$METADATA_COUNT" -ne "$FILE_COUNT" ]; then
+            echo "  ⚠️  WARNING: File count mismatch! Metadata entries don't match .npy files"
+            echo "     This may indicate incomplete processing or orphaned files"
+        fi
     fi
 else
     echo "  ❌ ERROR: No metadata file found!"

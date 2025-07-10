@@ -118,18 +118,26 @@ class InfiniaStorageClient(StorageClient):
         session = boto3.Session()
         
         # SSL configuration
-        verify = True
         if ca_cert_path and os.path.exists(ca_cert_path):
             verify = ca_cert_path
             os.environ['AWS_CA_BUNDLE'] = ca_cert_path
             logger.info(f"Using custom CA certificate: {ca_cert_path}")
+        else:
+            verify = False  # Disable SSL verification for self-signed certs
+            logger.info("SSL verification disabled (no CA certificate provided)")
+            # Suppress SSL warnings when verification is disabled
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         
         self.client = session.client(
             's3',
             endpoint_url=f"{'https' if secure else 'http'}://{endpoint}",
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
-            config=BotoConfig(signature_version='s3v4'),
+            config=BotoConfig(
+                signature_version='s3v4',
+                max_pool_connections=50  # Increase from default 10 to handle parallel uploads
+            ),
             verify=verify
         )
         
