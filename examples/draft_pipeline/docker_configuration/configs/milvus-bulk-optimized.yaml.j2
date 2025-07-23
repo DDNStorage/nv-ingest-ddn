@@ -1,0 +1,197 @@
+# Milvus configuration optimized for bulk load operations
+# Generated dynamically based on system resources
+
+etcd:
+  endpoints: etcd:2379
+  rootPath: by-dev
+  metaSubPath: meta
+  kvSubPath: kv
+  requestTimeout: 30000  # Increased for bulk operations
+
+localStorage:
+  path: /var/lib/milvus/data/
+
+# Storage backend configuration (populated from environment)
+minio:
+  address: {{ storage.endpoint }}
+  accessKeyID: {{ storage.access_key }}
+  secretAccessKey: {{ storage.secret_key }}
+  useSSL: {{ storage.use_ssl | lower }}
+  bucketName: {{ storage.bucket }}
+  rootPath: {{ storage.root_path }}
+  useIAM: false
+  cloudProvider: {{ storage.cloud_provider }}
+{% if storage.type == 'infinia' and storage.use_ssl %}
+  ssl:
+    tlsCACert: {{ storage.ssl_cert_path }}
+{% endif %}
+
+# Message queue configuration
+mq:
+  type: pulsar
+  enablePursuitMode: true
+  pursuitLag: 10
+  pursuitBufferSize: 16777216  # 16MB for bulk operations
+  mqBufSize: 64  # Increased buffer size
+
+pulsar:
+  address: pulsar
+  port: 6650
+  maxMessageSize: 268435456  # 256MB for bulk batches
+  tenant: public
+  namespace: default
+  requestTimeout: 60  # 60 seconds
+  enableClientMetrics: false 
+
+# Root coordinator configuration
+rootCoord:
+  dmlChannelNum: {{ config.data_nodes }}
+  minSegmentSizeToEnableIndex: 524288  # 512k rows minimum
+  importTaskExpiration: 7200  # 2 hours for large imports
+  importTaskRetention: 86400  # Keep import tasks for 24h
+
+# Query coordinator configuration  
+queryCoord:
+  taskMergeCap: 16
+  taskExecutionCap: 1024  # High for bulk operations
+  autoHandoff: true
+  autoBalance: false  # Disable during bulk load
+  loadTimeoutSeconds: 1800  # 30 minutes for large datasets
+  checkBalanceInterval: 300  # Check less frequently during bulk load
+
+# Query node configuration
+queryNode:
+  enableDisk: true  # Enable disk-based loading
+  stats:
+    publishInterval: 10000  # 10 seconds during bulk
+  segcore:
+    knowhereThreadPoolNumRatio: {{ config.thread_pools.knowhere_thread_pool_ratio }}
+    chunkRows: 65536  # Larger chunks for bulk
+    interimIndex:
+      enableIndex: false
+      nlist: 128  # If enabled later
+  grouping:
+    enabled: true
+    maxNQ: 1000
+    topKMergeRatio: 20
+  scheduler:
+    maxReadConcurrentRatio: 0.2  # Reduced during bulk
+    cpuRatio: 1 
+
+# Index coordinator configuration
+indexCoord:
+  segment:
+    minSegmentNumRowsToEnableIndex: 524288  # Higher threshold for bulk
+
+# Index node configuration
+indexNode:
+  scheduler:
+    buildParallel: {{ config.parallelism.build_index_parallel }}
+  enableDisk: true
+  maxDiskUsagePercentage: 95
+  diskCapacityLimit: 0 
+{% if config.gpu is defined %}
+  enableGPU: true
+  gpuMemoryPoolSizeRatio: 0.8
+{% endif %}
+
+# Data coordinator configuration
+dataCoord:
+  segment:
+    maxSize: {{ config.segment.max_size_mb }}
+    sealProportion: {{ config.segment.seal_proportion }}
+    assignmentExpiration: 2000 
+    maxLife: 86400
+    maxIdleTime: 600 
+    smallProportion: 0.1  # Lower threshold for small segments
+  enableCompaction: false
+  compaction:
+    enableAutoCompaction: false
+    maxParallelTaskNum: {{ config.parallelism.compaction_parallel }}
+  import:
+    maxImportSize: {{ config.bulk_insert.max_file_size_mb }}  # 16GB
+    maxConcurrentTaskNum: {{ config.parallelism.import_concurrent_tasks }}
+    waitForIndex: false
+    maxSizeInMBPerImportTask: 12288  # 12GB per task
+  gc:
+    interval: 1800  
+    missingTolerance: 7200
+    dropTolerance: 7200
+
+# Data node configuration
+dataNode:
+  dataSync:
+    flowGraph:
+      maxQueueLength: 32  # Increased from 128
+      maxParallelism: {{ config.parallelism.data_sync_parallel }}
+    maxParallelSyncMgrTasks: {{ config.parallelism.data_sync_parallel }}
+  segment:
+    insertBufSize: 67108864  # 64MB fixed
+    deleteBufBytes: 67108864
+    syncPeriod: 300  # 5 minutes for bulk
+  memory:
+    forceSyncEnable: true
+    forceSyncSegmentNum: 3  # Reduced from 8
+    checkInterval: 3000  # Check every 3 seconds
+    forceSyncWatermark: 0.7  # Lower threshold
+  channel:
+    workPoolSize: {{ resources.cpu.logical_cores }}
+    watchTimeoutInterval: 300  # 5 minutes
+  import:
+    maxConcurrentTaskNum: {{ config.parallelism.import_concurrent_tasks }}
+    importTaskCheckInterval: 2 
+
+# Common configuration
+common:
+  storageType: remote
+  simdType: auto
+  
+{% if config.gpu is defined %}
+# GPU configuration
+gpu:
+  initMemSize: {{ config.gpu.init_mem_size_mb }}
+  maxMemSize: {{ config.gpu.max_mem_size_mb }}
+{% endif %}
+
+# Quota and limits - optimized for bulk load
+quotaAndLimits:
+  enabled: true
+  limits:
+    maxInsertSize: -1
+    maxCollectionNum: 65536
+  ddl:
+    enabled: false
+  indexRate:
+    enabled: false
+    max: -1
+  flushRate:
+    enabled: true
+    max: -1
+  compactionRate:
+    enabled: false
+  dml:
+    enabled: false
+    insertRate:
+      max: -1
+  limitWriting:
+    forceDeny: false
+    ttProtection:
+      enabled: false
+    memProtection:
+      enabled: true
+      dataNodeMemoryLowWaterLevel: 0.7  # Lower thresholds
+      dataNodeMemoryHighWaterLevel: 0.85
+      queryNodeMemoryLowWaterLevel: 0.7
+      queryNodeMemoryHighWaterLevel: 0.85
+    diskProtection:
+      enabled: true
+      diskQuota: -1  # No limit
+
+# Logging
+log:
+  level: info
+  file:
+    rootPath: /var/log/milvus
+    maxSize: 1024  # 1GB log files
+    maxAge: 7
+    maxBackups: 10

@@ -1,0 +1,39 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'milvus'
+    static_configs:
+      - targets: ['proxy:9091']
+        labels:
+          component: 'proxy'
+      
+      - targets: ['rootcoord:9091']
+        labels:
+          component: 'rootcoord'
+      
+      - targets: ['datacoord:9091']
+        labels:
+          component: 'datacoord'
+      
+      - targets: ['querycoord:9091']
+        labels:
+          component: 'querycoord'
+      
+      - targets: ['indexcoord:9091']
+        labels:
+          component: 'indexcoord'
+
+  - job_name: 'milvus-nodes'
+    scrape_interval: 30s
+    static_configs:
+      - targets: 
+          - 'datanode0:9091'
+          - 'datanode1:9091'
+          - 'datanode2:9091'
+          - 'datanode3:9091'
+          - 'querynode0:9091'
+          - 'querynode1:9091'
+          - 'indexnode0:9091'
+          - 'indexnode1:9091'

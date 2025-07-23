@@ -1,0 +1,230 @@
+version: '3.8'
+
+x-milvus-base: &milvus-base
+  image: ${MILVUS_IMAGE:-milvusdb/milvus:v2.5.4{% if config.gpu is defined %}-gpu{% endif %}}
+  volumes:
+    - ./configs/milvus.yaml:/milvus/configs/milvus.yaml
+    - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/milvus:/var/lib/milvus
+{% if storage.type == 'infinia' %}
+    - ./certs:/milvus/certs:ro
+{% endif %}
+  environment: &milvus-env
+    ETCD_ENDPOINTS: etcd:2379
+    MINIO_ADDRESS: {{ storage.endpoint }}
+    MINIO_BUCKET_NAME: {{ storage.bucket }}
+    MINIO_ROOT_PATH: {{ storage.root_path }}
+    MINIO_ACCESS_KEY_ID: {{ storage.access_key }}
+    MINIO_SECRET_ACCESS_KEY: {{ storage.secret_key }}
+    MINIO_USE_SSL: "{{ storage.use_ssl | lower }}"
+{% if storage.type == 'infinia' and storage.use_ssl %}
+    MINIO_SSL_CACERT_FILE: {{ storage.ssl_cert_path }}
+{% endif %}
+    PULSAR_ADDRESS: pulsar://pulsar:6650
+  networks:
+    - milvus
+  security_opt:
+    - seccomp:unconfined
+
+services:
+  etcd:
+    container_name: milvus-etcd
+    image: quay.io/coreos/etcd:v3.5.5
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=8589934592
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/etcd:/etcd
+    command: etcd --advertise-client-urls=http://0.0.0.0:2379 --listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - milvus
+
+  pulsar:
+    container_name: milvus-pulsar
+    image: apachepulsar/pulsar:2.8.2
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/pulsar_data:/pulsar/data
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/pulsar_logs:/pulsar/logs
+    environment:
+      - PULSAR_MEM=-Xms2g -Xmx2g -XX:MaxDirectMemorySize=4g
+      - PULSAR_GC=-XX:+UseG1GC -XX:MaxGCPauseMillis=10
+      - nettyMaxFrameSizeBytes=104867840
+      - defaultRetentionTimeInMinutes=10080
+      - defaultRetentionSizeInMB=8192
+    command: |
+      /bin/bash -c "
+      bin/apply-config-from-env.py conf/standalone.conf &&
+      echo 'maxMessageSize=104857600' >> conf/standalone.conf &&
+      exec bin/pulsar standalone --no-functions-worker --no-stream-storage"
+    healthcheck:
+      test: ["CMD", "bin/pulsar-admin", "brokers", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - milvus
+
+{% if storage.type == 'minio' %}
+  minio:
+    container_name: milvus-minio
+    image: minio/minio:RELEASE.2024-01-05T22-17-24Z
+    environment:
+      MINIO_ROOT_USER: {{ storage.access_key }}
+      MINIO_ROOT_PASSWORD: {{ storage.secret_key }}
+    ports:
+      - "9001:9001"
+      - "9000:9000"
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/minio:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - milvus
+{% endif %}
+
+  rootcoord:
+    <<: *milvus-base
+    container_name: milvus-rootcoord
+    command: ["milvus", "run", "rootcoord"]
+    depends_on:
+      - etcd
+      - pulsar
+{% if storage.type == 'minio' %}
+      - minio
+{% endif %}
+
+  proxy:
+    <<: *milvus-base
+    container_name: milvus-proxy
+    command: ["milvus", "run", "proxy"]
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      - rootcoord
+
+  querycoord:
+    <<: *milvus-base
+    container_name: milvus-querycoord
+    command: ["milvus", "run", "querycoord"]
+    depends_on:
+      - rootcoord
+
+  datacoord:
+    <<: *milvus-base
+    container_name: milvus-datacoord
+    command: ["milvus", "run", "datacoord"]
+    depends_on:
+      - rootcoord
+
+  indexcoord:
+    <<: *milvus-base
+    container_name: milvus-indexcoord
+    command: ["milvus", "run", "indexcoord"]
+    depends_on:
+      - rootcoord
+
+  # Data nodes - scale based on configuration
+{% for i in range(config.data_nodes) %}
+  datanode{{ i }}:
+    <<: *milvus-base
+    container_name: milvus-datanode{{ i }}
+    command: ["milvus", "run", "datanode"]
+    depends_on:
+      - datacoord
+    deploy:
+      resources:
+        limits:
+          memory: {{ config.memory_per_node_mb }}m
+        reservations:
+          memory: {{ (config.memory_per_node_mb * 0.8) | int }}m
+{% if resources.cpu.physical_cores > 8 %}
+          cpus: '{{ (resources.cpu.physical_cores / config.data_nodes) | round(1) }}'
+{% endif %}
+{% endfor %}
+
+  # Query nodes - scale based on configuration
+{% for i in range(config.query_nodes) %}
+  querynode{{ i }}:
+    <<: *milvus-base
+    container_name: milvus-querynode{{ i }}
+    command: ["milvus", "run", "querynode"]
+    depends_on:
+      - querycoord
+    deploy:
+      resources:
+        limits:
+          memory: {{ config.memory_per_node_mb }}m
+        reservations:
+          memory: {{ (config.memory_per_node_mb * 0.8) | int }}m
+{% if config.gpu is defined and resources.gpus|length > 0 %}
+        devices:
+          - driver: nvidia
+            capabilities: [gpu]
+            device_ids: ['{{ i % resources.gpus|length }}']
+{% endif %}
+{% endfor %}
+
+  # Index nodes - scale based on configuration
+{% for i in range(config.index_nodes) %}
+  indexnode{{ i }}:
+    <<: *milvus-base
+    container_name: milvus-indexnode{{ i }}
+    command: ["milvus", "run", "indexnode"]
+    depends_on:
+      - indexcoord
+    deploy:
+      resources:
+        limits:
+          memory: {{ config.memory_per_node_mb }}m
+        reservations:
+          memory: {{ (config.memory_per_node_mb * 0.8) | int }}m
+{% if config.gpu is defined and resources.gpus|length > 0 %}
+        devices:
+          - driver: nvidia
+            capabilities: [gpu]
+            device_ids: ['{{ i % resources.gpus|length }}']
+{% endif %}
+{% endfor %}
+
+  # Optional: Prometheus for monitoring
+  prometheus:
+    container_name: milvus-prometheus
+    image: prom/prometheus:v2.45.0
+    networks:
+      - milvus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/prometheus:/prometheus
+
+  # Optional: Grafana for visualization
+  grafana:
+    container_name: milvus-grafana
+    image: grafana/grafana:10.0.0
+    networks:
+      - milvus
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/grafana:/var/lib/grafana
+
+networks:
+  milvus:
+    driver: bridge
